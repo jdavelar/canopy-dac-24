@@ -1,0 +1,81 @@
+---
+title: "Preliminary Investigation"
+author: "Janette Avelar"
+date: '2023-09-22'
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(here)
+library(rio)
+dat_19 <- import(here("data", "canopy-2019-2021.rds"))
+load("data/complete_canopy_2022.RData")
+dat_22 <- clean_data_full
+load("data/complete_canopy_2023.RData")
+dat_23 <- full
+```
+
+# Deep dive into high-participation schools
+
+For the following analysis, I identified the schools across our dataset that participated all 4 years. I've created a new dataset comprised solely of tag selection, and will investigate these.
+
+```{r merge school participation data}
+#ID which schools participated all 4 years
+#Export ID list to merge with tags
+
+#step 1 - create 0/1 participation for 2019 & 2021
+schools_19 <- dat_19 %>% 
+  select(year, school_id) %>% 
+  mutate(rate = rep(1, nrow(.))) %>% 
+  pivot_wider(names_from = year,
+              values_from = rate) %>% 
+  mutate(`2021` = case_when(
+    `2020` == 1 ~ 1,
+    `2021` == 1 ~ 1,
+    TRUE ~ 0
+  )) %>% 
+  select(!`2020`)
+#step 2 - create 0/1 participation for 2022
+schools_22 <- dat_22 %>% 
+  select(school_id) %>%
+  mutate(school_id = as.character(school_id)) %>% 
+  mutate(`2022` = rep(1, nrow(.)))
+#step 3 - create 0/1 participation for 2023
+schools_23 <- dat_23 %>% 
+  select(school_id) %>% 
+  mutate(school_id = as.character(school_id)) %>% 
+  mutate(`2023` = rep(1, nrow(.)))
+#merge
+schools <- schools_19 %>% 
+  full_join(schools_22, by = "school_id") %>% 
+  full_join(schools_23, by = "school_id") %>% 
+  mutate(across(where(is.numeric), coalesce, 0))
+export(schools, "data/school_participation.csv")
+```
+
+Looks like there are 492 distinct schools. Previous analysis had 542 - I think it was not de-duped?  
+Check numbers:
+*173 schools in 2019 (confirmed)  
+*232 schools in 2021 (confirmed - pulled full list [331] & de-duped)  
+*161 schools in 2022 (confirmed)  
+*251 schools in 2023 (confirmed)  
+
+817 obs over 492 distinct schools = At least 325 of these observations are repeat obs. A total of 29 schools participated all 4 years. (This is higher than what I calculated before - again, I think I must have made some de-duping error in calculating or pivoting.)
+
+```{r ID high participation schools}
+dat <- import(here("data", "school_participation.csv")) %>% 
+  rowwise() %>% 
+  mutate(ttl_part = sum(c(`2019`, `2021`, `2022`, `2023`))
+  ) %>% 
+  filter(ttl_part == 4) %>% 
+  select(school_id)
+```
+
+Merge tag data with participation
+
+```{r high participation tag merge}
+
+```
+
