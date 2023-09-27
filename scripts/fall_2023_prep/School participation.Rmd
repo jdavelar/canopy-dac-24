@@ -10,10 +10,10 @@ knitr::opts_chunk$set(echo = TRUE)
 pacman::p_load(rio, here, dplyr,tidyverse,lubridate, ggplot2,viridis)
 ```
 
+I did the initial cleaning in excel, please check sort_school_excel.xlsx if people want to see the original sheets. I then imported the cleaned dataset here. 
 
 ```{r}
 school <- import(here("data", "sort.csv"))
-
 ```
 
 ## Overall Number of school participated each year
@@ -50,7 +50,11 @@ school %>%
   geom_col(aes(total_count, n), fill="#1A4C81") +
   geom_text(aes(total_count, n,label = n), vjust=-0.5)
 ```
+
 ## Each year and the accumulated school participation 
+
+Here we can see the trend of each school participation from  2019 - 2023 (gray = not participated, yellow = participated), and the far right is the total count of year participated. Color map confirmed the least participation happened in 2022. 
+
 ```{r}
 school %>% 
   mutate(n = total_count) %>% 
@@ -61,8 +65,8 @@ school %>%
    ggplot() +
   geom_tile(aes(year, y=fct_reorder(school_name, n), fill=count))+
    scale_fill_viridis(discrete=FALSE, direction=-1)+
-  theme(axis.text.y = element_blank(),
-        axis.title.y = element_blank())
+  labs(y= "Nominated Schools")+
+  theme(axis.text.y = element_blank())
 ```
 
 ```{r}
