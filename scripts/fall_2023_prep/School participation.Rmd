@@ -25,6 +25,7 @@ school_wide <- school %>%
   pivot_wider(names_from = year, values_from = n) %>% 
   mutate(total = rowSums(across(c("2019","2021", "2022", "2023")), na.rm=TRUE)) %>% 
   select(school_id, school_name, "2019","2021", "2022", "2023", total)
+school_wide
 ```
 
 
@@ -49,7 +50,7 @@ pivot_longer(cols=c("2019","2021", "2022", "2023", total),
 
 ## Schools' repeated participation trends across the year
 
-However, in terms of schools regular participation, out of 503 schools ever participated in Canopy project, we only have 27 of schools  participated in all 4 year, 51 school participated in 3 time points, 131 schools in 2 time points, and 294 schools only 1 time point. 
+However, in terms of schools regular participation, out of 492 schools ever participated in Canopy project, we only have 29 of schools  participated in all 4 year, 56 school participated in 3 time points, 125 schools in 2 time points, and 283 schools only 1 time point. 
 
 ```{r}
 

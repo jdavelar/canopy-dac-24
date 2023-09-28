@@ -46,7 +46,7 @@
 64,USC Hybrid High College Prep,2019
 65,Elmer G Bondy Intermediate,2019
 67,Empower Community High School,2019
-69,EPiC Elementary,2019
+69,EPIC Elementary,2019
 70,Evergreen Community Charter School,2019
 71,Fannie Lou Hamer Freedom High School,2019
 72,Farmington High School,2019
@@ -129,7 +129,7 @@
 177,Schoolcraft High School,2019
 178,Science and Math Institute,2019
 179,Scott Central High School,2019
-180,SEEQS: the School for Examining Essential Questions of Sustainability,2019
+180,SEEQS: The School for Examining Essential Questions of Sustainability,2019
 183,Shawnee High School,2019
 184,Siloam Springs High School Conversion Charter,2019
 185,Silverton School,2019
@@ -294,7 +294,7 @@
 333,Paulo Freire Freedom School -Downtown,2021
 334,Paulo Freire Freedom School -University,2021
 339,Provident Heights Elementary,2021
-345,Saint John Paul II,2021
+345,Saint John Paul II Catholic School,2021
 346,San Diego Metropolitan Career and Technical High School,2021
 348,Science Leadership Academy,2021
 349,Siembra Leadership High School,2021
@@ -344,7 +344,7 @@
 215,Valor Flagship Academy,2021
 482,Irving Elementary,2021
 481,Arlington STEM Academy,2021
-480,Leadership Academy,2021
+480,Manara Leadership Academy,2021
 120,Magnolia Montessori For All,2021
 397,Williams Elementary School,2021
 65,Elmer G Bondy Intermediate,2021
@@ -415,7 +415,7 @@
 41,CodeRVA Regional High School,2022
 42,Columbia Heights Educational Campus (CHEC),2022
 44,Common Ground High School,2022
-45,Community Lab School,2022
+45,Albemarle County Community Public Charter School (Community Middle),2022
 47,Concourse Village Elementary School,2022
 52,DB EXCEL (Kingsport),2022
 67,Empower Community High School,2022
@@ -430,8 +430,8 @@
 91,Mott Haven Academy,2022
 94,Highline Big Picture,2022
 97,Horizons Alternative Education School,2022
-98,Howard Middle School For Math and Science,2022
-100,Urban Discovery High School,2022
+98,Howard Middle School for Math and Science,2022
+100,IDEATE High School/Urban Discovery High School,2022
 101,Impact | Puget Sound Elementary,2022
 105,Juab High School,2022
 119,Madison Palmer High School,2022
@@ -476,7 +476,7 @@
 306,Achieve Community Charter School,2022
 312,Nashville Big Picture High School,2022
 319,Nipmuc Regional High School,2022
-323,Northeast Academy for Aerospace And Advanced Technologies,2022
+323,Northeast Academy for Aerospace and Advanced Technologies,2022
 333,Paulo Freire Freedom School -Downtown,2022
 345,Saint John Paul II Catholic School,2022
 348,Science Leadership Academy,2022
@@ -487,7 +487,7 @@
 364,University Academy Upper School,2022
 368,Verdi EcoSchool,2022
 371,Washtenaw Alliance for Virtual Education (WAVE),2022
-380,Southeast Area Technical High School (Sea-Tech),2022
+380,Southeast Area Technical High School (SEA-TECH),2022
 382,Next Step High,2022
 383,Oxford Virtual Academy,2022
 384,Gull Lake Virtual Partnership,2022
@@ -609,7 +609,7 @@
 165,Purdue Polytechnic High School,2023
 167,Red Bank Elementary,2023
 172,Rooted School,2023
-180,SEEQS: the School for Examining Essential Questions of Sustainability,2023
+180,SEEQS: The School for Examining Essential Questions of Sustainability,2023
 189,Social Justice Humanitas Academy,2023
 191,Solar Preparatory School for Girls,2023
 201,Taos Academy Charter School,2023
@@ -647,7 +647,7 @@
 333,Paulo Freire Freedom School -Downtown,2023
 340,R5 High School,2023
 345,Saint John Paul II Catholic School,2023
-346,San Diego Met High School,2023
+346,San Diego Metropolitan Career and Technical High School,2023
 348,Science Leadership Academy,2023
 353,South Bronx Community Charter High School,2023
 359,Technology Leadership High School,2023
@@ -657,8 +657,8 @@
 369,Vista Grande Charter High School,2023
 371,Washtenaw Alliance for Virtual Education (WAVE),2023
 372,Welte Education Center,2023
-380,Southeast Area Technical High School (Sea-Tech),2023
-382,Next STEP High,2023
+380,Southeast Area Technical High School (SEA-TECH),2023
+382,Next Step High,2023
 383,Oxford Virtual Academy,2023
 384,Gull Lake Virtual Partnership,2023
 388,Frederick County Middle School,2023
