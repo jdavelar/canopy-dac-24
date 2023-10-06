@@ -1,0 +1,73 @@
+---
+title: "initial-tags"
+author: "Merly Klaas"
+date: "2023-10-06"
+output: 
+  html_document:
+    toc_float: yes
+    code_folding: hide
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE)
+pacman::p_load(rio, here, dplyr,tidyverse,lubridate, ggplot2,viridis)
+```
+
+```{r}
+tags <- import(here("data", "Tags 2019-2023.csv")) %>% 
+   mutate(across(starts_with("y_"),
+                ~ case_when(is.na(.) ~ 0, TRUE ~ 1)),
+         total = rowSums(across(starts_with("y_")), na.rm=TRUE))
+```
+
+
+## Number of tags used across the year
+
+In total, there are 137 different tags used in the span of 4 times surveys. 87 tags were used in 2019, 91 tags were used in 2021, 72 tags were used in 2022, and 73 tags were used in 2023.
+
+```{r}
+tags %>% 
+    pivot_longer(cols = c(starts_with("y_"), "total"),
+               names_to = "year",
+               values_to = "count")%>% 
+  filter(count != 0) %>% 
+  group_by(year) %>% 
+  count() %>% 
+  ggplot()+
+  geom_col(aes(year, n), fill= "#1A4C81") +
+   geom_text(aes(year, n,label = n), vjust = -0.5)
+```
+
+## Count of repeated tags used
+
+42 tags were used in all 4 time point, 23 tags were used in 3 time points, 14 tags were used in 2 time points, and 58 tags were only used once. 
+
+```{r}
+
+tags %>% 
+ggplot(aes(x=as.factor(total))) +
+  geom_bar(fill="#1A4C81") + 
+  geom_text(aes(y = ((..count..)), label = (..count..)), stat = "count", vjust = -0.5)+
+  labs(x= "Times used",
+       y= "Number of Variables")
+
+```
+
+## Visual of consistent year-over-year tags used in the Canopy survey
+
+```{r fig.height=10, fig.width=7}
+tags %>% 
+   mutate(n = total) %>% 
+    pivot_longer(cols = c(starts_with("y_"), total),
+               names_to = "year",
+               values_to = "count") %>%  
+  mutate(count = case_when(count == 0 ~ NA, TRUE ~count),
+         year = fct_relevel(year,"y_2019", "y_2021","y_2022","y_2023", "total" )) %>% 
+   ggplot() +
+  geom_tile(aes(year, y=fct_reorder(variable_name, n), fill=count))+
+   scale_fill_viridis(discrete=FALSE, direction=-1)+
+scale_x_discrete(expand = c(0, 0))+
+  labs(y = "Tags Name") + 
+  theme(axis.text=element_text(size=7))
+```
+
