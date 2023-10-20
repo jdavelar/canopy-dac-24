@@ -1,0 +1,38 @@
+---
+title: "merge-data-variable"
+author: "Merly Klaas"
+date: "2023-10-12"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE)
+pacman::p_load(rio, here, dplyr,tidyverse,lubridate, ggplot2,viridis)
+```
+
+```{r}
+var_2019 <- import(here("data","var_2019.xlsx")) %>% 
+mutate(across(starts_with(c("self_reported", "grades", "school_descriptor")), as.numeric))
+
+var_2021 <- import(here("data","var_2021.xlsx"))%>% 
+mutate(across(starts_with(c("self_reported", "grades", "school_descriptor")), as.numeric))
+var_2022 <- import(here("data","var_2022.xlsx"))%>% 
+mutate(across(starts_with(c("self_reported", "grades", "leaps", "school_descriptor")), as.numeric))
+
+var_2023 <- import(here("data","var_2023.xlsx")) %>% 
+  mutate(across(starts_with(c("self_reported", "grades","leaps", "school_descriptor")), as.numeric),
+         across(20:29, ~./100))
+
+```
+
+```{r}
+#check list:  id, city, state, district, school_descriptor, locale pk-12 grade, race, frpl, ell, swd, sws, #enrollment, nces_id, leaps_rank, grades, panel year
+
+var <- bind_rows(var_2019, var_2021, var_2022, var_2023) %>% 
+  select(school_id, panel_year, everything())
+head(var)
+
+
+
+```
+
