@@ -363,12 +363,12 @@ mutate(across(starts_with(c(&quot;self_reported&quot;, &quot;grades&quot;, &quot
 var_2021 &lt;- import(here(&quot;data&quot;,&quot;var_2021.xlsx&quot;))%&gt;% 
 mutate(across(starts_with(c(&quot;self_reported&quot;, &quot;grades&quot;, &quot;school_descriptor&quot;)), as.numeric))
 var_2022 &lt;- import(here(&quot;data&quot;,&quot;var_2022.xlsx&quot;))%&gt;% 
-mutate(across(starts_with(c(&quot;self_reported&quot;, &quot;grades&quot;, &quot;leaps&quot;, &quot;school_descriptor&quot;)), as.numeric))
+mutate(across(starts_with(c(&quot;self_reported&quot;, &quot;grades&quot;, &quot;leaps&quot;, &quot;school_descriptor&quot;, &quot;leadership&quot;, &quot;teaching&quot;)), as.numeric))
 
 var_2023 &lt;- import(here(&quot;data&quot;,&quot;var_2023.xlsx&quot;)) %&gt;% 
-  mutate(across(starts_with(c(&quot;self_reported&quot;, &quot;grades&quot;,&quot;leaps&quot;, &quot;school_descriptor&quot;)), as.numeric),
+  mutate(across(starts_with(c(&quot;self_reported&quot;, &quot;grades&quot;,&quot;leaps&quot;, &quot;school_descriptor&quot;,&quot;leadership&quot;, &quot;teaching&quot;)), as.numeric),
          across(20:29, ~./100))</code></pre>
-<pre class="r"><code>#check list:  id, city, state, district, school_descriptor, locale pk-12 grade, race, frpl, ell, swd, sws, #enrollment, nces_id, leaps_rank, grades, panel year
+<pre class="r"><code>#check list:  id, city, state, district, school_descriptor, locale pk-12 grade, race, frpl, ell, swd, sws, #enrollment, nces_id, leaps_rank, grades, panel year, leadership &amp; teaching diversity, leader1 race &amp; gender
 
 var &lt;- bind_rows(var_2019, var_2021, var_2022, var_2023) %&gt;% 
   select(school_id, panel_year, everything())
@@ -450,20 +450,20 @@ head(var)</code></pre>
 ## 4               6.3               9.8                 1             1
 ## 5                NA                NA                 0             1
 ## 6                NA                NA                NA            NA
-##   grades_high school_descriptor_sws term_2021 school_descriptor
-## 1          NA                     0      &lt;NA&gt;                NA
-## 2           0                     0      &lt;NA&gt;                NA
-## 3           0                     0      &lt;NA&gt;                NA
-## 4           0                     0      &lt;NA&gt;                NA
-## 5           1                     0      &lt;NA&gt;                NA
-## 6          NA                     0      &lt;NA&gt;                NA
-##   leaps_high_expectations leaps_whole_child leaps_rigorous_learning
-## 1                      NA                NA                      NA
-## 2                      NA                NA                      NA
-## 3                      NA                NA                      NA
-## 4                      NA                NA                      NA
-## 5                      NA                NA                      NA
-## 6                      NA                NA                      NA
+##   grades_high school_descriptor_sws school_descriptor school_descriptor_alt
+## 1          NA                     0                 3                     1
+## 2           0                     0                 2                     2
+## 3           0                     0                 1                     1
+## 4           0                     0                 2                     2
+## 5           1                     0                 2                     2
+## 6          NA                     0                 3                     3
+##   term_2021 leaps_high_expectations leaps_whole_child leaps_rigorous_learning
+## 1      &lt;NA&gt;                      NA                NA                      NA
+## 2      &lt;NA&gt;                      NA                NA                      NA
+## 3      &lt;NA&gt;                      NA                NA                      NA
+## 4      &lt;NA&gt;                      NA                NA                      NA
+## 5      &lt;NA&gt;                      NA                NA                      NA
+## 6      &lt;NA&gt;                      NA                NA                      NA
 ##   leaps_relevance leaps_affirmation leaps_social_consciousness leaps_connection
 ## 1              NA                NA                         NA               NA
 ## 2              NA                NA                         NA               NA
@@ -478,41 +478,66 @@ head(var)</code></pre>
 ## 4                  NA                   NA                     NA
 ## 5                  NA                   NA                     NA
 ## 6                  NA                   NA                     NA
-##   self_reported_ela self_reported_math leaps_rank_affirmation
-## 1                NA                 NA                     NA
-## 2                NA                 NA                     NA
-## 3                NA                 NA                     NA
-## 4                NA                 NA                     NA
-## 5                NA                 NA                     NA
-## 6                NA                 NA                     NA
-##   leaps_rank_anytime_anywhere leaps_rank_connection leaps_rank_customization
-## 1                          NA                    NA                       NA
-## 2                          NA                    NA                       NA
-## 3                          NA                    NA                       NA
-## 4                          NA                    NA                       NA
-## 5                          NA                    NA                       NA
-## 6                          NA                    NA                       NA
-##   leaps_rank_high_expectations leaps_rank_relevance
-## 1                           NA                   NA
-## 2                           NA                   NA
-## 3                           NA                   NA
-## 4                           NA                   NA
-## 5                           NA                   NA
-## 6                           NA                   NA
-##   leaps_rank_rigorous_learning leaps_rank_self_direction
-## 1                           NA                        NA
-## 2                           NA                        NA
-## 3                           NA                        NA
-## 4                           NA                        NA
-## 5                           NA                        NA
-## 6                           NA                        NA
-##   leaps_rank_social_consciousness leaps_rank_whole_child leaps_interest
-## 1                              NA                     NA             NA
-## 2                              NA                     NA             NA
-## 3                              NA                     NA             NA
-## 4                              NA                     NA             NA
-## 5                              NA                     NA             NA
-## 6                              NA                     NA             NA</code></pre>
+##   self_reported_ela self_reported_math leaps_rank_high_expectations
+## 1                NA                 NA                           NA
+## 2                NA                 NA                           NA
+## 3                NA                 NA                           NA
+## 4                NA                 NA                           NA
+## 5                NA                 NA                           NA
+## 6                NA                 NA                           NA
+##   leaps_rank_whole_child leaps_rank_rigorous_learning leaps_rank_relevance
+## 1                     NA                           NA                   NA
+## 2                     NA                           NA                   NA
+## 3                     NA                           NA                   NA
+## 4                     NA                           NA                   NA
+## 5                     NA                           NA                   NA
+## 6                     NA                           NA                   NA
+##   leaps_rank_affirmation leaps_rank_social_consciousness leaps_rank_connection
+## 1                     NA                              NA                    NA
+## 2                     NA                              NA                    NA
+## 3                     NA                              NA                    NA
+## 4                     NA                              NA                    NA
+## 5                     NA                              NA                    NA
+## 6                     NA                              NA                    NA
+##   leaps_rank_customization leaps_rank_self_direction
+## 1                       NA                        NA
+## 2                       NA                        NA
+## 3                       NA                        NA
+## 4                       NA                        NA
+## 5                       NA                        NA
+## 6                       NA                        NA
+##   leaps_rank_anytime_anywhere leadership_diversity teaching_diversity
+## 1                          NA                   NA                 NA
+## 2                          NA                   NA                 NA
+## 3                          NA                   NA                 NA
+## 4                          NA                   NA                 NA
+## 5                          NA                   NA                 NA
+## 6                          NA                   NA                 NA
+##   leader1_race leader1_gender leaps_interest
+## 1         &lt;NA&gt;           &lt;NA&gt;             NA
+## 2         &lt;NA&gt;           &lt;NA&gt;             NA
+## 3         &lt;NA&gt;           &lt;NA&gt;             NA
+## 4         &lt;NA&gt;           &lt;NA&gt;             NA
+## 5         &lt;NA&gt;           &lt;NA&gt;             NA
+## 6         &lt;NA&gt;           &lt;NA&gt;             NA</code></pre>
+<p>Check for school descriptor</p>
+<pre class="r"><code>var %&gt;% 
+  filter(panel_year == 2019) %&gt;% 
+  count(school_descriptor_alt) %&gt;% 
+  mutate(pct = n / sum(n))</code></pre>
+<pre><code>##   school_descriptor_alt   n        pct
+## 1                     1 117 0.67630058
+## 2                     2  50 0.28901734
+## 3                     3   6 0.03468208</code></pre>
+<pre class="r"><code>var %&gt;% 
+  filter(panel_year == 2019) %&gt;% 
+  count(school_descriptor) %&gt;% 
+  mutate(pct = n / sum(n))</code></pre>
+<pre><code>##   school_descriptor   n        pct
+## 1                 0   2 0.01156069
+## 2                 1 100 0.57803468
+## 3                 2  50 0.28901734
+## 4                 3  21 0.12138728</code></pre>
 
 
 
