@@ -1,0 +1,59 @@
+---
+title: "Tag data cleanup & merging"
+author: "Anwesha Guha"
+date: "2023-10-26"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+pacman::p_load(tidyverse, here, rio, janitor)
+```
+
+Read in data
+```{r}
+tags <- import(here("data", "tags_2018-2023_complete.csv")) %>% 
+  clean_names()
+```
+
+```{r}
+tags <- tags %>% 
+  select(-tag_variable_name_2023_airtable_inconsistencies, -fixed, -priority, -interest) %>% 
+  rename(description_2023 = x2023_description,
+         description_2022 = x2022_description,
+         description_2021 = x2021_description,
+         description_2019 = x2019_description,
+         equivalent_variable_name_2023 = tag_variable_name_2023,
+         final_variable_name = variable_name,
+         years_used = years_used_airtable_updated) %>% 
+  mutate(most_recent_description = ifelse(!is.na(description_2023), description_2023,
+                                          ifelse(!is.na(description_2022), description_2022,
+                                                 ifelse(!is.na(description_2021), description_2021, description_2019)))) %>%
+  head(130) %>% 
+#  select(-description_2023, -description_2022, -description_2021, -description_2019) %>% 
+  relocate(final_variable_name, full_tag_name, most_recent_description)
+```
+
+Make tags long.
+```{r}
+tags_long1 <- tags %>% 
+  pivot_longer(description_2023:description_2019, names_to = "year",
+               names_prefix = "description_", values_to = "description") %>% 
+  select(-starts_with("equivalent_variable_name"), -change_notes, -most_recent_description)
+
+tags_long2 <- tags %>% 
+  pivot_longer(equivalent_variable_name_2023:equivalent_variable_name_2019, names_to = "year",
+               names_prefix = "equivalent_variable_name_", values_to = "variable_name") %>% 
+  relocate(final_variable_name, full_tag_name, most_recent_description, year, variable_name) %>% 
+  select(-contains("description"))
+
+tags_long <- full_join(tags_long1, tags_long2)
+```
+
+Make tags wide.
+
+
+```{r}
+save(tags, tags_long, file = "longitudinal_tags.RData")
+```
+
