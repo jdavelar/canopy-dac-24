@@ -71,3 +71,70 @@ scale_x_discrete(expand = c(0, 0))+
   theme(axis.text=element_text(size=7))
 ```
 
+## Updates to visuals post-fix
+Janette 10.27.23
+
+## Number of tags used across the year
+
+In total, there are 130 different tags used in the span of 4 times surveys. 87 tags were used in 2019, 91 tags were used in 2021, 72 tags were used in 2022, and 73 tags were used in 2023.
+
+```{r}
+load("data/longitudinal_tags.RData")
+tags <- tags %>% 
+  mutate(y_2023 = case_when(
+    !is.na(equivalent_variable_name_2023) ~ 1
+  ),
+  y_2022 = case_when(
+    !is.na(equivalent_variable_name_2022) ~ 1
+  ),
+  y_2021 = case_when(
+    !is.na(equivalent_variable_name_2021) ~ 1
+  ),
+  y_2019 = case_when(
+    !is.na(equivalent_variable_name_2019) ~ 1
+  )) %>%
+  select(final_variable_name, full_tag_name, starts_with("y_")) %>% 
+  group_by(full_tag_name) %>% 
+  mutate(total = sum(y_2023, y_2022, y_2021, y_2019, na.rm = TRUE)) 
+
+tags %>% pivot_longer(cols = c(starts_with("y_"), "total"),
+               names_to = "year",
+               values_to = "count") %>% 
+  filter(count != 0) %>% 
+  group_by(year) %>% 
+  count() %>% 
+  ggplot()+
+  geom_col(aes(year, n), fill= "#1A4C81") +
+  geom_text(aes(year, n,label = n), vjust = -0.5)
+```
+
+## Count of repeated tags used
+
+49 tags were used in all 4 time point, 17 tags were used in 3 time points, 12 tags were used in 2 time points, and 52 tags were only used once. 
+
+```{r}
+tags %>% 
+ggplot(aes(x=as.factor(total))) +
+  geom_bar(fill="#1A4C81") + 
+  geom_text(aes(y = ((..count..)), label = (..count..)), stat = "count", vjust = -0.5)+
+  labs(x= "Times used",
+       y= "Number of Variables")
+```
+
+## Visual of consistent year-over-year tags used in the Canopy survey
+
+```{r fig.height=10, fig.width=7}
+tags %>% 
+   mutate(n = total) %>% 
+    pivot_longer(cols = c(starts_with("y_"), total),
+               names_to = "year",
+               values_to = "count") %>%  
+  mutate(count = case_when(count == 0 ~ NA, TRUE ~count),
+         year = fct_relevel(year,"y_2019", "y_2021","y_2022","y_2023", "total" )) %>% 
+   ggplot() +
+  geom_tile(aes(year, y=fct_reorder(full_tag_name, n), fill=count))+
+   scale_fill_viridis(discrete=FALSE, direction=-1)+
+scale_x_discrete(expand = c(0, 0))+
+  labs(y = "Tags Name") + 
+  theme(axis.text=element_text(size=7))
+```
