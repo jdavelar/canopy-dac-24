@@ -34,6 +34,10 @@ tags <- tags %>%
   relocate(current_variable_name, full_tag_name, most_recent_description)
 ```
 
+```{r}
+tags$current_variable_name <- gsub("IF.*", "", tags$current_variable_name ) #remove the IF RETAINED commentary
+```
+
 
 ```{r}
 solo_tags <- tags %>% 
@@ -52,7 +56,7 @@ tags_long1 <- tags %>%
 tags_long2 <- tags %>% 
   pivot_longer(equivalent_variable_name_2023:equivalent_variable_name_2019, names_to = "year",
                names_prefix = "equivalent_variable_name_", values_to = "variable_name") %>% 
-  relocate(final_variable_name, full_tag_name, most_recent_description, year, variable_name) %>% 
+  relocate(current_variable_name, full_tag_name, most_recent_description, year, variable_name) %>% 
   select(-contains("description"))
 
 tags_long <- full_join(tags_long1, tags_long2)
@@ -63,16 +67,132 @@ Make tags wide.
 
 ```{r}
 save(tags, tags_long, solo_tags, file = "longitudinal_tags.RData")
+save(solo_tags, file = here::here("data", "solo_tags.csv"))
 ```
 
 
+Actually, first going to pull in datasets from Rdatas and rds. Start with 2019-2021.
 
+For 2019:
+```{r}
+# create update dictionary
+tags_19_temp <- tags %>% 
+  select(current_variable_name, equivalent_variable_name_2019) %>% 
+  drop_na()
+
+# import 2019 dataset
+dat_19 <- import(here("data/datasets_by_year", "Schools 2019 (Public).xlsx - Confirmed Schools.csv")) %>% 
+  clean_names() %>%
+  mutate(across(everything(), as.character)) %>% 
+  select(school_id, 15:102) %>% 
+  pivot_longer(-school_id, names_to = "tag", values_to = "usage")
+
+# update 2019 dataset with current tag names
+dat_19_current <- left_join(dat_19, tags_19_temp, by = join_by(tag == equivalent_variable_name_2019)) %>% 
+  select(-tag) %>% 
+  rename(var = current_variable_name) %>% 
+  mutate(year = "2019")
+```
+
+For 2021:
+```{r}
+# create update dictionary
+tags_21_temp <- tags %>% 
+  select(current_variable_name, equivalent_variable_name_2021) %>% 
+  drop_na()
+
+# import 2021 dataset
+dat_21a <- import(here("data/datasets_by_year", "Schools 2021a (Public).xlsx - Fall 2020 School Data.csv")) %>% 
+  clean_names() %>%
+  mutate(across(everything(), as.character))
+
+dat_21b <- import(here("data/datasets_by_year", "Schools 2021b (Public).xlsx - Winter 2020-21 School Data.csv")) %>% 
+  clean_names() %>%
+  mutate(across(everything(), as.character))
+
+dat_21 <- bind_rows(dat_21a, dat_21b) %>% 
+  select(school_id, 16:106) %>% 
+  pivot_longer(-school_id, names_to = "tag", values_to = "usage")
+
+# update 2021 dataset with current tag names
+dat_21_current <- left_join(dat_21, tags_21_temp, by = join_by(tag == equivalent_variable_name_2021)) %>% 
+  select(-tag) %>% 
+  rename(var = current_variable_name) %>% 
+  mutate(year = "2021")
+```
+
+For 2022:
+```{r}
+# create update dictionary
+tags_22_temp <- tags %>% 
+  select(current_variable_name, equivalent_variable_name_2022) %>% 
+  drop_na()
+
+# import 2022 dataset
+dat_22 <- import(here("data/datasets_by_year", "Schools 2022 (Public).xlsx - Spring 2022 School Data.csv")) %>% 
+  clean_names() %>%
+  mutate(across(everything(), as.character)) %>% 
+  select(school_id, 22:93) %>% 
+  pivot_longer(-school_id, names_to = "tag", values_to = "usage")
+
+# update 2022 dataset with current tag names
+dat_22_current <- left_join(dat_22, tags_22_temp, by = join_by(tag == equivalent_variable_name_2022)) %>% 
+  select(-tag) %>% 
+  rename(var = current_variable_name) %>% 
+  mutate(year = "2022")
+```
+
+For 2023:
+```{r}
+# create update dictionary
+tags_23_temp <- tags %>% 
+  select(current_variable_name, equivalent_variable_name_2023) %>% 
+  drop_na()
+
+# import 2023 dataset
+dat_23 <- import(here("data/datasets_by_year", "Schools 2023 (Public).xlsx - Spring 2023 School Data.csv")) %>% 
+  clean_names() %>%
+  mutate(across(everything(), as.character)) %>% 
+  select(school_id, 39:111) %>% 
+  pivot_longer(-school_id, names_to = "tag", values_to = "usage")
+
+# update 2023 dataset with current tag names
+dat_23_current <- left_join(dat_23, tags_23_temp, by = join_by(tag == equivalent_variable_name_2023)) %>% 
+  select(-tag) %>% 
+  rename(var = current_variable_name) %>% 
+  mutate(year = "2023")
+```
+
+Loooooong dataset commence!
+```{r}
+longitudinal_dat <- bind_rows(dat_19_current, dat_21_current, dat_22_current, dat_23_current) %>% 
+  drop_na(usage, var) %>% 
+  filter(str_detect(usage, "1|3-4 years|Less than a year|5+ years|1-2 years"))
+```
+
+
+```{r}
+longitudinal_dat %>%
+  dplyr::group_by(school_id, year, var) %>%
+  dplyr::summarise(n = dplyr::n(), .groups = "drop") %>%
+  dplyr::filter(n > 1L)
+```
 
 
 
 ```{r}
-
+longitudinal_dat_wide <- longitudinal_dat %>% 
+  pivot_wider(names_from = "var",
+              values_from = "usage")
 ```
+
+Wide longitudinal dataset created! Now just need to check the counts and values to make sure there was nothing wonky in the merging and everything is still accurate.
+
+```{r}
+save(solo_tags, tags, longitudinal_dat_wide, longitudinal_dat, file = here::here("data", "longitudinal_tags.RData"))
+```
+
+
 
 
 
