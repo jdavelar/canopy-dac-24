@@ -14,7 +14,8 @@ pacman::p_load(rio, here, dplyr,tidyverse,lubridate, ggplot2,viridis)
 ```
 
 ```{r}
-tags <- import(here("data", "Tags 2019-2023.csv")) %>% 
+tags <- 
+  import(here("data", "Tags 2019-2023 OLD.csv")) %>% # NOTE: this dataset is old and current should be used
    mutate(across(starts_with("y_"),
                 ~ case_when(is.na(.) ~ 0, TRUE ~ 1)),
          total = rowSums(across(starts_with("y_")), na.rm=TRUE))
@@ -79,7 +80,7 @@ Janette 10.27.23
 In total, there are 130 different tags used in the span of 4 times surveys. 87 tags were used in 2019, 91 tags were used in 2021, 72 tags were used in 2022, and 73 tags were used in 2023.
 
 ```{r}
-load("data/longitudinal_tags.RData")
+load(here("data/longitudinal_tags.RData"))
 tags <- tags %>% 
   mutate(y_2023 = case_when(
     !is.na(equivalent_variable_name_2023) ~ 1
@@ -93,7 +94,7 @@ tags <- tags %>%
   y_2019 = case_when(
     !is.na(equivalent_variable_name_2019) ~ 1
   )) %>%
-  select(final_variable_name, full_tag_name, starts_with("y_")) %>% 
+  select(current_variable_name, full_tag_name, starts_with("y_")) %>% 
   group_by(full_tag_name) %>% 
   mutate(total = sum(y_2023, y_2022, y_2021, y_2019, na.rm = TRUE)) 
 

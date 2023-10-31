@@ -71,7 +71,7 @@ save(solo_tags, file = here::here("data", "solo_tags.csv"))
 ```
 
 
-Actually, first going to pull in datasets from Rdatas and rds. Start with 2019-2021.
+Actually, first going to pull in datasets from Drive. Start with 2019-2021.
 
 For 2019:
 ```{r}
@@ -192,10 +192,70 @@ Wide longitudinal dataset created! Now just need to check the counts and values 
 save(solo_tags, tags, longitudinal_dat_wide, longitudinal_dat, file = here::here("data", "longitudinal_tags.RData"))
 ```
 
+## Dataset verification
+10/30
+```{r}
+longitudinal_dat %>% 
+  count(year, var) %>% 
+  group_by(year) %>% 
+  summarise(n = n()) # looks like 2019 and 2022 both have one less than what is in the visual Janette and Merly made
+
+#let's see what's missing
+```
+```{r}
+# Ran the following code for each year: 2019, 2021, 2022, 2023
+
+check_yr <- longitudinal_dat %>% 
+  count(year, var) %>% 
+  group_by(year) %>% 
+  filter(year == "2023")
+
+tags_check <- tags %>% 
+  pivot_longer(cols = c(starts_with("y_"), "total"),
+               names_to = "year",
+               values_to = "count") %>% 
+  filter(count != 0) %>% 
+  group_by(year) %>% 
+  filter(year == "y_2023") %>% 
+  select(current_variable_name, full_tag_name)
+
+ccc <- left_join(tags_check, check_yr, by = join_by(current_variable_name == var))
+```
+
+In 2019, practices_portfolios_exhibitions is missing from longitudinal dataset.
+
+In 2022, practices_service_learning is missing from longitudinal dataset.
+
+Both 2021 and 2023 line up perfectly.
+
+```{r}
+use_long <- longitudinal_dat %>% 
+  count(year, var) %>% 
+  group_by(year)
+```
 
 
+```{r}
+use_long %>% 
+  ggplot(aes(x = year, y = n, group = var)) +
+  geom_point(aes(color = var, alpha = 0.5)) +
+  geom_line(aes(color = var, alpha = 0.5)) +
+  theme_linedraw() +
+  theme(legend.position = "none")
+```
 
 
+```{r message=FALSE, warning=FALSE, fig.width=20, fig.height=10}
+all_use <- use_long %>% 
+  ggplot(aes(x = year, y = n)) +
+  geom_point(aes(color = var, alpha = 0.5)) +
+  geom_line(aes(color = var, alpha = 0.5)) +
+  theme_linedraw() +
+  theme(legend.position = "none") +
+  facet_wrap(~var) +
+  theme(strip.text = element_text(size = 8, margin = margin()))
 
+ggsave(filename = here("output", "all_tags_over_years.png"), width = 20, height = 10)
+```
 
 
