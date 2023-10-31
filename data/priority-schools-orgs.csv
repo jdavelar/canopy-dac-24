@@ -1,0 +1,501 @@
+school_id,school_name,group,n_org,org
+24,Boston Day and Evening Academy,a,4,Education Evolving
+24,Boston Day and Evening Academy,a,4,Jobs for the Future
+24,Boston Day and Evening Academy,a,4,Education First
+24,Boston Day and Evening Academy,a,4,Clayton Christensen Institute
+44,Common Ground High School,a,1,Barr Foundation
+47,Concourse Village Elementary School,a,4,Overdeck Family Foundation
+47,Concourse Village Elementary School,a,4,TNTP
+47,Concourse Village Elementary School,a,4,The Learning Accelerator
+47,Concourse Village Elementary School,a,4,The Learning Accelerator
+63,East College Prep,a,2,NewSchools Venture Fund
+63,East College Prep,a,2,NewSchools Venture Fund
+64,USC Hybrid High College Prep,a,2,Transcend
+64,USC Hybrid High College Prep,a,2,Charter School Growth Fund
+67,Empower Community High School,a,6,Moonshot EdVentures
+67,Empower Community High School,a,6,Teach for America
+67,Empower Community High School,a,6,ReSchool Colorado
+67,Empower Community High School,a,6,Moonshot EdVentures
+67,Empower Community High School,a,6,Moonshot EdVentures
+67,Empower Community High School,a,6,NewSchools Venture Fund
+76,Flushing International High School,a,2,Springpoint Schools
+76,Flushing International High School,a,2,Aurora Institute
+98,Howard Middle School for Math and Science,a,1,228 Accelerator
+109,KIPP Academy Lynn Collegiate,a,2,Barr Foundation
+109,KIPP Academy Lynn Collegiate,a,2,Center on Reinventing Public Education
+139,New Legacy Charter School,a,3,Big Picture Learning
+139,New Legacy Charter School,a,3,Moonshot EdVentures
+139,New Legacy Charter School,a,3,Big Picture Learning
+146,NYC iSchool,a,1,Competency Collaborative
+165,Purdue Polytechnic High School - Englewood,a,2,XQ Institute
+165,Purdue Polytechnic High School - Englewood,a,2,NewSchools Venture Fund
+172,Rooted School,a,4,YouthForce Nola
+172,Rooted School,a,4,National Charter Collaborative
+172,Rooted School,a,4,Rooted School Foundation
+172,Rooted School,a,4,NewSchools Venture Fund
+189,Social Justice Humanitas Academy,a,3,Education Evolving
+189,Social Justice Humanitas Academy,a,3,Center for Teaching Quality
+189,Social Justice Humanitas Academy,a,3,Transcend
+209,Two Rivers Public Charter School: 4th Street Campus,a,2,EdSurge
+209,Two Rivers Public Charter School: 4th Street Campus,a,2,Center on Reinventing Public Education
+237,ACE Leadership High School,a,2,Future Focused Education
+237,ACE Leadership High School,a,2,Future Focused Education
+241,Avonworth High School,a,1,Duquesne University School of Education
+253,Community of Saints Regional Catholic School,a,1,Alliance for Catholic Education
+266,Embark Education,a,2,Moonshot EdVentures
+266,Embark Education,a,2,Education Reimagined
+268,Environmental Charter School,a,2,Duquesne University School of Education
+268,Environmental Charter School,a,2,Remake Learning Network
+270,Escuela Verde,a,1,Education Evolving
+275,Glenwood Elementary,a,1,Rural Schools Collaborative
+276,Grand Rapids Public Museum School,a,3,Getting Smart
+276,Grand Rapids Public Museum School,a,3,Springpoint Schools
+276,Grand Rapids Public Museum School,a,3,GreatSchools
+284,Highlands Micro School,a,1,Education Reimagined
+291,International High School at Langley Park,a,1,Springpoint Schools
+296,Kennedy Elementary School,a,1,Kansas Can School Redesign Project
+299,Lead Innovation Studio,a,1,Getting Smart
+303,Living School,a,2,The Learning Accelerator
+303,Living School,a,2,NewSchools Venture Fund
+308,Matchbook Learning at Wendell Phillips,a,1,The Learning Accelerator
+312,Nashville Big Picture High School,a,2,Big Picture Learning
+312,Nashville Big Picture High School,a,2,Big Picture Learning
+325,NuVu Innovation School,a,1,Getting Smart
+330,Ottawa High School,a,1,Kansas State Department of Education
+332,Pathways High,a,3,Transcend
+332,Pathways High,a,3,Mastery Transcript Consortium
+332,Pathways High,a,3,Mastery Transcript Consortium
+346,San Diego Met High School,a,2,Big Picture Learning
+346,San Diego Met High School,a,2,Big Picture Learning
+348,Science Leadership Academy,a,1,Getting Smart
+353,South Bronx Community Charter High School,a,1,Aurora Institute
+356,Stockton Elementary School,a,1,Kansas Can School Redesign Project
+358,Tahoe Expedition Academy,a,1,Open Way Learning
+359,Technology Leadership High School,a,2,Future Focused Education
+359,Technology Leadership High School,a,2,Future Focused Education
+364,University Academy Upper School,a,1,Getting Smart
+368,Verdi EcoSchool,a,1,Education Reimagined
+369,Vista Grande Charter High School,a,1,NACA Inspired Schools Network
+421,Great Oaks Bridgeport,a,1,Barr Foundation
+426,Center City Congress Heights,a,1,EmpowerK12
+477,Paramount Brookside,a,1,The Center for Learner Equity
+21,Berrien Springs Virtual School,a,1,EdTech Specialists
+458,The Albuquerque Sign Language Academy,a,2,Education Resources Consortium
+458,The Albuquerque Sign Language Academy,a,2,Center on Reinventing Public Education
+10,Asa Messer Elementary School,a,1,Highlander Institute
+120,Magnolia Montessori For All,a,1,Next Generation Learning Challenges
+388,Frederick County Middle School,a,1,Chan Zuckerberg Initiative
+410,CHIME Institute's Schwarzenegger Community,a,1,The Center for Learner Equity
+431,The U School,a,1,A Revolution in Education
+429,The Workshop School,a,1,A Revolution in Education
+483,Detroit Prep,a,2,Diverse Charter Schools Coalition
+483,Detroit Prep,a,2,NewSchools Venture Fund
+101,Impact | Puget Sound Elementary,a,3,Charter School Growth Fund
+101,Impact | Puget Sound Elementary,a,3,NewSchools Venture Fund
+101,Impact | Puget Sound Elementary,a,3,NewSchools Venture Fund
+400,Legacy Prep,a,2,NewSchools Venture Fund
+400,Legacy Prep,a,2,NewSchools Venture Fund
+475,Link Learning,a,1,MiCoOp
+382,Next STEP High,a,2,Educate Maine
+382,Next STEP High,a,2,Center on Reinventing Public Education
+472,Burlington City & Lake Semester,a,1,Vermont Learning for the Future
+466,The Forest School,a,3,Transcend
+466,The Forest School,a,3,Mastery Transcript Consortium
+466,The Forest School,a,3,Mastery Transcript Consortium
+417,Grant Beacon Middle School,a,1,Empower Schools
+281,Health Leadership High School,a,3,Future Focused Education
+281,Health Leadership High School,a,3,San Diego Metropolitan Career and Technical High School
+281,Health Leadership High School,a,3,Future Focused Education
+7,American Academy of Innovation,a,2,Utah State Board of Education
+7,American Academy of Innovation,a,2,Mastery Transcript Consortium
+16,Avanti High School,a,1,Populace
+37,Citizens of the World Hollywood,a,1,Charter School Growth Fund
+42,Columbia Heights Educational Campus (CHEC),a,1,228 Accelerator
+45,Community Lab School,a,2,EdSurge
+45,Community Lab School,a,2,Overdeck Family Foundation
+58,Digital Pioneers Academy,a,4,Philanthropy Roundtable
+58,Digital Pioneers Academy,a,4,The Center for Learner Equity
+58,Digital Pioneers Academy,a,4,NewSchools Venture Fund
+58,Digital Pioneers Academy,a,4,Transcend
+91,Mott Haven Academy,a,1,TNTP
+119,Madison Palmer High School,a,1,Global Teaching Project
+167,Red Bank Elementary,a,1,South Carolina Department of Education Office of Personalized Learning
+191,Solar Preparatory School for Girls,a,4,Bellwether Education Partners
+191,Solar Preparatory School for Girls,a,4,NewSchools Venture Fund
+191,Solar Preparatory School for Girls,a,4,NewSchools Venture Fund
+191,Solar Preparatory School for Girls,a,4,NewSchools Venture Fund
+204,The Metropolitan Regional Career and Technical Center,a,6,Big Picture Learning
+204,The Metropolitan Regional Career and Technical Center,a,6,Education Reimagined
+204,The Metropolitan Regional Career and Technical Center,a,6,Populace
+204,The Metropolitan Regional Career and Technical Center,a,6,GreatSchools
+204,The Metropolitan Regional Career and Technical Center,a,6,The Learning Accelerator
+204,The Metropolitan Regional Career and Technical Center,a,6,Big Picture Learning
+212,Urban Montessori Charter School,a,2,Rogers Family Foundation
+212,Urban Montessori Charter School,a,2,Rogers Family Foundation
+3,The Academy of Advanced Learning,b,2,NewSchools Venture Fund
+3,The Academy of Advanced Learning,b,2,NewSchools Venture Fund
+8,Anastasis Academy,b,1,ReSchool Colorado
+11,Aspen Academy,b,2,Moonshot EdVentures
+11,Aspen Academy,b,2,Moonshot EdVentures
+15,Avalon School,b,4,Education Evolving
+15,Avalon School,b,4,EdVisions
+15,Avalon School,b,4,Center for Teaching Quality
+15,Avalon School,b,4,Education Reimagined
+38,City Garden Montessori School,b,1,Education Reimagined
+52,DB EXCEL (Kingsport),b,1,Tennessee SCORE
+69,EPiC Elementary,b,1,The Learning Accelerator
+70,Evergreen Community Charter School,b,1,National Center for Learning Disabilities
+71,Fannie Lou Hamer Freedom High School,b,3,Big Picture Learning
+71,Fannie Lou Hamer Freedom High School,b,3,Big Picture Learning
+71,Fannie Lou Hamer Freedom High School,b,3,Big Picture Learning
+79,Frank McCourt High School,b,1,Competency Collaborative
+80,Fred Tjardes School of Innovation,b,1,Springpoint Schools
+83,Gem Prep Nampa,b,2,Charter School Growth Fund
+83,Gem Prep Nampa,b,2,NewSchools Venture Fund
+85,Girls Athletic Leadership Middle School,b,1,Colorado Education Initiative
+94,Highline Big Picture,b,3,Big Picture Learning
+94,Highline Big Picture,b,3,Big Picture Learning
+94,Highline Big Picture,b,3,Big Picture Learning
+100,Urban Discovery High School,b,1,Center for Secondary School Redesign
+105,Juab High School,b,1,Utah State Board of Education
+122,Map Academy Charter School,b,3,Barr Foundation
+122,Map Academy Charter School,b,3,Clayton Christensen Institute
+122,Map Academy Charter School,b,3,Clayton Christensen Institute
+144,Northside Elementary School,b,1,Office of Innovation for Education in Arkansas
+150,One Stone,b,2,Philanthropy Roundtable
+150,One Stone,b,2,Clayton Christensen Institute
+180,SEEQS: the School for Examining Essential Questions of Sustainability,b,2,PBLWorks
+180,SEEQS: the School for Examining Essential Questions of Sustainability,b,2,NewSchools Venture Fund
+197,STRIVE Prep - RISE,b,1,Educurious
+208,TRIO Wolf Creek Distance Learning Charter School,b,2,Evergreen Education Group
+208,TRIO Wolf Creek Distance Learning Charter School,b,2,TRIO Wolf Creek Distance Learning Charter School
+218,Waimea Canyon Middle School,b,1,PBLWorks
+234,Virtual Learning Academy,b,1,Clayton Christensen Institute
+235,International School of the Americas,b,1,Asia Society
+236,5280 High School,b,1,Colorado Education Initiative
+247,Blue Valley Center for Advanced Professional Studies (CAPS),b,1,Getting Smart
+292,Intrinsic Charter School,b,2,Transcend
+292,Intrinsic Charter School,b,2,NewSchools Venture Fund
+293,Iowa BIG,b,1,Education Reimagined
+302,Lincoln Middle School (AR),b,1,Office of Innovation for Education in Arkansas
+319,Nipmuc Regional High School,b,1,The Learning Accelerator
+323,Northeast Academy for Aerospace and Advanced Technologies,b,1,Open Way Learning
+333,Paulo Freire Freedom School -Downtown,b,1,CITY Center for Collaborative Learning
+345,Saint John Paul II,b,1,Alliance for Catholic Education
+360,The Center for Advanced Research and Technology (CART),b,1,Transcend
+371,Washtenaw Alliance for Virtual Education (WAVE),b,1,Education Evolving
+445,Lewisburg Elementary,b,1,Kentucky Department of Education: Office of Continuous Improvement and Support
+384,Gull Lake Virtual Partnership,b,1,MiCoOp
+383,Oxford Virtual Academy,b,1,MiCoOp
+201,Taos Academy Charter School,b,1,Evergreen Education Group
+480,Manara Leadership Academy,b,1,Achievement Network
+27,Casco Bay High School,b,4,EL Education
+27,Casco Bay High School,b,4,Great Schools Partnership
+27,Casco Bay High School,b,4,Great Schools Partnership
+27,Casco Bay High School,b,4,Next Generation Learning Challenges
+452,Nokomis Regional High,b,2,Great Schools Partnership
+452,Nokomis Regional High,b,2,Center on Reinventing Public Education
+455,Uxbridge High School,b,1,The Learning Accelerator
+97,Horizons Alternative Education School,b,2,EdTech Specialists
+97,Horizons Alternative Education School,b,2,MiCoOp
+81,Future Public School,b,3,Bluum
+81,Future Public School,b,3,NewSchools Venture Fund
+81,Future Public School,b,3,NewSchools Venture Fund
+380,Southeast Area Technical High School (SEA-TECH),b,1,Open Way Learning
+41,CodeRVA Regional High School,b,1,Virginia Department of Education
+394,Hazen Union High School,b,1,Vermont Agency of Education
+251,City of Bridges High School,b,1,KnowledgeWorks
+462,Spring Grove School,b,1,Minnesota Learner-Centered Network
+132,Mission Vista High School,b,2,Barr Foundation
+132,Mission Vista High School,b,2,Next Generation Learning Challenges
+228,William Smith High School,b,2,Springpoint Schools
+228,William Smith High School,b,2,Colorado Education Initiative
+84,Gibson Ek High School,b,6,Transcend
+84,Gibson Ek High School,b,6,Big Picture Learning
+84,Gibson Ek High School,b,6,Big Picture Learning
+84,Gibson Ek High School,b,6,Mastery Transcript Consortium
+84,Gibson Ek High School,b,6,Big Picture Learning
+84,Gibson Ek High School,b,6,Mastery Transcript Consortium
+140,Noble High School,b,3,Great Schools Partnership
+140,Noble High School,b,3,Great Schools Partnership
+140,Noble High School,b,3,Great Schools Partnership
+141,Norris Academy,b,2,Education Reimagined
+141,Norris Academy,b,2,Institute for Personalized Learning
+225,Wheeling High School,b,1,Illinois State Board of Education
+199,Summit Prep,c,1,Populace
+213,Valley New School,c,1,EdVisions
+221,Waukesha STEM Academy Saratoga Campus,c,1,Institute for Personalized Learning
+233,Cesar E. Chávez Multicultural Academic Center,c,1,Clayton Christensen Institute
+238,Altona Middle School,c,1,Next Generation Learning Challenges
+243,Bennington Junior-Senior High School,c,1,Kansas State Department of Education
+249,Brockton High School,c,1,CAST
+252,Coastal Leadership Academy,c,1,Open Way Learning
+259,Dighton Elementary School,c,1,Kansas State Department of Education
+260,Dighton Junior-Senior High School,c,1,Kansas State Department of Education
+269,EPIC Academy at Lamoille Union High School,c,2,Education Reimagined
+269,EPIC Academy at Lamoille Union High School,c,2,Vermont Learning for the Future
+272,Fulton Academy of Science and Technology,c,1,Clayton Christensen Institute
+280,Harrison High School,c,1,Colorado Education Initiative
+283,Highland Academy Charter School,c,1,Getting Smart
+287,Ida B. Wells Middle School,c,1,EdSurge
+289,Innovation Academy at Pembroke Academy,c,2,Education Resources Consortium
+289,Innovation Academy at Pembroke Academy,c,2,Education Resources Consortium
+297,LaFayette Big Picture at LaFayette Junior/Senior High School,c,2,Big Picture Learning
+297,LaFayette Big Picture at LaFayette Junior/Senior High School,c,2,Big Picture Learning
+300,Leominster Center for Excellence,c,2,Big Picture Learning
+300,Leominster Center for Excellence,c,2,Big Picture Learning
+301,Liberal High School,c,1,Kansas State Department of Education
+307,Marshall High School,c,1,Office of Innovation for Education in Arkansas
+311,Mountain Academy at Teton Science School,c,1,Getting Smart
+313,Nawayee Center School,c,1,Education Reimagined
+316,New Village Girls Academy,c,3,Big Picture Learning
+316,New Village Girls Academy,c,3,Chan Zuckerberg Initiative
+316,New Village Girls Academy,c,3,Big Picture Learning
+317,Newark East Side High School,c,2,Big Picture Learning
+317,Newark East Side High School,c,2,Big Picture Learning
+324,Northwest Passage High School,c,1,Education Reimagined
+327,Olympic Hills Elementary,c,1,The Learning Accelerator
+329,Opportunities Academy,c,1,The Learning Accelerator
+331,P.K. Yonge,c,1,CAST
+334,Paulo Freire Freedom School -University,c,1,CITY Center for Collaborative Learning
+339,Provident Heights Elementary,c,1,Branching Minds
+349,Siembra Leadership High School,c,2,Future Focused Education
+349,Siembra Leadership High School,c,2,Future Focused Education
+351,Sojourner Truth Montessori School,c,4,228 Accelerator
+351,Sojourner Truth Montessori School,c,4,228 Accelerator
+351,Sojourner Truth Montessori School,c,4,NewSchools Venture Fund
+351,Sojourner Truth Montessori School,c,4,Center on Reinventing Public Education
+355,SPARK School at Kyrene de las Manitas,c,1,ASU Mary Lou Fulton Teachers College
+357,Tacoma School of the Arts,c,1,Getting Smart
+362,The Springfield Renaissance School,c,1,Transcend
+363,Tri-County Early College High School,c,1,Open Way Learning
+365,Valley Day School,c,1,EdSurge
+366,Van Ness Elementary School,c,2,Transcend
+366,Van Ness Elementary School,c,2,Transcend
+373,Wickliffe High School,c,1,CAST
+379,Zeta Bronx 1 Elementary,c,1,Transcend
+405,Western School of Science and Technology,c,1,Center for the Future of Arizona
+439,Jasper High School,c,1,Arkansas Team Digital
+419,Escuela Valdez,c,1,Empower Schools
+420,McGlone Academy,c,1,The Learning Accelerator
+425,Promise Academy,c,1,EmpowerK12
+242,Benjamin Banneker Charter Public School,c,1,Rennie Center
+474,EdVisions Off Campus School,c,1,Education Evolving
+482,Irving Elementary,c,1,Achievement Network
+481,Arlington STEM Academy,c,1,Achievement Network
+397,Williams Elementary School,c,1,Chan Zuckerberg Initiative
+294,John J. Cairns High School,c,2,Big Picture Learning
+294,John J. Cairns High School,c,2,Big Picture Learning
+309,Met Sacramento High School,c,2,Big Picture Learning
+309,Met Sacramento High School,c,2,Big Picture Learning
+240,Aspen Valley Prep Academy,c,2,Transcend
+240,Aspen Valley Prep Academy,c,2,Chan Zuckerberg Initiative
+423,Ballou Senior High School,c,1,Transcend
+415,Yu Ming Charter School,c,2,Diverse Charter Schools Coalition
+415,Yu Ming Charter School,c,2,NewSchools Venture Fund
+424,Anacostia High School,c,1,Transcend
+416,Chrysalis Charter School,c,1,Education Evolving
+66,Ember Charter School for Mindful Education; Innovation; and Transformation,c,2,Digital Promise
+66,Ember Charter School for Mindful Education; Innovation; and Transformation,c,2,National Charter Collaborative
+434,Comp Sci.High,c,2,NewSchools Venture Fund
+434,Comp Sci.High,c,2,NewSchools Venture Fund
+399,Hilton Head Christian Academy,c,1,Fielding International
+347,San Francisco Day School,c,1,CAST
+471,Woodstock Union Middle/High School,c,1,Vermont Agency of Education
+389,Central Vermont Career Center,c,1,Vermont Agency of Education
+402,i3 Academy,c,2,NewSchools Venture Fund
+402,i3 Academy,c,2,NewSchools Venture Fund
+395,Missisquoi Valley Union Middle and High School,c,1,Vermont Agency of Education
+478,West Michigan Virtual Academy,c,1,MiCoOp
+391,Bellows Free Academy,c,1,Vermont Agency of Education
+396,Quest Academy,c,1,ExcelinEd
+443,Rooted School Indianapolis,c,3,The Mind Trust
+443,Rooted School Indianapolis,c,3,Rooted School Foundation
+443,Rooted School Indianapolis,c,3,NewSchools Venture Fund
+408,Learn4Life Inglewood - Alta Vista Innovation High,c,1,Aurora Institute
+447,Mālama Honua Public Charter School,c,1,State Public Charter School Commission
+430,Building 21 Philadelphia,c,1,A Revolution in Education
+4,Albemarle Road Elementary School,c,1,Public Impact
+6,Amana Academy,c,1,EL Education
+19,Barrington Middle School,c,1,Highlander Institute
+25,Bronx Arena High School,c,3,reDesign
+25,Bronx Arena High School,c,3,Springpoint Schools
+25,Bronx Arena High School,c,3,Overdeck Family Foundation
+30,Charles W. Eliot PreK-8th Grade School,c,1,Building Blocks Education
+33,Chastain Road Elementary,c,1,South Carolina Department of Education Office of Personalized Learning
+34,Childersburg Middle School,c,1,Center for Teaching Quality
+36,Cisco Elementary,c,1,CA Group Consulting
+40,Coahoma Early College High School,c,1,Global Teaching Project
+46,Compass Academy,c,1,Education First
+50,Dan D. Rogers Elementary School,c,2,The Learning Accelerator
+50,Dan D. Rogers Elementary School,c,2,The Learning Accelerator
+54,Denver School of Innovation and Sustainable Design,c,1,PBLWorks
+56,Design Tech High School,c,1,Next Generation Learning Challenges
+57,Design39Campus,c,3,The Learning Accelerator
+57,Design39Campus,c,3,The Learning Accelerator
+57,Design39Campus,c,3,Transcend
+59,Du Bois Integrity Academy,c,1,Power My Learning
+73,Farmington High School (CT),c,1,Connecticut Center for School Change
+77,Francis T Maloney High School,c,1,Connecticut Center for School Change
+89,Gwendolyn Brooks College Preparatory Academy,c,1,Illinois State Board of Education
+90,Hamilton County Collegiate High at Chattanooga State,c,1,Tennessee SCORE
+95,Holmes Central High School,c,1,Global Teaching Project
+103,Iroquois High School,c,1,EdSurge
+104,John Barry Elementary School,c,1,Connecticut Center for School Change
+106,Kent Innovation High School,c,2,Evergreen Education Group
+106,Kent Innovation High School,c,2,Michigan Virtual
+108,Kettle Moraine Explore,c,2,Institute for Personalized Learning
+108,Kettle Moraine Explore,c,2,Make Learning Personal
+110,KIPP Liberation,c,1,Raise Your Hand Texas
+111,Latitude 37.8 High School,c,6,Big Picture Learning
+111,Latitude 37.8 High School,c,6,XQ Institute
+111,Latitude 37.8 High School,c,6,Rogers Family Foundation
+111,Latitude 37.8 High School,c,6,Springpoint Schools
+111,Latitude 37.8 High School,c,6,Big Picture Learning
+111,Latitude 37.8 High School,c,6,NewSchools Venture Fund
+116,Lindsay Unified High School,c,1,Transcend
+118,Logan Innovations,c,1,Utah State Board of Education
+125,Mena High School,c,1,Arkansas Team Digital
+127,MetWest,c,3,Big Picture Learning
+127,MetWest,c,3,Big Picture Learning
+127,MetWest,c,3,Big Picture Learning
+131,Mission Hill K-8 School,c,1,Education Evolving
+133,Montpelier High School,c,2,Great Schools Partnership
+133,Montpelier High School,c,2,Vermont Learning for the Future
+135,Nativity of Mary Catholic School,c,2,Alliance for Catholic Education
+135,Nativity of Mary Catholic School,c,2,Alliance for Catholic Education
+136,North Carolina School of Science and Mathematics,c,1,Digital Learning Institute
+137,Nettleton High School,c,1,Arkansas Team Digital
+143,North Little Rock Middle School - 6th Grade Campus,c,1,Office of Innovation for Education in Arkansas
+145,Nottingham Elementary School,c,1,Raise Your Hand Texas
+147,Oakland High School,c,1,Tennessee SCORE
+151,Orlo Avenue Elementary,c,1,Highlander Institute
+154,Parker-Varney Elementary,c,2,PBLWorks
+154,Parker-Varney Elementary,c,2,Center for Assessment
+159,Pine Tree Elementary School,c,1,Center for Assessment
+160,Pioneer Ridge Middle School,c,1,Institute for Personalized Learning
+161,Pittsfield Middle High School,c,1,Center for Secondary School Redesign
+162,Polaris Charter Academy,c,1,EL Education
+164,Powderhouse Studios [Nonoperating school],c,1,Education First
+168,Reiche Community School,c,2,Center for Teaching Quality
+168,Reiche Community School,c,2,Education Evolving
+169,River Bluff High School,c,1,South Carolina Department of Education Office of Personalized Learning
+170,Rochester Middle School,c,1,New Hampshire Learning Initiative
+175,Saluda Trail Middle School,c,1,South Carolina Department of Education Office of Personalized Learning
+177,Schoolcraft High School,c,1,Michigan Department of Education
+179,Scott Central High School,c,1,Global Teaching Project
+184,Siloam Springs High School Conversion Charter,c,1,Arkansas Team Digital
+186,Sinai Elementary School,c,1,228 Accelerator
+193,Souhegan Coop High School,c,4,Center for Assessment
+193,Souhegan Coop High School,c,4,New Hampshire Learning Initiative
+193,Souhegan Coop High School,c,4,Center for Secondary School Redesign
+193,Souhegan Coop High School,c,4,New Hampshire Learning Initiative
+195,Statesmen College Preparatory Academy for Boys PCS,c,3,Digital Promise
+195,Statesmen College Preparatory Academy for Boys PCS,c,3,Center for Black Educator Development
+195,Statesmen College Preparatory Academy for Boys PCS,c,3,NewSchools Venture Fund
+200,Taft Primary School,c,1,Illinois State Board of Education
+203,The Creative School,c,2,228 Accelerator
+203,The Creative School,c,2,EdSurge
+205,The NET Charter High School: Gentilly,c,4,Big Picture Learning
+205,The NET Charter High School: Gentilly,c,4,YouthForce Nola
+205,The NET Charter High School: Gentilly,c,4,EdSurge
+205,The NET Charter High School: Gentilly,c,4,Big Picture Learning
+210,UCLA Community School,c,3,Education Evolving
+210,UCLA Community School,c,3,Education Evolving
+210,UCLA Community School,c,3,Learning Policy Institute
+214,Valley View Middle School,c,1,Institute for Personalized Learning
+219,Warren County High School,c,1,Tennessee SCORE
+223,West Side Collaborative Middle School,c,1,Competency Collaborative
+224,West Woods Upper Elementary School,c,1,Connecticut Center for School Change
+226,White Mountains Regional High School,c,3,New Hampshire Department of Education
+226,White Mountains Regional High School,c,3,Education Resources Consortium
+226,White Mountains Regional High School,c,3,Education Resources Consortium
+232,Ysleta Elementary School,c,1,Raise Your Hand Texas
+306,Achieve Community Charter School,d,1,Overdeck Family Foundation
+411,Tomorrow's Leadership Collaborative (TLC) Charter,d,2,The Center for Learner Equity
+411,Tomorrow's Leadership Collaborative (TLC) Charter,d,2,The Center for Learner Equity
+493,Exploration High School,d,2,Fielding International
+493,Exploration High School,d,2,Fielding International
+526,Crossroads FLEX,d,1,Clayton Christensen Institute
+528,KIPP Philadelphia Preparatory Academy,d,1,Center for Black Educator Development
+559,Holladay Intermediate Magnet School,d,1,A for Arizona
+566,Sequoyah School,d,1,Mastery Transcript Consortium
+572,Black Mother's Forum Microschool,d,2,Center on Reinventing Public Education
+572,Black Mother's Forum Microschool,d,2,Transcend
+581,Vimenti School,d,1,Center on Reinventing Public Education
+601,New Harmony High Institute,d,2,The Learning Accelerator
+601,New Harmony High Institute,d,2,Transcend
+604,The 1881 Institute,d,1,Transcend
+612,Unidos Homeschool Cooperative,d,1,Transcend
+615,Oceti Sakowin Educational Learning Center,d,1,Transcend
+622,Georgia Fugees Academy Charter School,d,2,NewSchools Venture Fund
+622,Georgia Fugees Academy Charter School,d,2,NewSchools Venture Fund
+627,Phoenix International Academy,d,2,NewSchools Venture Fund
+627,Phoenix International Academy,d,2,NewSchools Venture Fund
+628,Rainier Valley Leadership Academy,d,1,NewSchools Venture Fund
+630,Crotona International High School,d,1,Competency Collaborative
+799,Codman Academy Charter School,d,1,Center on Reinventing Public Education
+796,Perea Elementary School,d,1,Mindcatcher
+792,Kairos Academies,d,2,Transcend
+792,Kairos Academies,d,2,Transcend
+786,New School of San Francisco,d,1,NewSchools Venture Fund
+783,Margarita Muñiz Academy,d,1,Barr Foundation
+771,Keres Children's Learning Center,d,2,Transcend
+771,Keres Children's Learning Center,d,2,Transcend
+768,Icon Preparatory School Jacksonville,d,1,Transcend
+765,Ednovate Virtual Academy,d,1,NewSchools Venture Fund
+764,Robert F. Smith STEAM Academy,d,1,Transcend
+759,Aggie Academy,d,1,The University of North Carolina System
+757,San Luis High School,d,1,KnowledgeWorks
+754,Rio Rico High School,d,1,KnowledgeWorks
+753,University High School,d,1,NewSchools Venture Fund
+752,The Leadership School,d,1,NewSchools Venture Fund
+748,Zeta Inwood,d,1,NewSchools Venture Fund
+746,Opportunity Academy at Holyoke High School,d,2,Barr Foundation
+746,Opportunity Academy at Holyoke High School,d,2,Center on Reinventing Public Education
+743,KIPP Beyond Middle School,d,1,NewSchools Venture Fund
+739,Impact | Commencement Bay Elementary,d,1,NewSchools Venture Fund
+731,URBAN ACT Academy,d,2,NewSchools Venture Fund
+731,URBAN ACT Academy,d,2,Mindcatcher
+729,Solar Preparatory School for Boys,d,1,NewSchools Venture Fund
+727,Rodriguez Elementary,d,1,NewSchools Venture Fund
+720,Montessori Elementary at Highland Park,d,1,NewSchools Venture Fund
+715,Las Américas ASPIRA Academy,d,1,NewSchools Venture Fund
+714,Kansas City Girls Prep Academy,d,1,NewSchools Venture Fund
+712,High School of Commerce,d,1,NewSchools Venture Fund
+710,Growth Public Schools,d,1,NewSchools Venture Fund
+708,Endazhi-Nitaawiging Charter School,d,1,NewSchools Venture Fund
+707,Empower Community School,d,1,NewSchools Venture Fund
+699,Building 21 Allentown,d,1,NewSchools Venture Fund
+697,BRICK Achieve Middle School,d,1,NewSchools Venture Fund
+694,Bostonia Global K-14,d,1,NewSchools Venture Fund
+693,BELIEVE Circle City High School,d,1,NewSchools Venture Fund
+690,Altura Preparatory School,d,1,NewSchools Venture Fund
+688,Alabama Aerospace and Aviation High School,d,1,NewSchools Venture Fund
+685,Innovation Lab High School,d,1,Mastery Transcript Consortium
+678,Creative Minds International,d,1,The Center for Learner Equity
+674,Fenway High School,d,1,The Center for Learner Equity
+672,Tapestry Public Charter School,d,1,The Center for Learner Equity
+668,Heartwood Agile Learning Center,d,1,4.0 Schools
+666,I Dream Public Charter School,d,2,4.0 Schools
+666,I Dream Public Charter School,d,2,NewSchools Venture Fund
+665,Capital Experience Lab,d,1,4.0 Schools
+663,Global Citizens Public Charter School,d,2,4.0 Schools
+663,Global Citizens Public Charter School,d,2,NewSchools Venture Fund
+657,David H. Petree Elementary,d,1,Public Impact
+655,Kilombo Academic and Cultural Institute,d,1,Disruptive Partners
+653,Dolores Huerta Middle School,d,1,KnowledgeWorks
+643,Dekalb Brilliance Academy,d,2,Transcend
+643,Dekalb Brilliance Academy,d,2,NewSchools Venture Fund
+640,Valor Preparatory Academy of Arizona,d,1,Evergreen Education Group
+639,"Roxbury Roots Montessori, Inc.",d,1,Entangled Solutions
+624,La Promesa,d,2,NewSchools Venture Fund
+624,La Promesa,d,2,NewSchools Venture Fund
+605,8 Million Stories,d,1,Transcend
+504,DREAM Charter School,d,1,Transcend
+479,Central Queens Academy - Middle School,d,1,Diverse Charter Schools Coalition
+476,Wish Community School,d,2,The Center for Learner Equity
+476,Wish Community School,d,2,The Center for Learner Equity
+457,"Dził Ditł'ooi School of Empowerment, Action, and Perseverance (DEAP)",d,1,NACA Inspired Schools Network
+448,"Ke Kula ʻo Samuel M. Kamakau, LPCS",d,1,State Public Charter School Commission
+372,Welte Education Center,d,1,Colorado Education Initiative

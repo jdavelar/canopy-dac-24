@@ -1,543 +1,774 @@
-school_id,school_name
-3,The Academy of Advanced Learning
-8,Anastasis Academy
-11,Aspen Academy
-15,Avalon School
-23,Booneville High School
-24,Boston Day and Evening Academy
-28,Center Line High School - Wall to Wall Academies
-32,Charlotte Lab School
-35,CICS West Belden
-38,City Garden Montessori School
-39,Clarendon High School
-44,Common Ground High School
-47,Concourse Village Elementary School
-49,Crosstown High
-52,DB EXCEL (Kingsport)
-63,East College Prep
-64,USC Hybrid High College Prep
-67,Empower Community High School
-69,EPiC Elementary
-70,Evergreen Community Charter School
-71,Fannie Lou Hamer Freedom High School
-72,Farmington High School
-75,Oakland FlexTech High School
-76,Flushing International High School
-79,Frank McCourt High School
-80,Fred Tjardes School of Innovation
-83,Gem Prep Nampa
-85,Girls Athletic Leadership Middle School
-94,Highline Big Picture
-98,Howard Middle School for Math and Science
-100,Urban Discovery High School
-102,Innovations High School
-105,Juab High School
-109,KIPP Academy Lynn Collegiate
-112,Launch Network at Stedman Elementary
-117,Lodestar
-122,Map Academy Charter School
-130,Minnesota New Country School
-134,Native American Community Academy
-139,New Legacy Charter School
-142,North Edgecombe High School
-144,Northside Elementary School
-146,NYC iSchool
-150,One Stone
-165,Purdue Polytechnic High School
-172,Rooted School
-174,Salem High School
-180,SEEQS: the School for Examining Essential Questions of Sustainability
-183,Shawnee High School
-185,Silverton School
-189,Social Justice Humanitas Academy
-190,Social Justice School
-192,South Rowan High School
-196,Stilwell High School
-197,STRIVE Prep RISE
-199,Summit Public Schools
-208,TRIO Wolf Creek Distance Learning Charter School
-209,Two Rivers Public Charter School - 4th St
-211,Urban Assembly Maker Academy
-213,Valley New School
-216,Valor Voyager Academy
-218,Waimea Canyon Middle School
-220,Washington Leadership Academy
-221,Waukesha STEM Academy Saratoga Campus
-229,Winterboro High School
-230,Workspace Education
-231,Wynne Intermediate School of Innovation
-233,Cesar E. Chavez Multicultural Academic Center
-234,Virtual Learning Academy
-235,International School of the Americas
-236,5280 High School
-237,ACE Leadership High School
-238,Altona Middle School
-241,Avonworth High School
-243,Bennington Junior-Senior High School
-247,Blue Valley Center for Advanced Professional Studies (CAPS)
-249,Brockton High School
-252,Coastal Leadership Academy
-253,Community of Saints Regional Catholic School
-259,Dighton Elementary School
-260,Dighton Junior-Senior High School
-266,Embark Education
-268,Environmental Charter Middle School
-269,EPIC Academy at Lamoille Union High School
-270,Escuela Verde
-272,Fulton Academy of Science and Technology
-275,Glenwood Elementary
-276,Grand Rapids Public Museum School
-280,Harrison High School
-283,Highland Academy Charter School
-284,Highlands Micro School
-287,Ida B. Wells Middle School
-289,Innovation Academy at Pembroke Academy
-291,International High School at Langley Park
-292,Intrinsic Charter School
-293,Iowa BIG
-296,Kennedy Elementary School
-297,LaFayette Big Picture at LaFayette Junior/Senior High School
-299,Lead Innovation Studio
-300,Leominster Center for Excellence
-301,Liberal High School
-302,Lincoln Middle School
-303,Living School
-307,Marshall High School
-308,Matchbook Learning at Wendell Phillips
-311,Mountain Academy at Teton Science School
-312,Nashville Big Picture High School
-313,Nawayee Center School
-316,New Village Girls Academy
-317,Newark East Side High School
-319,Nipmuc Regional High School
-323,Northeast Academy for Aerospace and Advanced Technologies
-324,Northwest Passage High School
-325,Nuvu Studio
-327,Olympic Hills Elementary
-329,Opportunities Academy
-330,Ottawa High School
-331,P.K. Yonge
-332,Pathways High
-333,Paulo Freire Freedom School -Downtown
-334,Paulo Freire Freedom School -University
-339,Provident Heights Elementary
-345,Saint John Paul II
-346,San Diego Metropolitan Career and Technical High School
-348,Science Leadership Academy
-349,Siembra Leadership High School
-351,Sojourner Truth Montessori School
-353,South Bronx Community Charter High School
-355,SPARK School at Kyrene de las Manitas
-356,Stockton Elementary School
-357,Tacoma School of the Arts
-358,Tahoe Expedition Academy
-359,Technology Leadership High School
-360,Center for Advanced Research and Technology CART
-362,The Springfield Renaissance School
-363,Tri-County Early College High School
-364,University Academy Upper School
-365,Valley Day School
-366,Van Ness Elementary School
-368,Verdi EcoSchool
-369,Vista Grande Charter High School
-371,Washtenaw Alliance for Virtual Education (WAVE
-373,Wickliffe High School
-379,Zeta Charter Schools
-405,Western School of Science and Technology
-439,Jasper High School
-198,Stuttgart Junior High School
-88,Grimmway Academy Shafter
-419,Escuela Valdez
-420,McGlone Academy
-421,Great Oaks Bridgeport
-425,Promise Academy
-53,DC Bilingual Public Charter School
-426,Center City Congress Heights
-124,Meadows Valley School PK-12
-477,Paramount Brookside
-445,Lewisburg Elementary
-242,Benjamin Banneker Charter Public School
-78,Francis W. Parker Charter Essential School
-21,Berrien Springs Virtual School
-128,Mill Creek Middle School
-384,Gull Lake Virtual Partnership
-383,Oxford Virtual Academy
-474,EdVisions Off Campus School
-201,Taos Academy Charter School
-458,The Albuquerque Sign Language Academy
-206,The Young Women's Leadership School of Astoria
-153,Park View Elementary
-10,Asa Messer Elementary School
-215,Valor Flagship Academy
-482,Irving Elementary
-481,Arlington STEM Academy
-480,Leadership Academy
-120,Magnolia Montessori For All
-397,Williams Elementary School
-65,Elmer G Bondy Intermediate
-388,Frederick County Middle School
-294,John J. Cairns High School
-410,CHIME Institute's Schwarzenegger Community
-309,Met Sacramento High School
-240,Aspen Valley Prep Academy
-423,Ballou Senior High School
-415,Yu Ming Charter School
-424,Anacostia High School
-416,Chrysalis Charter School
-27,Casco Bay High School
-452,Nokomis High School
-455,Uxbridge High School
-9,Armada High School
-97,Horizons Alternative Education School
-81,Future Public School
-176,Sanborn Regional High School
-431,The U School
-429,The Workshop School
-178,Science and Math Institute
-483,Detroit Prep
-66,"Ember Charter School for Mindful Education, Innovation, and Transformation"
-434,Comp Sci.High
-380,Southeast Area Technical High School (SEA-TECH)
-399,Hilton Head Christian Academy
-347,San Francisco Day School
-41,CodeRVA Regional High School
-471,Woodstock Union Middle/High School
-101,Impact | Puget Sound Elementary
-400,Legacy Prep
-389,Central Vermont Career Center
-402,i3 Academy
-395,Missisquoi Valley Union Middle and High School
-194,St. Alphonsus Catholic School
-394,Hazen Union High School
-478,West Michigan Virtual Academy
-475,Link Learning
-1,A2 Virtual + Academy
-251,City of Bridges High School
-391,Bellows Free Academy
-396,Quest Academy
-443,Rooted School Indianapolis
-382,Next STEP High
-472,Burlington City & Lake Semester
-408,Learn4Life Inglewood - Alta Vista Innovation High
-462,Spring Grove School
-466,The Forest School
-156,Pea Ridge Primary/Intermediate
-417,Grant Beacon Middle School
-447,Mālama Honua Public Charter School
-48,Conservatory Lab Charter School
-93,Highfalls Elementary School
-132,Mission Vista High School
-430,Building 21 Philadelphia
-228,William Smith High School
-281,Health Leadership High School
-62,Early Technical College at Tennessee College of Applied Technology
-4,Albemarle Road Elementary School
-6,Amana Academy
-7,American Academy of Innovation
-16,Avanti High School
-19,Barrington Middle School
-25,Bronx Arena High School
-30,Charles W. Eliot PreK-8th Grade School
-33,Chastain Road Elementary
-34,Childersburg Middle School
-36,Cisco Elementary
-37,Citizens of the World Hollywood
-40,Coahoma Early College High School
-42,Columbia Heights Educational Campus (CHEC)
-45,Albemarle County Community Public Charter School (Community Middle)
-46,Compass Academy
-50,Dan D. Rogers Elementary School
-54,Denver School of Innovation and Sustainable Design
-56,Design Tech High School
-57,Design39Campus
-58,Digital Pioneers Academy
-59,Du Bois Integrity Academy
-73,Farmington High School
-75,FlexTech High School Novi
-77,Francis T Maloney High School
-84,Gibson Ek High School
-89,Gwendolyn Brooks College Preparatory Academy
-90,Hamilton County Collegiate High at Chattanooga State
-91,Mott Haven Academy
-95,Holmes Central High School
-100,IDEATE High School
-101,Impact Public School
-103,Iroquois High School
-104,John Barry Elementary School
-106,Kent Innovation High School
-108,Kettle Moraine Explore
-110,KIPP Liberation
-111,Latitude 37.8 High School
-116,Lindsay Unified High School
-118,Logan Innovations
-119,Madison Palmer High School
-125,Mena High School
-127,MetWest
-131,Mission Hill K-8 School
-133,Montpelier High School
-135,Nativity of Mary Catholic School
-136,NC School of Science and Mathematics
-137,Nettleton High School
-140,Noble High School
-141,Norris Academy
-143,North Little Rock Middle School - 6th Grade Campus
-145,Nottingham Elementary School
-147,Oakland High School
-151,Orlo Avenue Elementary
-154,Parker-Varney Elementary
-159,Pine Tree Elementary School
-160,Pioneer Ridge Middle School
-161,Pittsfield Middle High School
-162,Polaris Charter Academy
-164,Powderhouse Studios [Nonoperating school]
-167,Red Bank Elementary
-168,Reiche Community School
-169,River Bluff High School
-170,Rochester Middle School
-175,Saluda Trail Middle School
-177,Schoolcraft High School
-179,Scott Central High School
-184,Siloam Springs High School Conversion Charter
-186,Sinai Elementary School
-191,Solar Preparatory School for Girls
-193,Souhegan Coop High School
-195,Statesmen College Preparatory Academy for Boys PCS
-197,STRIVE Prep - RISE
-200,Taft Primary School
-203,The Creative School
-204,The Metropolitan Regional Career and Technical Center
-205,The NET Charter High School: Gentilly
-209,Two Rivers Public Charter School
-210,UCLA Community School
-212,Urban Montessori Charter School
-214,Valley View Middle School
-219,Warren County High School
-223,West Side Collaborative Middle School
-224,West Woods Upper Elementary School
-225,Wheeling High School
-226,White Mountains Regional High School
-231,Wynne Intermediate School
-232,Ysleta Elementary School
-7,American Academy Of Innovation
-24,Boston Day And Evening Academy
-26,Canon City High School
-42,Columbia Heights Educational Campus (Chec)
-45,Community Lab School
-69,Epic Elementary
-79,Frank Mccourt High School
-83,Gem Prep: Nampa
-98,Howard Middle School For Math And Science
-138,New Haven Academy
-146,Nyc Ischool
-157,Piedmont High School
-180,SEEQS: The School For Examining Essential Questions Of Sustainability
-197,Strive Prep - RISE
-204,The Metropolitan Regional Career And Technical Center
-209,Two Rivers Public Charter School: 4Th Street Campus
-235,International School Of The Americas
-237,Ace Leadership High School
-246,Blessed Sacrament Catholic School
-247,Blue Valley Center For Advanced Professional Studies (Caps)
-251,City Of Bridges High School
-293,Iowa Big
-302,Lincoln Middle School (Ar)
-306,Achieve Community Charter School
-323,Northeast Academy For Aerospace And Advanced Technologies
-345,Saint John Paul II Catholic School
-360,The Center For Advanced Research And Technology (Cart)
-368,Verdi Ecoschool
-371,Washtenaw Alliance For Virtual Education (Wave)
-380,Southeast Area Technical High School (Sea-Tech)
-382,Next Step High
-411,Tomorrow'S Leadership Collaborative (Tlc) Charter
-418,Kepner Beacon Middle School
-440,The Museum School of Avondale Estates
-465,Paladin Career And Technical High School
-466,The Forest Schools
-493,Exploration High School
-499,Village High School
-501,Launch High
-502,Liberty Academy
-505,Brooklyn Free School
-506,Red Bridge
-512,Long-View Micro School
-515,St. Paul School Of Northern Lights
-518,Richland Two Institute of Innovation
-520,Penrose Elementary School
-521,Middle Park High School
-522,Yampa Valley High School
-523,Elevate Academy
-526,Crossroads Flex
-527,Springs Studio For Academic Excellence
-528,KIPP Philadelphia Preparatory Academy
-530,Helen S Dunn School
-532,Cabot School
-535,CLK Engage At CLK Elementary School
-537,Northern Cass High School
-539,Enosburg Falls Junior/Senior High School
-540,The Delta School
-541,Clark Street Community School
-542,Utah Career Path High School
-543,Milton Senior High School
-545,Acton Academy Venice Beach
-549,Phoenix Modern
-559,Holladay Intermediate Magnet School
-565,Rise Academy
-566,Sequoyah School
-567,Springhouse Community School
-569,The Sycamore School
-571,Utah Schools For The Deaf
-572,Black Mothers Forum Microschool
-573,Southern Nevada Urban Micro Academy
-575,Dayspring Academy
-579,Chautauqua Charter School
-581,Vimenti School
-586,Foundation School Of Autism - San Antonio
-587,Asu Preparatory Academy Digital
-588,Texas Tech University K-12
-594,A Vito Martinez Middle School
-601,New Harmony High Institute
-604,The 1881 Institute
-608,Legacy Classical Christian Academy
-610,Portal Schools
-612,Unidos Homeschool Cooperative
-615,Oceti Sakowin Educational Learning Center
-620,Atlas Public Schools
-622,Georgia Fugees Academy Charter School
-623,Dallas Hybrid Preparatory At Stephen J. Hay
-625,Lumen High School
-627,Phoenix International Academy
-628,Rainier Valley Leadership Academy
-630,Crotona International High School
-633,Urban Assembly Unison School
-799,Codman Academy Charter School
-796,Schools of Perea
-795,The Nueva School
-792,Kairos Academies
-787,California Area High School
-786,New School of San Francisco
-785,Rogers High School
-784,Manchester High School
-783,Margarita Muñiz Academy
-780,Hartford Area Career and Technology Center
-778,EVOLVE Academy
-777,Anderson Institute of Technology
-776,PXU City
-772,AIM Academy
-771,Keres Children's Learning Center
-770,UP Academy
-768,Icon Preparatory School Jacksonville
-765,Ednovate Virtual Academy
-764,Robert F. Smith STEAM Academy
-760,Perry Ingenuity Institute
-759,Aggie Academy
-757,San Luis High School
-756,Cibola High School
-754,Rio Rico High School
-753,University High School
-752,The Leadership School
-749,Zeta Mount Eden
-748,Zeta Inwood
-747,Nowell Academy
-746,Opportunity Academy at Holyoke High School
-745,Chelsea Opportunity Academy
-743,KIPP Beyond Middle School
-740,Impact | Salish Sea Elementary
-739,Impact | Commencement Bay Elementary
-731,URBAN ACT Academy
-729,Solar Preparatory School for Boys
-727,Rodriguez Elementary
-724,Phalen Leadership Academy @ 103
-720,Montessori Elementary at Highland Park
-715,Las Américas ASPIRA Academy
-714,Kansas City Girls Prep Academy
-712,High School of Commerce
-710,Growth Public Schools
-708,Endazhi-Nitaawiging Charter School
-707,Empower Community School
-703,Catalyst: Bremerton
-699,Building 21 Allentown
-697,BRICK Achieve Middle School
-694,Bostonia Global K-14
-693,BELIEVE Circle City High School
-691,Aventura Community School
-690,Altura Preparatory School
-688,Alabama Aerospace and Aviation High School
-685,Innovation Lab High School
-683,Lighthouse Holyoke
-681,Windham Woods School
-680,Bennett Day School
-679,Ruby Bridges Elementary School
-678,Creative Minds International
-676,Antrim Elementary School
-674,Fenway High School
-672,Tapestry Public Charter School
-669,Batesburg-Leesville Primary School
-668,Heartwood Agile Learning Center
-666,I Dream Public Charter School
-665,Capital Experience Lab
-663,Global Citizens Public Charter School
-662,Capitol Learning Academy
-660,One World Middle School
-659,St. Patrick Catholic School
-658,Ross Elementary
-657,David H. Petree Elementary
-656,Lucama Elementary
-655,Kilombo Academic and Cultural Institute
-654,Colchester High School
-653,Dolores Huerta Middle School
-652,Portland High School
-651,Washington Middle School
-650,Hamilton High School
-649,Portland Middle School
-643,Dekalb Brilliance Academy
-640,Valor Preparatory Academy of Arizona
-639,"Roxbury Roots Montessori, Inc."
-638,Prospect Academy
-637,Goshen Post Elementary
-635,STREAM School at Hamilton Middle School
-624,La Promesa
-619,Vista Innovation and Design Academy
-607,La Luz
-605,8 Million Stories
-600,Coatimundi Middle School
-577,North Florida School of Special Education
-572,Black Mother's Forum Microschool
-568,Swiftwater Alternative High School
-555,Grayson High School
-535,CLK Engage at CLK Elementary School
-530,Helen S Dunn Elementary School
-526,Crossroads FLEX
-519,PS 86 Kingsbridge Heights
-518,Richland Two Institute of Innovation (R2i2)
-517,Career Academy High School
-512,Long-View Learning
-511,Nyos Charter School
-504,DREAM Charter School
-498,Wilder Middle School
-497,PS 13 Clement C Moore
-495,Revolution School
-480,Manara Leadership Academy
-479,Central Queens Academy - Middle School
-476,Wish Community School
-473,Winooski Middle High School
-457,"Dził Ditł'ooi School of Empowerment, Action, and Perseverance (DEAP)"
-452,Nokomis Regional High
-448,"Ke Kula ʻo Samuel M. Kamakau, LPCS"
-411,Tomorrow's Leadership Collaborative (TLC) Charter
-406,Bioscience High School
-390,River Bend Career & Technical Center
-372,Welte Education Center
-371,Washtenaw Alliance for Virtual Education (WAVE)
-360,The Center for Advanced Research and Technology (CART)
-346,San Diego Met High School
-340,R5 High School
-325,NuVu Innovation School
-318,Newburgh Free Academy West
-302,Lincoln Middle School (AR)
-279,Happy Hollow Elementary School
-268,Environmental Charter School
-262,Durango Big Picture High School
-209,Two Rivers Public Charter School: 4th Street Campus
-165,Purdue Polytechnic High Schools
-22,Blackstone Academy Charter School
+school_name,school_id
+Mountain Academy at Teton Science School,311
+Sojourner Truth Montessori School,351
+Montessori Adolescent Program,503
+Red Bridge,506
+Long-View Learning,512
+Forest Freedom School,514
+Slope School,524
+Grayson School,538
+Brightworks,544
+Acton Academy Venice Beach,545
+Arabia Mountain High School - Academy of Engineering- Medic,552
+Phillips Academy,564
+Sequoyah School,566
+Springhouse Community School,567
+The Sycamore School,569
+Black Mother's Forum Microschool,572
+Conductive Education Center of Orlando,576
+North Florida School of Special Education,577
+Jacksonville School for Autism,578
+My Reflection Matters Village,580
+Bridges Academy,582
+Texas Tech University K-12,588
+Nazareth Prep,593
+The Williamsburg High School of Art and Technology,595
+The 1881 Institute,604
+8 Million Stories,605
+Build UP,606
+La Luz,607
+Legacy Classical Christian Academy,608
+My Tech High,609
+Portal Schools,610
+Unidos Homeschool Cooperative,612
+Atlas Public Schools,620
+Prospect Academy,638
+Dekalb Brilliance Academy,643
+Hamilton High School,650
+Phoenix International School of the Arts,664
+Tapestry Public Charter School,672
+A School Without Walls,686
+Aventura Community School,691
+Empower Community School,707
+Seckinger High School,728
+The Genius School,730
+Why Not You Academy,733
+Achievers Early College Prep Charter School,737
+Zeta Bronx Tremont Park Elementary,738
+Icon Preparatory School Jacksonville,768
+Aventuras Forest School,769
+UP Academy,770
+Keres Children's Learning Center,771
+AIM Academy,772
+St. Benedict's Preparatory School,773
+Blue School,794
+The Nueva School,795
+Codman Academy Charter School,799
+Iowa BIG,293
+The Albuquerque Sign Language Academy,458
+Village High School,499
+Acceleration Preparatory Academy,736
+Acceleration Day and Evening Academy,735
+Achieve Community Charter School,306
+Alabama Aerospace and Aviation High School,688
+Community Lab School,45
+Native American Community Academy,134
+La Promesa,624
+Choice Learning Academy,755
+Building 21 Allentown,699
+Alma Fuerte Public School,689
+Alpena Career Tech Education Center,5
+Altura Preparatory School,690
+American Academy of Innovation,7
+Highland Academy Charter School,283
+Anderson Institute of Technology,777
+A2 Virtual+ Academy,1
+Valley New School,213
+Odessa High School,675
+Blessed Sacrament Catholic School,246
+Ascension Catholic School,239
+Nativity of Mary Catholic School,135
+St. Alphonsus Catholic School,194
+Community of Saints Regional Catholic School,253
+Saint John Paul II,345
+ARISE High,508
+Armada High School,9
+Arthur Ashe Charter School,788
+Aspen Valley Prep Academy,240
+Aspire Richmond Tech,12
+Asu Preparatory Academy Digital,587
+Charles R. Drew Charter School,31
+Audeo Charter School II,413
+Academy of Advanced Learning,687
+The Academy of Advanced Learning,3
+Empower Community High School,67
+William Smith High School,228
+Avalon School,15
+Aveson Global Leadership Academy,17
+Avonworth High School,241
+Liberty Elementary School,114
+Central Vermont Career Center,389
+Barrington Middle School,19
+Rockcreek Elementary School,344
+Batesville Junior High School,407
+Chautauqua Charter School,579
+BELIEVE Circle City High School,693
+Belleville Township High School Alternative Day Program,797
+Benjamin Banneker Charter Public School,242
+Berrien Springs Virtual School,21
+Link Learning,475
+West Michigan Virtual Academy,478
+Beta Academy,585
+Positive Outcomes Charter School,337
+Shannon High School,182
+Bismarck Career Academy and Technical Center,781
+Blackstone Academy Charter School,22
+Samuel Everett School of Innovation,611
+Blue Valley Center for Advanced Professional Studies (CAPS),247
+Praxium Mastery Academy,648
+Ignite Institute,647
+Booneville High School,23
+Boston Day and Evening Academy,24
+Mission Hill K-8 School,131
+Boston Arts Academy,248
+Greater Egleston High School,278
+Dr. William W. Henderson K-12 Inclusion School,671
+Fenway High School,674
+Margarita Muñiz Academy,783
+Bostonia Global K-14,694
+Breakthrough Charter School,695
+BRICK Achieve Middle School,697
+Bricolage Academy,451
+Brockton High School,249
+Brooklyn Laboratory Charter School,698
+Brown County High School,529
+Veterans Memorial Early College H S,560
+Burlington City & Lake Semester,472
+Cabot School,532
+Caliber ChangeMakers Academy,701
+California Area High School,787
+Camden BPL Academy,250
+Capital Village Public Charter School,667
+Career Academy High School,517
+Palo Verde Elementary School,404
+Catalyst: Bremerton,703
+Cecilton Elementary School,673
+Center City Congress Heights,426
+Center Line High School - Wall to Wall Academies,28
+Central Queens Academy - Middle School,479
+Charlotte Central School,677
+Champlain Valley Union High School,790
+Nawayee Center School,313
+Charlotte Lab School,32
+Albemarle Road Elementary School,4
+Shamrock Garden Elementary School,181
+Olympic High School,381
+Coastal Leadership Academy,252
+New Legacy Charter School,139
+Charter School of San Diego,525
+Oakland FlexTech High School,75
+iLEAD Exploration,288
+Chelsea Opportunity Academy,745
+Tri-County Early College High School,363
+Salem Church Elementary,173
+CICS West Belden,35
+Cesar E. Chávez Multicultural Academic Center,233
+Eliza Chappell Elementary School,265
+George Washington Elementary,516
+Gwendolyn Brooks College Preparatory Academy,89
+CHIME Institute's Schwarzenegger Community,410
+Chrysalis Charter School,416
+Cisco Elementary,36
+Citizens of the World Hollywood,37
+Paulo Freire Freedom School -Downtown,333
+Paulo Freire Freedom School -University,334
+City Charter High School,428
+City Garden Montessori School,38
+Intrinsic Charter School,292
+Clarendon High School,39
+Early Technical College at Tennessee College of Applied Technology,62
+Swiftwater Alternative High School,568
+Weber Elementary,222
+Charles W. Eliot PreK-8th Grade School,30
+The Center for Advanced Research and Technology (CART),360
+CodeRVA Regional High School,41
+Colchester High School,654
+Opportunities Academy,329
+Clearmont Elementary,441
+Community Roots Charter School,437
+Huntley High School,286
+Compass Rose Harvest,704
+ConVal Regional High School,254
+Antrim Elementary School,676
+Gowan Science Academy,550
+Garden City,82
+Eden Park Elementary School,427
+Creative Minds International,678
+Crete Academy,414
+Ketcham,107
+Da Vinci Communications,468
+Da Vinci Science,469
+Da Vinci Design,470
+Da Vinci Connect,621
+Da Vinci RISE High,256
+Da Vinci Extension,51
+Dan D. Rogers Elementary School,50
+Solar Preparatory School for Girls,191
+Dallas Hybrid Preparatory at Stephen J. Hay,623
+Ignite Middle School,713
+Solar Preparatory School for Boys,729
+West Dallas STEM School,732
+Personalized Learning Preparatory at Sam Houston,589
+CityLab High School,591
+Farmington High School (UT),72
+Van Ness Elementary School,366
+Columbia Heights Educational Campus (CHEC),42
+Ida B. Wells Middle School,287
+The Museum School of Avondale Estates,440
+Denver School of Innovation and Sustainable Design,54
+Launch Network at Stedman Elementary,112
+5280 High School,236
+Grant Beacon Middle School,417
+Kepner Beacon Middle School,418
+Escuela Valdez,419
+McGlone Academy,420
+Design Tech High School,56
+Detroit Prep,483
+Mill Creek Middle School,128
+Digital Pioneers Academy,58
+Ballou Senior High School,423
+Anacostia High School,424
+Dixon School,461
+DREAM Charter School,504
+DSST: Montview High School,261
+Duchesne High School,60
+Durango Big Picture High School,262
+Becoming Collegiate Academy,692
+"Dził Ditł'ooi School of Empowerment, Action, and Perseverance (DEAP)",457
+e3 Civic High School,61
+Middle Park High School,521
+Pioneer Ridge Middle School,160
+Integrated Arts Academy,290
+Ross Elementary,658
+North Edgecombe High School,142
+Valley View Middle School,214
+East College Prep,63
+USC Hybrid High College Prep,64
+Ednovate Virtual Academy,765
+Latitude 37.8 High School,111
+The NET Charter High School: Gentilly,205
+New Orleans Accelerated High School,314
+The Net: Central City,361
+EdVisions Off Campus School,474
+Springs Studio for Academic Excellence,527
+Young Women's STEAM Research and Preparatory Academy,376
+Mesita Elementary,507
+Elevate Academy Nampa,742
+Elevate Academy Caldwell,523
+Ember Charter School for Mindful Education; Innovation; and Transformation,66
+Eminence High School,446
+Endazhi-Nitaawiging Charter School,708
+Enosburg Falls Junior/Senior High School,539
+Environmental Charter School,268
+Envision Academy,68
+Del Lago Academy,258
+Escuela Verde,270
+Rocky Mountain School of Expeditionary Learning,171
+Bellows Free Academy,391
+EVOLVE Academy,778
+Farmington High School (CT),73
+West Woods Upper Elementary School,224
+Carter G. Woodson College Preparatory Academy,702
+Rise STEM Academy for Girls,726
+Happy Hollow Elementary School,279
+Welte Education Center,372
+Eisenhower Elementary,263
+Richards Middle School,343
+Frederick County Middle School,388
+Penrose Elementary School,520
+Big Picture Educational Academy,244
+Fulton Academy of Science and Technology,272
+Future Public School,81
+Gary Middle College,614
+Gem Prep Nampa,83
+Girls Athletic Leadership Middle School,85
+Desert Spirit School,403
+Glenwood Elementary,275
+Global Citizens Public Charter School,663
+Goochland High School,86
+Grand Rapids Public Museum School,276
+Great Hearts Online,762
+Great Oaks Bridgeport,421
+Great Oaks Legacy Charter School,277
+Greater Lawrence Technical School,791
+Fred Tjardes School of Innovation,80
+Helen S Dunn Elementary School,530
+Grow Academy Shafter,88
+Growth Public Schools,710
+Aggie Academy,759
+Bedford Homeschool Partnership,20
+Gull Lake Virtual Partnership,384
+Grayson High School,555
+McClure Health Science High School,719
+Sinai Elementary School,186
+STREAM School at Hamilton Middle School,635
+Ivy Academy Inc.,554
+Montessori Elementary at Highland Park,720
+Hamilton County Collegiate High at Chattanooga State,90
+Academies of Hampton,2
+Journey Elementary,295
+Harrison High School,280
+Kennelly School,596
+Hartford Area Career and Technology Center,780
+SEEQS: the School for Examining Essential Questions of Sustainability,180
+Waimea Canyon Middle School,218
+Mālama Honua Public Charter School,447
+"Ke Kula ʻo Samuel M. Kamakau, LPCS",448
+"Ke Kula ʻo Nāwahīokalaniʻōpuʻu Iki, LPCS",449
+Austin Road Elementary School,14
+Henry Ford Academy,282
+High School for the Recording Arts,456
+High Tech High,92
+Highlander Elementary Charter,602
+Madrona Elementary,387
+Maritime High School,751
+Holmes Central High School,95
+Holyoke High School,96
+Opportunity Academy at Holyoke High School,746
+Ocean Bay Middle School,149
+Energy Institute High School,267
+Young Women's College Preparatory Academy,375
+I Dream Public Charter School,666
+i3 Academy,402
+Temple View Elementary,202
+Compass Academy,646
+IDEA Toros College Preparatory,99
+IDEA Frontier College Preparatory,556
+Impact | Puget Sound Elementary,101
+Impact | Commencement Bay Elementary,739
+Impact | Salish Sea Elementary,740
+Hillbrook School,285
+San Francisco Day School,347
+Tahoe Expedition Academy,358
+Winchester Thurston School,374
+Waring School,370
+Hilton Head Christian Academy,399
+Arsenal Technical High School,531
+Inspired Teaching Demonstration Public Charter School,422
+Launch High,501
+Gibson Ek High School,84
+Jasper High School,439
+Iroquois High School,103
+Meridian Technical Charter High School,126
+Juab High School,105
+Kairos Academies,792
+Kansas City Girls Prep Academy,714
+Kent Innovation High School,106
+Kettle Moraine Explore,108
+KM Global,467
+DB EXCEL (Kingsport),52
+KIPP Academy Lynn Collegiate,109
+Promise Academy,425
+KIPP Beyond Middle School,743
+KIPP Philadelphia Preparatory Academy,528
+KIPP Liberation,110
+Synergy at Fremont Middle School,741
+SPARK School at Kyrene de las Manitas,355
+Jimmy Carter Early College High School,563
+LaFayette Big Picture at LaFayette Junior/Senior High School,297
+EPIC Academy at Lamoille Union High School,269
+Langston Hughes Charter Academy,789
+Turrill Elementary School,534
+Las Américas ASPIRA Academy,715
+LEEP Dual Language Academy,716
+Legacy Prep,400
+Leominster Center for Excellence,300
+Level Up Academy,464
+Next STEP High,382
+River Bluff High School,169
+Batesburg-Leesville Primary School,669
+Red Bank Elementary,167
+Lexington 4 Early Childhood Center,113
+Liberty Academy,502
+EPiC Elementary,69
+Lodestar,117
+Lincoln Middle School (AR),302
+Central Elementary School,29
+Lindsay Unified High School,116
+John J. Cairns High School,294
+Southside Elementary School,354
+Logan Innovations,118
+Lewisburg Elementary,445
+Lonoke High School,304
+Felicitas and Gonzalo Mendez High,409
+Social Justice Humanitas Academy,189
+UCLA Community School,210
+New Village Girls Academy,316
+Waxpool Elementary,636
+Goshen Post Elementary,637
+Lumen High School,625
+Lycée Français de la Nouvelle Orléans,450
+Magic City Acceptance Academy,626
+Manara Leadership Academy,480
+Arlington STEM Academy,481
+Irving Elementary,482
+Parker-Varney Elementary,154
+Manchester High School,784
+Map Academy Charter School,122
+Mapleton Early Career Preparation,305
+Marin's Community School,718
+Matchbook Learning at Wendell Phillips,308
+Mead Senior High School,536
+Meadows Valley School PK-12,124
+University High School,753
+Mena High School,125
+Nipmuc Regional High School,319
+Francis T Maloney High School,77
+John Barry Elementary School,104
+R5 High School,340
+Methow Valley Independent Learning Center,310
+Nashville Big Picture High School,312
+Young Women's Preparatory Academy,558
+Clark Street Community School,541
+Sam Houston Collegiate Preparatory Academy,398
+Milton Senior High School,543
+Mineola Elementary,129
+Minnesota New Country School,130
+Missisquoi Valley Union Middle and High School,395
+The Leadership School,752
+Momentous School,513
+North Elementary School,321
+Magnolia Montessori For All,120
+Montpelier High School,133
+Highfalls Elementary School,93
+Park View Elementary,153
+Mott Haven Academy,91
+Crosstown High,49
+Howard Middle School for Math and Science,98
+Sisu Academy,187
+Social Justice School,190
+Purdue Polytechnic High School - Englewood,165
+Workspace Education,230
+Highlands Micro School,284
+Exploration High School,493
+Revolution School,495
+Brooklyn Free School,505
+The Delta School,540
+Southern Nevada Urban Micro Academy,573
+Oceti Sakowin Educational Learning Center,615
+Kilombo Academic and Cultural Institute,655
+St. Patrick Catholic School,659
+Great Minds Virtual,661
+Capitol Learning Academy,662
+Capital Experience Lab,665
+Heartwood Agile Learning Center,668
+Bennett Day School,680
+Windham Woods School,681
+Lighthouse Holyoke,683
+Mastery School of Hawken,684
+LEAD Charter School,744
+Nowell Academy,747
+Futures Academy,273
+The Primary School,782
+Verdi EcoSchool,368
+New School of San Francisco,786
+Putney School,392
+The Forest School,466
+Columbia High School,43
+Woods Learning Center,385
+Navajo Preparatory School,793
+Hayward Collegiate Charter School,711
+Nettleton High School,137
+Southeast Area Technical High School (SEA-TECH),380
+New Harmony High Institute,601
+Common Ground High School,44
+New Haven Academy,138
+Phoenix Modern,549
+New Orleans Charter Science and Mathematics High School (SciHigh),315
+Living School,303
+Frank McCourt High School,79
+Flushing International High School,76
+NYC iSchool,146
+The Young Women's Leadership School of Astoria,206
+West Side Collaborative Middle School,223
+Urban Assembly Maker Academy,211
+Cornerstone Academy for Social Action Middle School (CASA),255
+Bard High School Early College - Manhattan,377
+University Heights Secondary School - Bronx Community College,641
+MS 371 SEED: Harlem,721
+The Urban Assembly School for Green Careers,433
+PS 206 Jose Celso Barbosa,438
+Bronx Arena High School,25
+PS 86 Kingsbridge Heights,519
+Pelham Gardens Middle School,435
+PS 76 The Bennington School,436
+Arturo A. Schomburg Satellite Academy Bronx,642
+MS 935,717
+PS 13 Clement C Moore,497
+South Bronx Academy for Applied Media,631
+Crotona International High School,630
+Brooklyn International High School,629
+Urban Assembly Unison School,633
+Hunter's Point Community Middle School,634
+Marsh Avenue Expeditionary Learning School,632
+Concourse Village Elementary School,47
+Newark East Side High School,317
+Newburgh Free Academy West,318
+Rogers High School,785
+Newport High School,459
+Noblesville High School,442
+TRIO Wolf Creek Distance Learning Charter School,208
+The Creative School,203
+Rooted School Indianapolis,443
+Anastasis Academy,8
+Conservatory Lab Charter School,48
+Aspen Academy,11
+Coahoma Early College High School,40
+Atlanta Speech School,13
+Avanti High School,16
+Canon City High School,26
+DC Bilingual Public Charter School,53
+Highline Big Picture,94
+Evergreen Community Charter School,70
+Innovations High School,102
+Francis W. Parker Charter Essential School,78
+Du Bois Integrity Academy,59
+Fannie Lou Hamer Freedom High School,71
+Madison Palmer High School,119
+Manual Academy,121
+One Stone,150
+Lincoln Middle School (IL),115
+Orlo Avenue Elementary,151
+Powderhouse Studios [Nonoperating school],164
+Scott Central High School,179
+Statesmen College Preparatory Academy for Boys PCS,195
+Rochester Middle School,170
+Rooted School,172
+Taft Primary School,200
+Taos Academy Charter School,201
+Norris Academy,141
+International School of the Americas,235
+North Idaho STEM Charter Academy,322
+North Little Rock Middle School - 6th Grade Campus,143
+Northeast Academy for Aerospace and Advanced Technologies,323
+Northern Cass High School,537
+Ruby Bridges Elementary School,679
+Innovation Lab High School,685
+Northwest Passage High School,324
+Learn4Life Inglewood - Alta Vista Innovation High,408
+NuVu Innovation School,325
+One World Middle School,660
+Bronx Legacy High School,696
+Gotham Tech,709
+Nyos Charter School,511
+Oakes Public School,779
+Skyline High School,763
+MetWest,127
+Randolph Union High School,393
+Hazen Union High School,394
+River Bend Career & Technical Center,390
+Oxford Virtual Academy,383
+P.K. Yonge,331
+Paladin Career and Technical High School,465
+Pangburn High School,152
+Paramount Brookside,477
+Odyssey STEM Academy,326
+Lead Innovation Studio,299
+Williams Elementary School,397
+Elmer G Bondy Intermediate,65
+Dayspring Academy,575
+Pathways High,332
+Pea Ridge Primary/Intermediate,156
+Innovation Academy at Pembroke Academy,289
+Pequea Valley High School,335
+Perry Ingenuity Institute,760
+Phalen Leadership Academy @ 103,724
+Phoenix International Academy,627
+Bioscience High School,406
+Phoenix Coding Academy,775
+PXU City,776
+Chastain Road Elementary,33
+Piedmont High School,157
+PilotED Bethel Park,444
+Pinckney Community High School,158
+Pinnacles Prep,725
+Pittsburgh Colfax K-8,336
+Derry Elementary,55
+Port Huron High School,163
+Casco Bay High School,27
+Reiche Community School,168
+Portland Middle School,649
+Portland High School,652
+Compass Community Collaborative School,682
+Design39Campus,57
+Prairie School,338
+Foundation School of Autism - San Antonio,586
+International High School at Langley Park,291
+Minnesota Center for Advanced Professional Studies,463
+Fugees Academy,271
+Embark Education,266
+360 High School,603
+Asa Messer Elementary School,10
+DC International school,257
+CLK Engage at CLK Elementary School,535
+Washington Middle School,651
+Horizons Alternative Education School,97
+Vimenti School,581
+Purdue Polytechnic High School - North,766
+Purdue Polytechnic High School - South Bend,767
+Quest Academy,396
+Radford High School,166
+Rainier Valley Leadership Academy,628
+Renaissance Arts Academy,412
+ReNew Dolores T. Aaron Elementary,342
+Lakeridge Elementary,298
+The Metropolitan Regional Career and Technical Center,204
+Richland Two Institute of Innovation (R2i2),518
+School 9 - Dr. Martin Luther King Jr.,597
+Maple Street Magnet School,123
+Saluda Trail Middle School,175
+Northside Elementary School,144
+Rogers New Technology High School,547
+South Rowan High School,192
+Nokomis Regional High,452
+Mattanawcook Junior High School,453
+Ella Burr Elementary,454
+Katahdin Middle/High School,616
+Oakland High School,147
+Met Sacramento High School,309
+Salem Academy Charter School,562
+Salem High School (VA),174
+Salem High School (NH),460
+Innovations Early College High School,500
+San Diego Met High School,346
+Rodriguez Elementary,727
+Sanborn Regional High School,176
+Charles Page High School,432
+Dolores Huerta Middle School,653
+Oasis High School,148
+Coatimundi Middle School,600
+Rio Rico High School,754
+SMASH (Santa Monica Alternative School House),350
+Pittsfield Middle High School,161
+Vilas Elementary School,217
+Pine Tree Elementary School,159
+Butler Academy,700
+Liberty STEAM Charter School,750
+Nichols Intermediate Academy of Leadership,722
+Noble High School,140
+Compass Academy,46
+Robert F. Smith STEAM Academy,764
+Creativity Challenge Community,510
+Science Leadership Academy,348
+The Workshop School,429
+Building 21 Philadelphia,430
+The U School,431
+Open School East,328
+Schoolcraft High School,177
+Marshall High School,307
+Olympic Hills Elementary,327
+Oxford Day Academy,723
+Shawnee High School,183
+Perea Elementary School,796
+Siloam Springs High School Conversion Charter,184
+Silverton School,185
+Amana Academy,6
+Polaris Charter Academy,162
+Two Rivers School,570
+RISE Academy,565
+Somerville High School,352
+Souhegan Coop High School,193
+Coquillard Elementary School,584
+South Bronx Community Charter High School,353
+Big Picture South Burlington at South Burlington High School,245
+Nottingham Elementary School,145
+Spring Grove School,462
+Don Tyson School of Innovation,207
+The Springfield Renaissance School,362
+Discovery Early College High School,706
+High School of Commerce,712
+Altona Middle School,238
+Soaring Heights Pk-8,188
+St. Paul School of Northern Lights,515
+The Innovation Center of St. Vrain Valley Schools,617
+ACE Leadership High School,237
+Health Leadership High School,281
+Siembra Leadership High School,349
+Technology Leadership High School,359
+Coperni 3,705
+Georgia Fugees Academy Charter School,622
+Yampa Valley High School,522
+Stilwell High School,196
+Green Valley Ranch,87
+Strive Prep - Federal,74
+STRIVE Prep - RISE,197
+Stuttgart Junior High School,198
+Summit Prep,199
+Science and Math Institute,178
+Tacoma School of the Arts,357
+"School of Industrial Design, Engineering and Art",386
+Childersburg Middle School,34
+Winterboro High School,229
+Tanque Verde High School,551
+Vista Grande Charter High School,369
+The Exploris School,598
+El Centro de Estudiantes,264
+Vaux Big Picture High School,367
+Valley Day School,365
+THRIVE Community School,734
+Tindley Summit Academy,494
+Tomorrow's Leadership Collaborative (TLC) Charter,411
+Wheeling High School,225
+RAMTEC,341
+Holladay Intermediate Magnet School,559
+City of Bridges High School,251
+Two Rivers Public Charter School: 4th Street Campus,209
+University Academy Upper School,364
+University Charter School,401
+North Carolina School of Science and Mathematics,136
+URBAN ACT Academy,731
+Comp Sci.High,434
+Urban Discovery High School,100
+Urban Montessori Charter School,212
+Bennington Junior-Senior High School,243
+Stockton Elementary School,356
+Ottawa High School,330
+Kennedy Elementary School,296
+Liberal High School,301
+Dighton Elementary School,259
+Dighton Junior-Senior High School,260
+Utah Career Path High School,542
+Utah Schools for the Deaf and the Blind,571
+Uxbridge High School,455
+A Vito Martinez Middle School,594
+Valor Flagship Academy,215
+Valor Voyager Academy,216
+Valor Preparatory Academy of Arizona,640
+Virtual Learning Academy,234
+Vista Innovation and Design Academy,619
+Mission Vista High School,132
+Provident Heights Elementary,339
+Crossroads FLEX,526
+Warren County High School,219
+Washington Leadership Academy,220
+Washtenaw Alliance for Virtual Education (WAVE),371
+Waukesha STEM Academy Saratoga Campus,221
+Barbara Morgan STEM Academy,18
+Galileo STEM Academy,274
+Western School of Science and Technology,405
+White Mountains Regional High School,226
+White River Valley Middle School,583
+Whittle School,227
+Wickliffe High School,373
+Wilder Middle School,498
+Wilder High School,378
+Wild Rose Montessori,613
+"Roxbury Roots Montessori, Inc.",639
+Lucama Elementary,656
+Woodstock Union Middle/High School,471
+North Bay Met Academy,320
+Winooski Middle High School,473
+David H. Petree Elementary,657
+Winton Woods High School,509
+Wish Community School,476
+Wynne Intermediate School of Innovation,231
+Pasodale Elementary School,155
+Ysleta Elementary School,232
+Valle Verde Early College H S,561
+Yu Ming Charter School,415
+Cibola High School,756
+San Luis High School,757
+Zeta Bronx 1 Elementary,379
+Zeta Inwood,748
+Zeta Mount Eden,749
+Zuni High School,758
