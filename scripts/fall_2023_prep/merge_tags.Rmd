@@ -12,7 +12,7 @@ pacman::p_load(tidyverse, here, rio, janitor)
 
 Read in data
 ```{r}
-tags <- import(here("data", "tags_2018-2023_complete.csv")) %>% 
+tags <- import(here("data", "tags_2018-2023.csv")) %>% 
   clean_names()
 ```
 
@@ -46,6 +46,13 @@ solo_tags <- tags %>%
 ```
 
 
+```{r}
+removed_tags <- tags %>% 
+  filter(year_removed != "Not removed") %>% 
+  select(current_variable_name, full_tag_name, equivalent_variable_name_2022:equivalent_variable_name_2019, year_removed, years_used, only_one_year_used)
+```
+
+
 Make tags long.
 ```{r}
 tags_long1 <- tags %>% 
@@ -66,7 +73,7 @@ Make tags wide.
 
 
 ```{r}
-save(tags, tags_long, solo_tags, file = "longitudinal_tags.RData")
+save(tags, tags_long, solo_tags, removed_tags, file = "longitudinal_tags.RData")
 save(solo_tags, file = here::here("data", "solo_tags.csv"))
 ```
 
@@ -202,7 +209,7 @@ longitudinal_dat %>%
 
 #let's see what's missing
 ```
-```{r}
+```{r eval=FALSE, include=FALSE}
 # Ran the following code for each year: 2019, 2021, 2022, 2023
 
 check_yr <- longitudinal_dat %>% 
@@ -211,12 +218,12 @@ check_yr <- longitudinal_dat %>%
   filter(year == "2023")
 
 tags_check <- tags %>% 
-  pivot_longer(cols = c(starts_with("y_"), "total"),
+  pivot_longer(cols = c(starts_with("equivalent_")),
                names_to = "year",
                values_to = "count") %>% 
   filter(count != 0) %>% 
   group_by(year) %>% 
-  filter(year == "y_2023") %>% 
+  filter(year == "equivalent_variable_name_2023") %>% 
   select(current_variable_name, full_tag_name)
 
 ccc <- left_join(tags_check, check_yr, by = join_by(current_variable_name == var))
