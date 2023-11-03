@@ -279,4 +279,13 @@ ggplotly(by_year)
 ```
 
 
+Tag correlations
+
+```{r}
+cor_tags <- cor(tags)
+cor_tags <- cbind(tag = rownames(cor_tags), cor_tags)
+
+write.csv(cor_tags, "correlations_2023.csv")
+```
+
 
