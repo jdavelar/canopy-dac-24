@@ -288,4 +288,64 @@ cor_tags <- cbind(tag = rownames(cor_tags), cor_tags)
 write.csv(cor_tags, "correlations_2023.csv")
 ```
 
+Separate all_use viz by cluster
+
+## Educational justice and holistic student support
+
+Social justice focus
+Culturally responsive practices
+Anti-racist practices
+Restorative practices
+Hiring for equity and inclusion values
+
+## Postsecondary pathways and the world outside school
+
+Career preparation and work-based learning
+Students earn industry credentials
+Assessments for career readiness
+Community and business partnerships
+Extended learning opportunities
+
+## Deeper learning for mastery
+
+Interdisciplinary 
+Competency/mastery based education
+Multi-age classrooms
+Design thinking process
+Makerspace
+
+## Individualized and blended learning
+
+Blended learning 
+Interoperable data from multiple technologies
+Students access their own data
+Students move at their own pace
+Student-led goal setting
+
+```{r}
+all_years <- use_long %>% 
+  group_by(var) %>% 
+  count(var) %>%
+  filter(n == 4) %>% 
+  select(-n)
+
+all_years_viz <- inner_join(all_years, use_long)
+```
+
+```{r message=FALSE, warning=FALSE, fig.width=20, fig.height=10}
+
+all_years_viz$year <- as.numeric(all_years_viz$year)
+all_years_viz$var <- substring(all_years_viz$var, 11)
+
+all_use_four_years <- all_years_viz %>% 
+  ggplot(aes(x = year, y = n)) +
+  geom_point(aes(color = var, alpha = 0.5)) +
+  geom_line(aes(color = var, alpha = 0.5)) +
+  theme_linedraw() +
+  theme(legend.position = "none") +
+  facet_wrap(~var) +
+  theme(strip.text = element_text(size = 10, margin = margin()))
+
+ggsave(filename = here("output", "tags_used_all_years.png"), width = 20, height = 10)
+```
 
