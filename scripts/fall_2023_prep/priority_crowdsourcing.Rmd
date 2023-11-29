@@ -1,0 +1,257 @@
+---
+title: "Priority Nominators/Schools"
+author: "Janette Avelar"
+date: '2023-10-31'
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(here)
+library(rio)
+library(tidyr)
+```
+
+# Preliminary Analysis
+
+The code chunk below extracts two potential priority groups:  
+-low participation schools (1 data point)  
+-high participation schools (3+ data points)  
+
+The goal was to generate initial N's and criteria to identify possible prioritization criteria for schools.
+
+In order to do so, I pulled in a `school_names.csv` file which is downloaded from AirTable. This is a complete list of all schools nominated in Canopy pulled from the **Schools** tab and contains only 2 columns: `CanopyID` and `School Name` which are renamed to match data conventions in R. Some schools have changed names over the years requiring us to use the most recent name adopted in AirTable during the nomination cleaning process each year. Thus, the resulting `school_names.csv` file that replaces the original is meant to be merged with school IDs to prevent duplicate names across years.
+
+This code should not be re-run; it's retained for future guidance.
+
+```{r priority 3+ schools, include = FALSE, eval = FALSE}
+### DO NOT RE-RUN THIS CODE - IT WON'T WORK ###
+#merge - CSV pulled from AirTable for most recent school name
+school_names <- import(here("data", "school_names.csv")) %>%
+  rename(school_name = `School Name`,
+         school_id = CanopyID)
+export(school_names, "data/school_names.csv")
+
+#generate priority list
+priority_a <- import(here("data", "school_participation.csv")) %>% 
+  rowwise() %>% 
+  mutate(total = sum(c(`2019`, `2021`, `2022`, `2023`))) %>% 
+  filter(total == 3 | total == 4) %>% 
+  #match with names
+  left_join(school_names, by = "school_id") %>% 
+  select(school_id, school_name) #there are additional obs introduced that I will manually sort out in sheets as I tie back to nominator
+export(priority_a, "data/high-participation priority.csv")
+
+# generate second priority list - low participation and not since 2019
+priority_b <- import(here("data", "last-participation-2019.csv")) %>% 
+  mutate(school_id = as.character(school_id)) %>% 
+  left_join(school_names, by = "school_id")
+export(priority_b, "data/low-participation priority.csv")
+```
+
+# Priority Schools  
+
+*This is the first step of prioritization.* In the code chunk below, I map relevant pieces of data onto the full list of schools that have ever participated (e.g., BIPOC leadership). Then I begin to establish priority groups A, B, C, and D according to the criteria below. 
+
+Priority school groups:
+A = Schools that have participated twice in the past, once in 2019 or 2021, and a second time in 2022 or 2023.
+  + in group B & D
+B = Schools that have participated at least twice since 2019 but not schools that have participated each year following initial nomination, since they’re likely to participate again.
+  - participated every year
+C = Schools that have participated once, either in 2019 or 2021. (**NOTE** no BIPOC info on group C to move up in priority)
+D = BIPOC-led schools that participated in 2022 and/or 2023.
+
+```{r priority define priority groups}
+# First we need to link BIPOC demographic data to schools
+load("data/complete_canopy_2022.RData")
+dat_22 <- clean_data_full
+load("data/complete_canopy_2023.RData")
+dat_23 <- full
+#bipoc link 22
+bipoc_22 <- dat_22 %>% 
+  select(school_id, bipoc = confidential_leadership_team_diversity) %>% 
+  filter(bipoc == "75 - 100% people of color" |
+           bipoc == "50 - 74% people of color") %>% 
+  select(school_id)
+#bipoc link 23
+bipoc_23 <- dat_23 %>% 
+  select(school_id, bipoc = leadership_diversity) %>% 
+  filter(bipoc == 3 |
+           bipoc == 4) %>% 
+  select(school_id)
+#priority
+priority_schools <- import(here("data", "school_participation.csv")) %>% 
+  rowwise() %>% 
+  mutate(total = sum(c(`2019`, `2021`, `2022`, `2023`), na.rm = TRUE)) %>% 
+  ungroup() %>% 
+  mutate(a = case_when(
+    total == 2 &
+    (`2019` == 1 | `2021` == 1) &
+    (`2022` == 1 | `2023` == 1) ~ 1,
+    TRUE ~ 0
+  ),
+  b = case_when(
+    total > 2 ~ 1,
+    TRUE ~ 0
+  ),
+  c = case_when(
+    total == 1 & `2019` == 1 ~ 1,
+    total == 1 & `2021` == 1 ~ 1,
+    TRUE ~ 0
+  ),
+  d = case_when(
+    school_id %in% bipoc_22$school_id ~ 1,
+    school_id %in% bipoc_23$school_id ~ 1,
+    TRUE ~ 0
+  ),
+  any = case_when(
+    a == 1 ~ 1,
+    b == 1 ~ 1,
+    c == 1 ~ 1,
+    d == 1 ~ 1,
+    TRUE ~ 0
+  ))
+export(priority_schools, "data/priority-schools.csv")
+```
+
+*This is the second step of prioritization.* I take the groups as established above, and modify priority groups A, B, C, and D so that schools that need to be de-prioritized or moved up in category are correctly grouped (e.g., schools in group B that are also BIPOC-led, or schools that have participated every year). Then I make the categories mutually exclusive by the highest priority category.
+
+Final tally: 341 priority schools  
+-group a = 74  
+-group b = 86 -> 57  
+-group c = 137  
+-group d = 122 -> 73  
+
+```{r refine/modify priority groups}
+#names for merging
+names <- import(here("data", "school_names.csv"))
+#fixing categories
+dat <- import(here("data", "priority-schools.csv"))
+dat <- dat %>% 
+  mutate(a = case_when( #add BIPOC group B to priority A
+    b == 1 & d == 1 ~ 1,
+    TRUE ~ as.numeric(a)
+  ),
+  b = case_when( #add BIPOC group C to priority B
+    c == 1 & d == 1 ~ 1,
+    TRUE ~ as.numeric(b)
+  ),
+  c = case_when( #drop schools that participated every year
+    total == 4 ~ 0,
+    TRUE ~ as.numeric(c)
+  )) %>% 
+  #make sure no dropped schools leak through
+  filter(!(a == 0 & b == 0 & c == 0 & d == 0)) %>%  #151 schools dropped
+#78 schools overlap; decision rule to keep mutually exclusive = keep highest priority group
+  mutate(b = case_when(
+    a == 1 & b == 1 ~ 0,
+    TRUE ~ as.numeric(b)
+  ),
+  d = case_when(
+    a == 1 & d == 1 ~ 0,
+    b == 1 & d == 1 ~ 0,
+    c == 1 & d == 1 ~ 0,
+    TRUE ~ as.numeric(d)
+  )) %>% 
+  rowwise() %>% 
+  pivot_longer(cols = c(a, b, c, d),
+               names_to = "group",
+               values_to = "value") %>% 
+  filter(!value == 0) %>% 
+  select(!value)
+
+#export priority list
+export_dat <- dat %>% 
+  left_join(names, by = "school_id") %>% 
+  select(school_id, school_name, group) %>% 
+  arrange(group)
+export(export_dat, "data/priority-schools.csv")
+```
+
+# Priority Nominators
+
+In the code chunk below I begin to merge nominator data with our priority schools in order to attach respective org name for crowdsourcing. The data used is pulled in from AirTable --`all_nominations.csv` is a CSV file downloaded from AT with a complete list of every school nominated and their associated org. It's pulled from the **Schools** tab and holds 2 columns: `CanopyID` (for matching) and `Nominator Org (from Nominations)` which is a lookup field from the **Nominator Orgs** tab.
+
+Once created, both the `all_nominations.csv` and resulting `priority-schools-orgs.csv` files should be stored with other confidential data.
+
+```{r priority nom/school merge}
+#first create long format for schools to merge
+p_schools <- export_dat
+#modify nominator list
+p_nom <- import(here("data", "all_nominations.csv")) %>% 
+  select(!`School Name`) %>% 
+  rename(org = `Nominator Org (from Nominations)`,
+         school_id = `CanopyID`) %>% 
+  mutate(school_id = as.numeric(school_id))
+#match
+priority <- p_schools %>% 
+  left_join(p_nom, by = c("school_id"))
+#split up org column
+max <- 10
+priority <- priority %>% 
+  separate(., org, into = paste0("org_", 1:max), sep = ",", extra = "merge") %>% 
+  #drop extra cols
+  select(!c(org_7:org_10)) %>% 
+  pivot_longer(cols = starts_with("org_"),
+               names_to = "n_org",
+               values_to = "org",
+               names_prefix = "org_") %>% 
+  filter(!is.na(org)) %>% 
+  group_by(school_id) %>% 
+  mutate(n_org = max(n_org))
+export(priority, "data/priority-schools-orgs.csv")
+```
+
+# Priority Org Contacts
+
+In the final step, I merge associated org contacts to each observation in order for us to have contact info we'll use in the crowdsourcing process. These data are pulled in from AirTable through the `nom-contacts.csv` file which is from the **Nominator Contacts** table. This view shows every contact filtered by:  
+-`Contact Status` is `Primary`  
+-`Nominator Org Status` has any of `Active`  
+-`Type of org (from Nominator Organization)` has none of `School`
+
+Once merged, `nom-contacts.csv` and resulting `priority-crowdsourcing.csv` files should be stored with other confidential data.
+
+*NOTE*: Upon merging, I realized many orgs fall into multiple groups. I *highly recommend* blanket messaging rather than group-specific messaging for individual nominating orgs as a result. This is why the final csv file does not retain the grouping column.
+
+```{r org contact merge}
+contact <- import(here("data", "nom-contacts.csv")) %>% 
+  select(!`Nominator Name`) %>% 
+  rename(first_name = `Nominator First Name`,
+         last_name = `Nominator Last Name`,
+         email = Email,
+         org = `Nominator Organization`) %>% 
+  right_join(priority, by = "org", relationship = "many-to-many") %>% 
+  select(school_name, org, first_name, last_name, email) %>% 
+  unique()
+export(contact, "data/priority-school-org-contacts.csv")
+#how many buckets do orgs fall into?
+# contact %>% 
+#   mutate(rate = rep(1, nrow(.))) %>% 
+#   group_by(org, group) %>% 
+#   summarize(sum(rate))
+```
+
+```{r school contact merge}
+school <- import(here("data", "priority-schools.csv"))
+contacts <- import(here("data", "school-contacts.csv")) %>% 
+  select(first_name = `School Contact First Name`,
+         last_name = `School Contact Last Name`,
+         email = `School contact email`,
+         school_id = `CanopyID (from School Name)`) %>% 
+  separate_rows(., school_id, sep = ", ") %>% 
+  mutate(school_id = as.numeric(school_id))
+merge <- school %>% 
+  left_join(contacts, by = "school_id") %>% 
+  filter(!is.na(email)) #missing contact schools were inactive
+export(merge, "data/priority-school-contacts.csv")
+test <- merge %>% 
+  mutate(rate = rep(1, nrow(.))) %>% 
+  group_by(school_id) %>% 
+  mutate(total = sum(rate)) %>% 
+  filter(total > 1)
+#school 63 & 64 still have dups
+```
+
+
+All confidential datasets moved to `confidential-priority-data-2024` in work > CRPE.
