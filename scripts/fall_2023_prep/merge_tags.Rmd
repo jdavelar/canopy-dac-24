@@ -73,8 +73,8 @@ Make tags wide.
 
 
 ```{r}
-save(tags, tags_long, solo_tags, removed_tags, file = "longitudinal_tags.RData")
-save(solo_tags, file = here::here("data", "solo_tags.csv"))
+#save(tags, tags_long, solo_tags, removed_tags, file = "longitudinal_tags.RData")
+#save(solo_tags, file = here::here("data", "solo_tags.csv"))
 ```
 
 
@@ -196,7 +196,10 @@ longitudinal_dat_wide <- longitudinal_dat %>%
 Wide longitudinal dataset created! Now just need to check the counts and values to make sure there was nothing wonky in the merging and everything is still accurate.
 
 ```{r}
-save(solo_tags, tags, longitudinal_dat_wide, longitudinal_dat, file = here::here("data", "longitudinal_tags.RData"))
+# save(solo_tags, tags, longitudinal_dat_wide, longitudinal_dat, file = here::here("data", "longitudinal_tags.RData"))
+# saving only wide and long as CSV file - J update 12.11.23
+export(longitudinal_dat_wide, "data/longitudinal/tags-wide.csv")
+export(longitudinal_dat, "data/longitudinal/tags-long.csv")
 ```
 
 ## Dataset verification
@@ -347,5 +350,33 @@ all_use_four_years <- all_years_viz %>%
   theme(strip.text = element_text(size = 10, margin = margin()))
 
 ggsave(filename = here("output", "tags_used_all_years.png"), width = 20, height = 10)
+```
+
+
+# Janette data checks 12.11.23
+
+```{r}
+# clear environment
+rm(list = ls())
+# read in data
+dat <- import(here("data/longitudinal", "tags-wide.csv"))
+# Data needs to be in 0/1/NA format - modify
+dat <- dat %>% 
+  mutate_all(~ ifelse(. == "", 0, .))
+#create summary view for y/n in each year and N
+long <- import(here("data/longitudinal", "tags-long.csv"))
+# usage is not the right type - it's a character and needs to be numeric
+long <- long %>% 
+  mutate(usage = as.numeric(usage))
+test <- long %>% 
+  select(var, year, usage) %>% 
+  group_by(year, var) %>% 
+  summarize(n = sum(usage, na.rm = TRUE))
+# totals look good
+# years look good - note there's no 0s for years where tag wasn't used; tag just isn't there for long format
+# portfolios exhibitions merge looks good
+# resave wide/long after introducing 0/1 and turning usage into numeric
+rio::export(dat, "data/longitudinal/tags-wide.csv")
+rio::export(long, "data/longitudinal/tags-long.csv")
 ```
 
