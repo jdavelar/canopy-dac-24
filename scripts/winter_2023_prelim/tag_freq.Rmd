@@ -1,0 +1,112 @@
+---
+title: "Tag Frequency Changes"
+author: "Janette Avelar"
+date: '2023-12-16'
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+pacman::p_load(tidyverse, here, rio, DT)
+#read in data
+dat <- import(here("data/longitudinal", "tags-long.csv"))
+#read in tag labels
+labels <- import(here("data", "tag_labels.csv"))
+```
+
+*Central Q: * For each practice where we have at least 2 years of data, how has the practice's frequency changed?  
+-look only at changes within schools - so, schools that have at least 2 data points about that practice
+-the object of inquiry here is the practice - how have each practice's frequencies changed?
+
+A few ideas:  
+-could be a table showing +/-X (where X is number of schools adding or removing) for each year. We did a graph version of this on p.8 in the 2021 report.  
+-could be a line graph showing # of schools reporting each practice each year, similar to p.22 in the 2022 report. (Note, this code should be in our github from 2022.)  
+-to make it more readable, it could be interactive (user could hover over a tag to see that line distinguished).  
+
+### Raw Counts Table
+
+```{r}
+##### creating table with raw count differences across years #####
+#starting with raw counts for each year
+dat %>% 
+  group_by(year, var) %>% 
+  summarize(n = sum(usage, na.rm = TRUE)) %>% 
+  #need to also figure out how many repeat over year
+  ungroup() %>% 
+  mutate(rate = rep(1, nrow(.))) %>% 
+  group_by(var) %>% 
+  mutate(rep = sum(rate, na.rm = TRUE)) %>% 
+  ungroup() %>% 
+  #drop vars without 2+ years of data
+  filter(rep > 1) %>% 
+  select(!c(rate, rep)) %>% 
+  #make cols for each year to determine change
+  pivot_wider(names_from = year,
+              values_from = n) %>% 
+  #calculate change
+  mutate(change_2021 = `2021` - `2019`,
+         change_2022 = `2022` - `2021`,
+         change_2023 = `2023` - `2022`) %>% 
+  #bring in labels
+  left_join(labels, by = "var") %>% 
+  select(Tag = label, `2019`, `2021` = change_2021, `2022` = change_2022, `2023` = change_2023) %>% 
+  #table
+  datatable() %>%
+  #style
+  formatStyle(columns = c("2021", "2022", "2023"), 
+              color = styleInterval(cuts = 0, values = c("red", "green")),
+              textAlign = "center")
+```
+
+### Percentage Table
+
+```{r}
+##### creating table with percentage differences across years #####
+#year totals
+totals <- dat %>% 
+  select(school_id, year) %>% 
+  unique() %>% 
+  mutate(rate = rep(1, nrow(.))) %>% 
+  group_by(year) %>% 
+  summarize(n_school = sum(rate, na.rm = TRUE)) %>% 
+  ungroup()
+# create table with percentage changes
+dat %>% 
+  group_by(year, var) %>% 
+  summarize(n = sum(usage, na.rm = TRUE)) %>% 
+  left_join(totals, by = "year") %>% 
+  mutate(pct = n/n_school,
+         rate = rep(1, n())) %>% 
+  ungroup() %>% 
+  #need to also figure out how many repeat over year
+  group_by(var) %>% 
+  mutate(rep = sum(rate, na.rm = TRUE)) %>% 
+  ungroup() %>% 
+  #drop vars without 2+ years of data
+  filter(rep > 1) %>% 
+  select(var, year, pct) %>% 
+  #make cols for each year
+  pivot_wider(names_from = year,
+              values_from = pct) %>%
+  #calculate change
+  mutate(change_2021 = `2021` - `2019`,
+         change_2022 = `2022` - `2021`,
+         change_2023 = `2023` - `2022`) %>% 
+  #bring in labels
+  left_join(labels, by = "var") %>% 
+  select(Tag = label, `2019`, `2021` = change_2021, `2022` = change_2022, `2023` = change_2023) %>% 
+  #table
+  datatable() %>%
+  #style
+  formatStyle(columns = c("2021", "2022", "2023"), 
+              color = styleInterval(cuts = 0, values = c("red", "green")),
+              textAlign = "center") %>% 
+  formatPercentage(c("2019", "2021", "2022", "2023"), 0)
+```
+
+### Graph by Cluster
+
+```{r}
+
+```
+
