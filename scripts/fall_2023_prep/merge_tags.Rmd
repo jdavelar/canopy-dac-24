@@ -379,11 +379,14 @@ wide <- import(here("data/longitudinal", "tags-wide.csv"))
 wide <- wide %>% 
   mutate_all(~ ifelse(. == "", 0, .)) %>% 
   mutate_all(~ as.numeric(.))
+#tags have hidden "\n" values - remove from both versions
+colnames(wide) <- str_replace_all(colnames(wide), "\n", "")
 #create summary view for y/n in each year and N
 long <- import(here("data/longitudinal", "tags-long.csv"))
 # usage is not the right type - it's a character and needs to be numeric
 long <- long %>% 
-  mutate(usage = as.numeric(usage))
+  mutate(usage = as.numeric(usage)) %>% 
+  mutate(var = str_replace_all(var, "\n", ""))
 test <- long %>% 
   select(var, year, usage) %>% 
   group_by(year, var) %>% 

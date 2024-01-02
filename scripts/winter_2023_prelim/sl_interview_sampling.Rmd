@@ -1,0 +1,433 @@
+---
+title: "School Leader Sampling"
+author: "Janette Avelar"
+date: '2023-12-28'
+output: 
+  html_document:
+    toc: true
+    toc_float: true
+    theme: flatly
+    highlight: tango
+    code_folding: hide
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, warnings = FALSE, message = FALSE)
+pacman::p_load(tidyverse, here, rio, DT, ggcorrplot, psych, parameters)
+#read in data
+dat <- import(here("data/longitudinal", "tags-long.csv"))
+#read in tag labels
+names <- import(here("data", "school_names.csv"))
+```
+
+## School practices
+
+### Difference in practices selected each year
+
+The following table displays the number of practices each school selected across years for schools that participated in at least 2 years of data collection.  
+
+The first observation for each school lists the initial number of practices chosen. In other words, if the school is blank for 2019, this indicates that the school did not fill out the survey in 2019 and the value in the 2021 column will display the initial number of tags they chose.
+
+*Note:* This table is somewhat skewed because it's capturing differences in practices that are due to our survey design changes, in addition to what schools may or may not have selected before.
+
+```{r}
+#yearly average/SD for tags selected
+yearly_avg <- dat %>% 
+  filter(!school_id == 0) %>% 
+  group_by(school_id, year) %>% 
+  summarize(n = sum(usage, na.rm = TRUE)) %>% 
+  ungroup() %>% 
+  group_by(year) %>% 
+  summarize(avg = mean(n),
+         sd = sd(n))
+#number of tags selected by school each year
+schools_yearly <- dat %>% 
+  select(!var) %>% 
+  filter(!school_id == 0) %>% 
+  group_by(school_id, year) %>% 
+  summarize(n = sum(usage, na.rm = TRUE)) %>% 
+  ungroup() %>% 
+  #drop only to schools with 2+ years of involvement
+  mutate(rate = 1) %>% 
+  group_by(school_id) %>% 
+  mutate(rep = sum(rate)) %>% 
+  ungroup() %>% 
+  filter(rep > 2) %>% 
+  pivot_wider(names_from = year,
+              values_from = n) %>% 
+  select(school_id, `2019`, `2021`, `2022`, `2023`)
+```
+
+```{r}
+#create a nicer count table à la tag freq
+schools_yearly_tbl <- schools_yearly %>% 
+  left_join(names, by = "school_id") %>% 
+  select(school_id, `2019`, `2021`, `2022`, `2023`) %>% 
+  group_by(school_id) %>% 
+  #capturing standard differences + edge cases
+  mutate(
+    diff_2021 = ifelse(!is.na(`2019`) & !is.na(`2021`), `2021` - `2019`, NA),
+    diff_2022 = ifelse(!is.na(`2021`) & !is.na(`2022`), `2022` - `2021`, NA),
+    esc_2022 = ifelse(is.na(`2021`) & !is.na(`2022`), `2022` - `2019`, NA),
+    diff_2023 = ifelse(!is.na(`2022`) & !is.na(`2023`), `2023` - `2022`, NA),
+    esc_2023a = ifelse(is.na(`2022`) & !is.na(`2023`), `2023` - `2021`, NA),
+    esc_2023b = ifelse(is.na(`2022`) & !is.na(`2023`), `2023` - `2019`, NA)
+  ) %>%
+  #merging differences + edge cases
+  mutate(merge_2021 = case_when(
+    !is.na(diff_2021) ~ as.numeric(diff_2021),
+    is.na(diff_2021) ~ as.numeric(`2021`)
+  ),
+  merge_2022 = case_when(
+    !is.na(diff_2022) ~ as.numeric(diff_2022),
+    is.na(diff_2022) & !is.na(esc_2022) ~ as.numeric(esc_2022),
+    is.na(diff_2022) & is.na(esc_2022) ~ as.numeric(`2022`)
+  ),
+  merge_2023 = case_when(
+    !is.na(diff_2023) ~ as.numeric(diff_2023),
+    is.na(diff_2023) & !is.na(esc_2023a) ~ as.numeric(esc_2023a),
+    is.na(diff_2023) & !is.na(esc_2023b) ~ as.numeric(esc_2023b)
+  )) %>% 
+  ungroup() %>% 
+  left_join(names, by = "school_id") %>% 
+  select(school_name, `2019`, `2021` = merge_2021, `2022` = merge_2022, `2023` = merge_2023)
+#table
+datatable(schools_yearly_tbl) %>% 
+  formatStyle(columns = c("2021", "2022", "2023"), 
+              color = styleInterval(cuts = 0, values = c("red", "green")),
+              textAlign = "center")
+```
+
+I attempted to correct for the issue of survey design changes by limiting the number of practices selected to those that appear across all 4 years of data. This means the total number of practices a school could select is 49. I'm imagining there's 2 approaches to sampling here: in the first, we use the table above to select schools far above/below mean, and in the second, we use the table below to identify large fluctuations within a more controlled set of practices.
+
+```{r}
+#ID practices from all years
+full_prac <- dat %>% 
+  select(var, year) %>% 
+  unique() %>% 
+  mutate(rate = 1) %>% 
+  group_by(var) %>% 
+  summarize(rep = sum(rate)) %>% 
+  filter(rep == 4) %>% 
+  pull(var)
+
+#yearly average/SD for tags selected
+yearly_avg_ltd <- dat %>% 
+  filter(!school_id == 0) %>% 
+  filter(var %in% full_prac) %>% 
+  group_by(school_id, year) %>% 
+  summarize(n = sum(usage, na.rm = TRUE)) %>% 
+  ungroup() %>% 
+  group_by(year) %>% 
+  summarize(avg = mean(n),
+         sd = sd(n))
+
+#recreate yearly school with limited practices
+schools_yearly_ltd <- dat %>% 
+  filter(school_id != 0) %>% 
+  filter(var %in% full_prac) %>% 
+  group_by(school_id, year) %>% 
+  summarize(n = sum(usage, na.rm = TRUE)) %>% 
+  ungroup() %>% 
+  #drop only to schools with 2+ years of involvement
+  mutate(rate = 1) %>% 
+  group_by(school_id) %>% 
+  mutate(rep = sum(rate)) %>% 
+  ungroup() %>% 
+  filter(rep > 2) %>% 
+  pivot_wider(names_from = year,
+              values_from = n) %>% 
+  select(school_id, `2019`, `2021`, `2022`, `2023`)
+schools_yearly_ltd_tbl <- schools_yearly_ltd %>% 
+  left_join(names, by = "school_id") %>% 
+  select(school_id, `2019`, `2021`, `2022`, `2023`) %>% 
+  group_by(school_id) %>% 
+  #capturing standard differences + edge cases
+  mutate(
+    diff_2021 = ifelse(!is.na(`2019`) & !is.na(`2021`), `2021` - `2019`, NA),
+    diff_2022 = ifelse(!is.na(`2021`) & !is.na(`2022`), `2022` - `2021`, NA),
+    esc_2022 = ifelse(is.na(`2021`) & !is.na(`2022`), `2022` - `2019`, NA),
+    diff_2023 = ifelse(!is.na(`2022`) & !is.na(`2023`), `2023` - `2022`, NA),
+    esc_2023a = ifelse(is.na(`2022`) & !is.na(`2023`), `2023` - `2021`, NA),
+    esc_2023b = ifelse(is.na(`2022`) & !is.na(`2023`), `2023` - `2019`, NA)
+  ) %>%
+  #merging differences + edge cases
+  mutate(merge_2021 = case_when(
+    !is.na(diff_2021) ~ as.numeric(diff_2021),
+    is.na(diff_2021) ~ as.numeric(`2021`)
+  ),
+  merge_2022 = case_when(
+    !is.na(diff_2022) ~ as.numeric(diff_2022),
+    is.na(diff_2022) & !is.na(esc_2022) ~ as.numeric(esc_2022),
+    is.na(diff_2022) & is.na(esc_2022) ~ as.numeric(`2022`)
+  ),
+  merge_2023 = case_when(
+    !is.na(diff_2023) ~ as.numeric(diff_2023),
+    is.na(diff_2023) & !is.na(esc_2023a) ~ as.numeric(esc_2023a),
+    is.na(diff_2023) & !is.na(esc_2023b) ~ as.numeric(esc_2023b)
+  )) %>% 
+  ungroup() %>% 
+  left_join(names, by = "school_id") %>% 
+  select(school_name, `2019`, `2021` = merge_2021, `2022` = merge_2022, `2023` = merge_2023)
+#table
+datatable(schools_yearly_ltd_tbl) %>% 
+  formatStyle(columns = c("2021", "2022", "2023"), 
+              color = styleInterval(cuts = 0, values = c("red", "green")),
+              textAlign = "center")
+```
+
+### Schools above average
+
+The following table displays the 25 schools that selected more practices than average each year. The table indicates if that average was 1, 2, or 3+ standard deviations above the average for the given year.  
+
+Note that this table includes the difference in change for all tags, and thus may capture differences due to changes we implemented in the tagging list for that year. 
+
+```{r}
+above_avg_all <- schools_yearly %>% 
+  mutate(
+    diff_2021 = ifelse(!is.na(`2019`) & !is.na(`2021`), `2021` - `2019`, NA),
+    diff_2022 = ifelse(!is.na(`2021`) & !is.na(`2022`), `2022` - `2021`, NA),
+    esc_2022 = ifelse(is.na(`2021`) & !is.na(`2022`), `2022` - `2019`, NA),
+    diff_2023 = ifelse(!is.na(`2022`) & !is.na(`2023`), `2023` - `2022`, NA),
+    esc_2023a = ifelse(is.na(`2022`) & !is.na(`2023`), `2023` - `2021`, NA),
+    esc_2023b = ifelse(is.na(`2022`) & !is.na(`2023`), `2023` - `2019`, NA)
+  ) %>%
+  #merging differences + edge cases
+  mutate(merge_2021 = case_when(
+    !is.na(diff_2021) ~ as.numeric(diff_2021)
+  ),
+  merge_2022 = case_when(
+    !is.na(diff_2022) ~ as.numeric(diff_2022),
+    is.na(diff_2022) & !is.na(esc_2022) ~ as.numeric(esc_2022)
+  ),
+  merge_2023 = case_when(
+    !is.na(diff_2023) ~ as.numeric(diff_2023),
+    is.na(diff_2023) & !is.na(esc_2023a) ~ as.numeric(esc_2023a),
+    is.na(diff_2023) & !is.na(esc_2023b) ~ as.numeric(esc_2023b)
+  )) %>% 
+  ungroup() %>% 
+  select(school_id, starts_with("merge")) %>% 
+  pivot_longer(cols = starts_with("merge"),
+               names_to = "year",
+               values_to = "change",
+               names_prefix = "merge_") %>% 
+  group_by(year) %>% 
+  mutate(avg = mean(change, na.rm = TRUE),
+         sd = sd(change, na.rm = TRUE)) %>% 
+  ungroup() %>% 
+  group_by(school_id) %>% 
+  mutate(above_1sd = ifelse(change > avg + sd, "Yes", "No"),
+         above_2sd = ifelse(change > avg + (sd*2), "Yes", "No"),
+         above_3sd = ifelse(change > avg + (sd*3), "Yes", "No")) %>% 
+  ungroup() %>% 
+  filter(above_1sd == "Yes" | above_2sd == "Yes" | above_3sd == "Yes") %>% 
+  select(school_id, year, above_1sd, above_2sd, above_3sd) %>% 
+  pivot_wider(names_from = "year",
+              values_from = starts_with("above_")) %>% 
+  mutate(`2021` = case_when(
+    above_3sd_2021 == "Yes" ~ "+3 SD",
+    above_2sd_2021 == "Yes" ~ "+2 SD",
+    above_1sd_2021 == "Yes" ~ "+1 SD"
+  ),
+  `2022` = case_when(
+    above_3sd_2022 == "Yes" ~ "+3 SD",
+    above_2sd_2022 == "Yes" ~ "+2 SD",
+    above_1sd_2022 == "Yes" ~ "+1 SD"
+  ),
+  `2023` = case_when(
+    above_3sd_2023 == "Yes" ~ "+3 SD",
+    above_2sd_2023 == "Yes" ~ "+2 SD",
+    above_1sd_2023 == "Yes" ~ "+1 SD"
+  )) %>% 
+  left_join(names, by = "school_id") %>% 
+  select(school_name, `2021`, `2022`, `2023`)
+datatable(above_avg_all)
+```
+
+This next table replicates the table above, but limiting the resulting difference, mean, and standard deviation by taking into account only those tags that were used across all years of data collection (N = 49).
+
+```{r}
+above_avg_ltd <- schools_yearly_ltd %>% 
+  mutate(
+    diff_2021 = ifelse(!is.na(`2019`) & !is.na(`2021`), `2021` - `2019`, NA),
+    diff_2022 = ifelse(!is.na(`2021`) & !is.na(`2022`), `2022` - `2021`, NA),
+    esc_2022 = ifelse(is.na(`2021`) & !is.na(`2022`), `2022` - `2019`, NA),
+    diff_2023 = ifelse(!is.na(`2022`) & !is.na(`2023`), `2023` - `2022`, NA),
+    esc_2023a = ifelse(is.na(`2022`) & !is.na(`2023`), `2023` - `2021`, NA),
+    esc_2023b = ifelse(is.na(`2022`) & !is.na(`2023`), `2023` - `2019`, NA)
+  ) %>%
+  #merging differences + edge cases
+  mutate(merge_2021 = case_when(
+    !is.na(diff_2021) ~ as.numeric(diff_2021)
+  ),
+  merge_2022 = case_when(
+    !is.na(diff_2022) ~ as.numeric(diff_2022),
+    is.na(diff_2022) & !is.na(esc_2022) ~ as.numeric(esc_2022)
+  ),
+  merge_2023 = case_when(
+    !is.na(diff_2023) ~ as.numeric(diff_2023),
+    is.na(diff_2023) & !is.na(esc_2023a) ~ as.numeric(esc_2023a),
+    is.na(diff_2023) & !is.na(esc_2023b) ~ as.numeric(esc_2023b)
+  )) %>% 
+  ungroup() %>% 
+  select(school_id, starts_with("merge")) %>% 
+  pivot_longer(cols = starts_with("merge"),
+               names_to = "year",
+               values_to = "change",
+               names_prefix = "merge_") %>% 
+  group_by(year) %>% 
+  mutate(avg = mean(change, na.rm = TRUE),
+         sd = sd(change, na.rm = TRUE)) %>% 
+  ungroup() %>% 
+  group_by(school_id) %>% 
+  mutate(above_1sd = ifelse(change > avg + sd, "Yes", "No"),
+         above_2sd = ifelse(change > avg + (sd*2), "Yes", "No"),
+         above_3sd = ifelse(change > avg + (sd*3), "Yes", "No")) %>% 
+  ungroup() %>% 
+  filter(above_1sd == "Yes" | above_2sd == "Yes" | above_3sd == "Yes") %>% 
+  select(school_id, year, above_1sd, above_2sd, above_3sd) %>% 
+  pivot_wider(names_from = "year",
+              values_from = starts_with("above_")) %>% 
+  mutate(`2021` = case_when(
+    above_3sd_2021 == "Yes" ~ "+3 SD",
+    above_2sd_2021 == "Yes" ~ "+2 SD",
+    above_1sd_2021 == "Yes" ~ "+1 SD"
+  ),
+  `2022` = case_when(
+    above_3sd_2022 == "Yes" ~ "+3 SD",
+    above_2sd_2022 == "Yes" ~ "+2 SD",
+    above_1sd_2022 == "Yes" ~ "+1 SD"
+  ),
+  `2023` = case_when(
+    above_3sd_2023 == "Yes" ~ "+3 SD",
+    above_2sd_2023 == "Yes" ~ "+2 SD",
+    above_1sd_2023 == "Yes" ~ "+1 SD"
+  )) %>% 
+  left_join(names, by = "school_id") %>% 
+  select(school_name, `2021`, `2022`, `2023`)
+datatable(above_avg_ltd)
+```
+
+You'll notice most schools (N = 20) surfaced in both tables--these may be good candidates to select from for schools with rapid change. Note that for these tables we're only looking at tags added, rather than tags removed, as an indicator for how often schools are trying to adopt new changes. These schools include:  
+
+```{r}
+above_avg_all %>% 
+  bind_rows(above_avg_ltd) %>% 
+  select(school_name) %>% 
+  mutate(rate = 1) %>% 
+  group_by(school_name) %>% 
+  summarize(rep = sum(rate)) %>% 
+  filter(rep > 1) %>% 
+  select(school_name) %>% 
+  datatable()
+```
+
+### Schools with steady growth
+
+The following table displays schools that had years of "0" growth - that is, no difference in the number of tags selected. It might be worth talking to schools that have remained steady following 2021. Note that I did not make a second table for "stable" practices--this is because there were no schools that exhibited zero growth across our list of stable practices.
+
+```{r}
+schools_yearly_tbl %>% 
+  filter(`2021` == 0 | `2022` == 0 | `2023` == 0) %>% 
+  datatable()
+```
+
+The following table displays schools with "stable" change, which I defined as those schools whose differences each year remained within a standard deviation below or above the average rate. Because this definition is fairly broad, it resulted in a fairly large list (N = 63). I'm open to suggestions here for ways to wittle down to a better definition for "stability."
+
+```{r}
+schools_yearly_tbl %>% 
+  select(-`2019`) %>% 
+  pivot_longer(cols = !school_name,
+               names_to = "year",
+               values_to = "change") %>% 
+  filter(!is.na(change)) %>% 
+  group_by(year) %>% 
+  mutate(avg = mean(change, na.rm = TRUE),
+         sd = sd(change, na.rm = TRUE)) %>% 
+  ungroup() %>% 
+  group_by(school_name) %>% 
+  mutate(stable = ifelse(change <= avg + sd | change >= avg - sd, 1, 0)) %>% 
+  select(school_name, year, stable) %>% 
+  pivot_wider(names_from = "year",
+              values_from = "stable") %>% 
+  filter(`2021` == 1 & `2022` == 1 & `2023` == 1) %>% 
+  select(school_name) %>% 
+  datatable()
+```
+
+## School characteristics
+
+### Schools above avg
+
+The following table adds potentially relevant school characteristics to the list of 20 schools that added practices far above the average using both the full set of practices and the stable set of practices.
+
+```{r}
+#bring in school characteristics
+#IMPORTANT NOTE FOR JANETTE: THIS WILL NEED TO BE UPDATED ONCE VARIABLES ARE FULLY MERGED
+#WHEN MERGING CREATE CHARACTERISTICS LIST FOR EACH SCHOOL 
+vars <- import(here("data/longitudinal", "combined-dat-ip.csv")) %>% 
+  select(school_id, year = panel_year, grades_elementary, grades_middle, grades_high, locale, school_descriptor) %>% 
+  unique() %>% 
+  mutate(type = case_when(
+    school_descriptor == 1 ~ "Public district",
+    school_descriptor == 2 ~ "Public charter",
+    school_descriptor == 3 ~ "Independent"
+  ),
+  level = case_when(
+    grades_elementary == 1 & grades_middle == 1 & grades_high == 1 ~ "All grades",
+    grades_elementary == 1 & grades_middle == 1 ~ "Combined primary (K-8)",
+    grades_middle == 1 & grades_high == 1 ~ "Combined secondary (6-12)",
+    grades_elementary == 1 ~ "Elementary",
+    grades_middle == 1 ~ "Middle",
+    grades_high == 1 ~ "High"
+  )) %>% 
+  select(school_id, year, type, level, locale) %>% 
+  pivot_wider(names_from = "year",
+              values_from = c("type", "level", "locale")) %>% 
+  mutate(merge_type = case_when(
+    !is.na(type_2023) ~ as.character(type_2023),
+    !is.na(type_2022) ~ as.character(type_2022),
+    !is.na(type_2021) ~ as.character(type_2021),
+    !is.na(type_2019) ~ as.character(type_2019)
+  ),
+  merge_level = case_when(
+    !is.na(level_2023) ~ as.character(level_2023),
+    !is.na(level_2022) ~ as.character(level_2022),
+    !is.na(level_2021) ~ as.character(level_2021),
+    !is.na(level_2019) ~ as.character(level_2019)
+  ),
+  merge_locale = case_when(
+    !is.na(locale_2023) ~ as.character(locale_2023),
+    !is.na(locale_2022) ~ as.character(locale_2022),
+    !is.na(locale_2021) ~ as.character(locale_2021),
+    !is.na(locale_2019) ~ as.character(locale_2019)
+  )) %>% 
+  select(school_id, type = merge_type, locale = merge_locale, level = merge_level)
+#merge with schools
+above_avg_all %>% 
+  bind_rows(above_avg_ltd) %>% 
+  select(school_name) %>% 
+  mutate(rate = 1) %>% 
+  group_by(school_name) %>% 
+  summarize(rep = sum(rate)) %>% 
+  filter(rep > 1) %>% 
+  select(school_name) %>% 
+  left_join(names, by = "school_name") %>% 
+  left_join(vars, by = "school_id") %>% 
+  select(school_name, level, type, locale) %>% 
+  datatable()
+```
+
+### Schools with steady growth
+
+```{r}
+schools_yearly_tbl %>% 
+  filter(`2021` == 0 | `2022` == 0 | `2023` == 0) %>% 
+  left_join(names, by = "school_name") %>% 
+  left_join(vars, by = "school_id") %>% 
+  select(school_name, level, type, locale) %>% 
+  datatable()
+```
+

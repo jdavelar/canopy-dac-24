@@ -2,12 +2,20 @@
 title: "Tag Frequency Changes"
 author: "Janette Avelar"
 date: '2023-12-16'
-output: html_document
+output: 
+  html_document:
+    toc: true
+    toc_float: true
+    theme: flatly
+    highlight: tango
+    code_folding: hide
+editor_options: 
+  chunk_output_type: console
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
-pacman::p_load(tidyverse, here, rio, DT, ggcorrplot)
+knitr::opts_chunk$set(echo = TRUE, warnings = FALSE, message = FALSE)
+pacman::p_load(tidyverse, here, rio, DT, ggcorrplot, psych, parameters)
 #read in data
 dat <- import(here("data/longitudinal", "tags-long.csv"))
 #read in tag labels
@@ -108,10 +116,20 @@ dat %>%
 
 Focusing in on tags with complete data - correlations are thrown off by missing data. Suggestions for resolving?
 
-```{r}
+```{r, include = FALSE}
 # recreate EFA to cluster across years
-#import wide file
-wide <- import(here("data/longitudinal", "tags-wide.csv"))
+#import wide file & filter to complete obs
+complete <- dat %>% 
+  select(var, year) %>% 
+  unique() %>% 
+  mutate(rate = rep(1, nrow(.))) %>% 
+  group_by(var) %>% 
+  summarize(n = sum(rate)) %>% 
+  filter(n == 4) %>% 
+  pull(var)
+  
+wide <- import(here("data/longitudinal", "tags-wide.csv")) %>% 
+  select(school_id, year, all_of(complete))
 #generate correlations
 cor <- wide %>%
   select(starts_with("practices")) %>%
@@ -122,10 +140,10 @@ plot_cor <- function(cor_mat, title = "") {
     scale_fill_distiller(type = "div", limits = c(-1, 1), expand = c(0, 0)) +
     labs(title = title,
          fill = "Correlation") +
-    scale_x_discrete(labels = label_tags()) +
-    scale_y_discrete(labels = label_tags()) +
+    scale_x_discrete(labels = labels) +
+    scale_y_discrete(labels = labels) +
     labs(x = "", y = "") + 
-    theme_transcend_sparse + 
+    # theme_transcend_sparse + 
     theme(axis.text.x = element_blank(), 
           axis.text.y = element_blank(),
           panel.border = element_blank(),
@@ -133,8 +151,26 @@ plot_cor <- function(cor_mat, title = "") {
           )
 }
 
-cor_plot <- plot_cor(cor, 
-                     title = "Correlation heat map for all tags across years") +
-            theme(legend.position = c(.85, .25))
+plot_cor(cor, 
+         title = "Correlation heat map for all tags across years") +
+theme(legend.position = c(.85, .25))
+#prep df
+mat_to_df <- function(m) {
+  data.frame(row=rownames(m)[row(m)[upper.tri(m)]], 
+           col=colnames(m)[col(m)[upper.tri(m)]], 
+           corr=m[upper.tri(m)])
+}
+
+df_cor <- mat_to_df(cor)
+#scree
+fa_cor <- fa.parallel(
+  cor, fm = "pa", fa = "fa", n.obs = nrow(wide),
+  main = "Correlation scree plot"
+) #suggested number of factors = 9
+#testing out 4
+fa(cor, nfactors = 4, rotate = "oblimin", fm = "minres") %>% 
+  model_parameters(sort = TRUE, threshold = "max") %>%
+  datatable(caption = "Max loadings") %>%
+  formatRound(digits = 2, columns = 2:6)
 ```
 
