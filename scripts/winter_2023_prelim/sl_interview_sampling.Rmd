@@ -357,6 +357,53 @@ schools_yearly_tbl %>%
   datatable()
 ```
 
+Given the large number of schools to choose from, I modified the way we categorize below/above average and stable schools in the table below. Here, schools are bucketed into `Below`, `Average`, or `Mixed` based on year over year changes. In other words, if they are below -1 standard deviation every year since 2019, they're marked `Below`, if they are within +/- 1 standard deviation every year, they're marked `Average`. No schools were consistently above +1 standard deviation across years, so you'll see many of the schools above average fell into a `Mixed` category.
+
+This approach brought our total number of "stable" schools from ~60 to 28.
+
+```{r}
+schools_yearly_tbl %>% 
+  select(-`2019`) %>% 
+  pivot_longer(cols = !school_name,
+               names_to = "year",
+               values_to = "change") %>% 
+  filter(!is.na(change)) %>% 
+  group_by(year) %>% 
+  mutate(avg = mean(change, na.rm = TRUE),
+         sd = sd(change, na.rm = TRUE)) %>% 
+  ungroup() %>% 
+  group_by(school_name) %>% 
+  mutate(above_1sd = ifelse(change > avg + sd, 1, 0),
+         above_2sd = ifelse(change > avg + (sd*2), 1, 0),
+         above_3sd = ifelse(change > avg + (sd*3), 1, 0),
+         average   = ifelse(change > avg - sd & change < avg + sd, 1, 0),
+         below_3sd = ifelse(change < avg - (sd*3), 1, 0),
+         below_2sd = ifelse(change < avg - (sd*2), 1, 0),
+         below_1sd = ifelse(change < avg - sd, 1, 0),
+         status = case_when(
+           above_1sd == 1 ~ "Above",
+           above_2sd == 1 ~ "Above",
+           above_3sd == 1 ~ "Above",
+           average   == 1 ~ "Average",
+           below_1sd == 1 ~ "Below",
+           below_2sd == 1 ~ "Below",
+           below_3sd == 1 ~ "Below"
+         )
+  ) %>%
+  select(school_name, year, status) %>% 
+  pivot_wider(names_from = "year",
+              values_from = "status") %>% 
+  mutate(status = case_when(
+    (`2021` == "Above" | is.na(`2021`)) & (`2022` == "Above" | is.na(`2022`)) & (`2023` == "Above" | is.na(`2023`)) ~ "Above",
+    (`2021` == "Average" | is.na(`2021`)) & (`2022` == "Average" | is.na(`2022`)) & (`2023` == "Average" | is.na(`2023`)) ~ "Average",
+    (`2021` == "Below" | is.na(`2021`)) & (`2022` == "Below" | is.na(`2022`)) & (`2023` == "Below" | is.na(`2023`)) ~ "Below",
+    TRUE ~ "Mixed"
+  )) %>% 
+  select(school_name, status) %>% 
+  datatable()
+```
+
+
 ## School characteristics
 
 ### Schools above avg
@@ -420,14 +467,68 @@ above_avg_all %>%
   datatable()
 ```
 
-### Schools with steady growth
+### Schools with no growth
 
 ```{r}
+no_growth <-
 schools_yearly_tbl %>% 
   filter(`2021` == 0 | `2022` == 0 | `2023` == 0) %>% 
   left_join(names, by = "school_name") %>% 
   left_join(vars, by = "school_id") %>% 
+  select(school_name, level, type, locale)
+datatable(no_growth)
+no_growth <- no_growth %>% 
+  pull(school_name)
+```
+
+### Schools with "stable" growth
+
+*Note: I removed schools with no growth from this list*
+
+```{r}
+schools_yearly_tbl %>% 
+  select(-`2019`) %>% 
+  pivot_longer(cols = !school_name,
+               names_to = "year",
+               values_to = "change") %>% 
+  filter(!is.na(change)) %>% 
+  group_by(year) %>% 
+  mutate(avg = mean(change, na.rm = TRUE),
+         sd = sd(change, na.rm = TRUE)) %>% 
+  ungroup() %>% 
+  group_by(school_name) %>% 
+  mutate(above_1sd = ifelse(change > avg + sd, 1, 0),
+         above_2sd = ifelse(change > avg + (sd*2), 1, 0),
+         above_3sd = ifelse(change > avg + (sd*3), 1, 0),
+         average   = ifelse(change > avg - sd & change < avg + sd, 1, 0),
+         below_3sd = ifelse(change < avg - (sd*3), 1, 0),
+         below_2sd = ifelse(change < avg - (sd*2), 1, 0),
+         below_1sd = ifelse(change < avg - sd, 1, 0),
+         status = case_when(
+           above_1sd == 1 ~ "Above",
+           above_2sd == 1 ~ "Above",
+           above_3sd == 1 ~ "Above",
+           average   == 1 ~ "Average",
+           below_1sd == 1 ~ "Below",
+           below_2sd == 1 ~ "Below",
+           below_3sd == 1 ~ "Below"
+         )
+  ) %>%
+  select(school_name, year, status) %>% 
+  pivot_wider(names_from = "year",
+              values_from = "status") %>% 
+  mutate(status = case_when(
+    (`2021` == "Above" | is.na(`2021`)) & (`2022` == "Above" | is.na(`2022`)) & (`2023` == "Above" | is.na(`2023`)) ~ "Above",
+    (`2021` == "Average" | is.na(`2021`)) & (`2022` == "Average" | is.na(`2022`)) & (`2023` == "Average" | is.na(`2023`)) ~ "Average",
+    (`2021` == "Below" | is.na(`2021`)) & (`2022` == "Below" | is.na(`2022`)) & (`2023` == "Below" | is.na(`2023`)) ~ "Below",
+    TRUE ~ "Mixed"
+  )) %>% 
+  filter(status == "Average") %>% 
+  select(school_name) %>% 
+  left_join(names, by = "school_name") %>% 
+  left_join(vars, by = "school_id") %>% 
   select(school_name, level, type, locale) %>% 
+  filter(!school_name %in% no_growth) %>% 
   datatable()
 ```
 

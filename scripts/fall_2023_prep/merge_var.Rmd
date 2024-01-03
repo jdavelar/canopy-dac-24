@@ -7,7 +7,7 @@ output: html_document
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE, warning = FALSE)
-pacman::p_load(rio, here, dplyr,tidyverse,lubridate, ggplot2,viridis, naniar)
+pacman::p_load(rio, here, dplyr,tidyverse,lubridate, ggplot2,viridis, naniar, DT)
 ```
 
 ```{r}
@@ -303,3 +303,115 @@ write.csv(var, "data/longitudinal/combined-dat-ip.csv")
 To do:
 Backwards fill vars
 Fill in NAs as possible
+
+```{r}
+#create a function that takes a variable or set of variables and applies backwards filling
+#then go by variable to hand remove instances that should be NA
+
+back_fill <- function(data, id_col, district_cols, year_col) {
+  result <- data %>%
+    filter_at(vars({{ district_cols }}), any_vars(!is.na(.))) %>%
+    unique() %>%
+    group_by({{ id_col }}) %>%
+    mutate(new = max({{ year_col }})) %>%
+    ungroup() %>%
+    filter({{ year_col }} == new) %>%
+    select({{ id_col }}, {{ district_cols }})
+
+  return(result)
+}
+#backwards fill time-invariant vars
+#double check that school descriptors and focus vars should be treated this way
+to_fill <- longitudinal %>% 
+  select("school_district", "website", "nces_id", starts_with("school_desc"), starts_with("focus"), starts_with("inclusive")) %>% 
+  colnames()
+
+filled <- back_fill(longitudinal, school_id, to_fill, year)
+
+test <- longitudinal %>%
+  select(school_id) %>% 
+  left_join(filled, by = "school_id") %>%
+  summarize(across(everything(), ~sum(is.na(.), na.rm = TRUE)))
+
+compare <- longitudinal %>% 
+  select(all_of(to_fill)) %>% 
+  summarize(across(everything(), ~sum(is.na(.), na.rm = TRUE))) %>% 
+  bind_rows(test)
+#most school desc, focus, inclusive vars went down (except hub?)
+#district, NCES ID, and website went up - maybe because it catches true 0s?
+```
+
+
+```{r}
+#first begin by creating table of school IDs & years to check when backwards filling
+longitudinal %>% 
+  select(school_id, year) %>% 
+  mutate(rate = 1) %>% 
+  pivot_wider(names_from = "year",
+              values_from = "rate") %>% 
+  datatable()
+#workspace to test missing
+test <- longitudinal %>% 
+  select(school_id, school_district, school_type) %>% 
+  filter(is.na(school_district))
+
+#backwards fill district
+district <- longitudinal %>% 
+  select(school_id, school_district, year) %>% 
+  mutate(school_district = case_when(
+    school_district == "N/A" ~ NA,
+    school_district == "n/a" ~ NA
+    str_detect(school_district, "none|None") ~ NA,  
+    school_district == "" ~ NA,
+    school_district == "(independent school)" ~ NA,
+    school_district == "Private|Private school" ~ NA,
+    school_district == "Unsure" ~ NA,
+    school_district == "tuition-based" ~ NA,
+    TRUE ~ as.character(school_district)
+  )) %>% 
+  filter(!is.na(school_district)) %>% 
+  unique() %>% 
+  group_by(school_id) %>% 
+  mutate(new = max(year)) %>% 
+  ungroup() %>% 
+  filter(year == new) %>% 
+  select(school_id, school_district)
+test <- longitudinal %>% 
+  left_join(district, by = "school_id") %>% 
+  select(-school_district.x) %>% 
+  rename(school_district = school_district.y)
+
+
+test %>% select(school_id, school_district, year) %>% filter(is.na(school_district)) %>% datatable()
+```
+
+How often is the SL the one filling out the survey?
+
+```{r}
+#pull in datasets
+dat_19 <- import(here("data/datasets_by_year", "Schools 2019 (Public).xlsx - Confirmed Schools.csv"))
+dat_21a <- import(here("data/datasets_by_year", "Schools 2021a (Public).xlsx - Fall 2020 School Data.csv"))
+dat_21b <- import(here("data/datasets_by_year", "Schools 2021b (Public).xlsx - Winter 2020-21 School Data.csv"))
+load("data/complete_canopy_2022.RData")
+dat_22 <- clean_data_full
+rm(clean_data_dictionary, clean_data_full, demographic_data, practices_data, learning_model_data, school_data, survey_data)
+load("data/complete_canopy_2023.RData")
+dat_23 <- full
+rm(confidential, dictionary, impact, schools, full, tags)
+
+dat_23 %>% 
+  select(starts_with("public_contact"), starts_with("respondent")) %>% 
+  select(ends_with("name")) %>% 
+  mutate(match = ifelse(public_contact_name == respondent_name, 1, 0),
+         rate = 1) %>% 
+  group_by(match) %>% 
+  summarize(n = sum(rate)) #88% of the time, the SL responded in 2023
+dat_22 %>% 
+  select(starts_with("public_contact"), starts_with("confidential_survey_part")) %>% 
+  select(contact = public_contact, respondent = confidential_survey_participant_name) %>% 
+  mutate(match = ifelse(contact == respondent, 1, 0),
+         rate = 1) %>% 
+  group_by(match) %>% 
+  summarize(n = sum(rate)) #79% of the time, the SL responded in 2023
+```
+
