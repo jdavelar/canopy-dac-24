@@ -156,6 +156,46 @@ school_changes |>
     caption = "Number of 4-survey-year practices added, dropped, and waffled (both added and dropped) by schools with multiple survey responses.") 
 ```
 
+## Focus on the Wafflers
+
+Purdue Polytechnic and Juab HS waffled a lot. Here's the raw data, including all
+practices that they selected in at least 1 year.
+
+```{r}
+wafflers = c(105, 165)
+waffle_detail = long_4y |>
+  filter(school_id %in% wafflers) |>
+  filter(all(0:1 %in% usage), .by = c(var, school_id)) |>
+  mutate(
+    added = any(diff(usage) == 1),
+    dropped = any(diff(usage) == -1),
+    waffled = added & dropped,
+    .by = c(var, school_id)
+  ) |>
+  pivot_wider(names_from = year, values_from = usage) |>
+  left_join(schools, by = "school_id") |>
+  select(school_id, school_name, tag = var, `2019`:`2023`, added, dropped, waffled) |>
+  arrange(school_id, desc(waffled))
+
+waffle_detail |>
+  datatable(rownames = FALSE)
+```
+
+Here's a summary of the patterns, where 1 indicates selected and 0 indicates
+not selected in each survey, respectively. E.g., "1,0,1,1" means the practice was
+selected in 2019, not selected in 2021, and then selected again in 2022 and 2023.
+`n` is the number of practices for which this pattern was observed. We can see
+that Juab HS has 11 tags with the `1,0,1,1` pattern, meaning there are 11 
+practices that Juab indicated in all survey years *except* 2021.
+
+```{r}
+waffle_detail |>
+  mutate(binary_summary = paste(`2019`, `2021`, `2022`, `2023`, sep = ",")) |>
+  count(school_name, binary_summary) |>
+  datatable(rownames = FALSE, options = list(autoWidth = TRUE, iDisplayLength = 25))
+```
+
+
 ## Practices added and dropped
 
 The next obvious question is which practices are schools adding and dropping?
@@ -218,3 +258,93 @@ ggplot(tag_changes, aes(y = var)) +
   ) 
 ```
 
+## Broadening: Practices in 2+ years
+
+Repeating the above analyses, but expanding the scope to include practices 
+on the survey in 2023 and at least 1 other year.
+
+```{r}
+## find tags used in 2023 and at least 1 other year
+tags_2y = long |>
+  filter(usage == 1) |>
+  filter(n_distinct(year) > 2 & 2023 %in% year, .by = var) |>
+  pull(var)
+
+long_2y = long |> filter(var %in% tags_2y)
+
+changes_2y = long_2y |>
+  arrange(school_id, var, year) |>
+  summarize(
+    added = any(diff(usage) == 1),
+    dropped = any(diff(usage) == -1),
+    waffled = added & dropped,
+    .by = c(var, school_id)
+  ) |>
+  filter(added | dropped)
+
+school_changes_2y = changes_2y |>
+  summarize(
+    across(c(added, dropped, waffled), sum),
+    .by = school_id
+  ) |>
+  mutate(net_adds = added - dropped) |>
+  arrange(desc(net_adds), desc(added)) |>
+  left_join(sch, by = "school_id") |>
+  mutate(school_id = fct_inorder(as.character(school_id))) |>
+  select(school_id, school_name, n_years, added, dropped, waffled, net_adds) 
+
+school_changes_2y |>
+  datatable(
+    rownames = FALSE,
+    caption = "Number of practices from 2023 and at least one other year added, dropped, and waffled (both added and dropped) by schools with multiple survey responses.") 
+```
+
+Note that a practice included in only two years couldn't possibly be "waffled",
+so there will be relatively fewer waffles for these 2-year tags, and even 3-year
+tags have less opportunity to waffle.
+
+```{r}
+tag_changes_2y = changes_2y |>
+  summarize(
+    across(c(added, dropped, waffled), sum),
+    .by = var
+  ) |>
+  mutate(net_adds = added - dropped) |>
+  arrange(net_adds, added) |>
+  mutate(var = fct_inorder(var))
+
+tag_changes_2y |> arrange(desc(net_adds), desc(added)) |> datatable()
+```
+
+```{r, fig.height = 10, fig.width = 10}
+ggplot(tag_changes_2y, aes(y = var)) +
+  geom_segment(aes(x = dropped, xend = added, yend = var, color = factor(sign(net_adds)))) +
+  geom_point(aes(x = dropped), color = "red") +
+  geom_point(aes(x = added), color = "blue") +
+  geom_text(
+    aes(x = pmax(added, dropped), label = paste("Δ =", net_adds), color = factor(sign(net_adds))),
+    nudge_x = 1,
+    hjust = 0,
+    show.legend = FALSE
+  ) +
+  scale_color_manual(
+    values = c("red", "forestgreen", "blue"),
+    labels = c("Drops", "Net 0", "Adds")
+  ) +
+  scale_y_discrete(labels = trimws) +
+  guides(col = guide_legend(nrow = 1, title = NULL)) + 
+  bar_x_scale_count +
+  labs(
+    y = "",
+    x = "Number of schools adding/droping",
+    title = "2+ year tags added and dropped"
+  ) +
+  theme(
+    panel.grid.major.y = element_blank(),
+    legend.position = "bottom",
+    axis.text.y = element_text(size = rel(0.6))
+  ) 
+```
+
+The *practices_services_learning* outlier needs some investigation, the table shows 81 adds and 57 drops, including
+30 waffles. 
