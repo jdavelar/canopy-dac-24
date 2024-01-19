@@ -6,7 +6,6 @@ school_state,school_state,school_state,school_state,school_state
 school_district,school_district,school_district,school_district,school_district
 website,website,website,website,website
 nces_id,nces_id,NCES_id,nces_id,nces_id
-school_desc_hub,,,school_descriptor_hub,
 school_desc_homeschool,,,school_descriptor_homeschool,school_descriptor_homeschool
 school_desc_hybrid,,hybrid,practices_hybrid,school_descriptor_hybrid
 school_desc_micro,,,school_descriptor_microschool,school_descriptor_microschool

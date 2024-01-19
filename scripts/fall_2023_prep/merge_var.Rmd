@@ -297,7 +297,7 @@ rm(labs_23)
 ```{r}
 longitudinal <- bind_rows(var_19, var_21, var_22, var_23)
 gg_miss_var(longitudinal)
-write.csv(var, "data/longitudinal/combined-dat-ip.csv")
+write.csv(var, "data/longitudinal/combined-dat-ip.csv", row.names = FALSE)
 ```
 
 To do:
