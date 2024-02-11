@@ -22,6 +22,8 @@ dat <- import(here("data/longitudinal", "tags-long.csv"))
 labels <- import(here("data", "tag_labels.csv"))
 ```
 
+# Across schools
+
 *Central Q: * For each practice where we have at least 2 years of data, how has the practice's frequency changed?  
 -look only at changes within schools - so, schools that have at least 2 data points about that practice
 -the object of inquiry here is the practice - how have each practice's frequencies changed?
@@ -112,65 +114,226 @@ dat %>%
   formatPercentage(c("2019", "2021", "2022", "2023"), 0)
 ```
 
-### Graph by Cluster
 
-Focusing in on tags with complete data - correlations are thrown off by missing data. Suggestions for resolving?
 
-```{r, include = FALSE}
-# recreate EFA to cluster across years
-#import wide file & filter to complete obs
-complete <- dat %>% 
-  select(var, year) %>% 
-  unique() %>% 
-  mutate(rate = rep(1, nrow(.))) %>% 
+# Within Schools
+
+*Central Q: * For each practice where we have at least 2 years of data, how has the practice's frequency changed?  
+-look only at changes within schools - so, schools that have at least 2 data points about that practice
+-the object of inquiry here is the practice - how have each practice's frequencies changed?
+
+A few ideas:  
+-could be a table showing +/-X (where X is number of schools adding or removing) for each year. We did a graph version of this on p.8 in the 2021 report.  
+-could be a line graph showing # of schools reporting each practice each year, similar to p.22 in the 2022 report. (Note, this code should be in our github from 2022.)  
+-to make it more readable, it could be interactive (user could hover over a tag to see that line distinguished).  
+
+### Raw Counts Table - 2 year tags
+
+**J*: update tables below: HTML is pulling 2 year tag tables**
+**Add blended learning table below**
+
+
+
+```{r}
+##### creating table with raw count differences across years #####
+#starting with raw counts for each year
+n_dat <- dat %>% 
+  mutate(n_year_tag = n_distinct(year), .by = var) %>% 
+  mutate(n_year_schl = n_distinct(year), .by = school_id)
+
+# 2 year tags
+#overall view table
+overall_2yr <-
+n_dat %>% 
+  filter(n_year_tag == 2) %>% 
+  # mutate(n = sum(usage), .by = c(year, var)) %>% 
+  filter(n_year_schl > 2) %>% 
+  select(-n_year_tag, -n_year_schl) %>% 
+  # group_by(year, var) %>% 
+  # summarize(n = sum(usage, na.rm = TRUE)) %>% 
+  #make cols for each year to determine change
+  pivot_wider(names_from = year,
+              values_from = usage) %>% 
+  #calculate change
+  group_by(school_id, var) %>% 
+  mutate(change_2021 = `2021` - `2019`,
+         change_2022 = `2022` - `2021`,
+         change_2023 = `2023` - `2022`,
+         added_2021 = ifelse(change_2021 == 1, 1, 0),
+         added_2022 = ifelse(change_2022 == 1, 1, 0),
+         added_2023 = ifelse(change_2023 == 1, 1, 0),
+         drop_2021 = ifelse(change_2021 == -1, 1, 0),
+         drop_2022 = ifelse(change_2022 == -1, 1, 0),
+         drop_2023 = ifelse(change_2023 == -1, 1, 0)) %>% 
+  ungroup() %>% 
   group_by(var) %>% 
-  summarize(n = sum(rate)) %>% 
-  filter(n == 4) %>% 
-  pull(var)
-  
-wide <- import(here("data/longitudinal", "tags-wide.csv")) %>% 
-  select(school_id, year, all_of(complete))
-#generate correlations
-cor <- wide %>%
-  select(starts_with("practices")) %>%
-  cor
-#quick cor plot
-plot_cor <- function(cor_mat, title = "") {
-  ggcorrplot(cor_mat, hc.order = T, type = "upper") +
-    scale_fill_distiller(type = "div", limits = c(-1, 1), expand = c(0, 0)) +
-    labs(title = title,
-         fill = "Correlation") +
-    scale_x_discrete(labels = labels) +
-    scale_y_discrete(labels = labels) +
-    labs(x = "", y = "") + 
-    # theme_transcend_sparse + 
-    theme(axis.text.x = element_blank(), 
-          axis.text.y = element_blank(),
-          panel.border = element_blank(),
-          axis.ticks = element_blank()
-          )
-}
+  summarize(`2019` = sum(`2019`, na.rm = TRUE),
+            `2021` = sum(change_2021, na.rm = TRUE),
+            `2022` = sum(change_2022, na.rm = TRUE),
+            `2023` = sum(change_2023, na.rm = TRUE),
+            `2021 adds` = sum(added_2021, na.rm = TRUE),
+            `2022 adds` = sum(added_2022, na.rm = TRUE),
+            `2023 adds` = sum(added_2023, na.rm = TRUE),
+            `2021 drops` = sum(drop_2021, na.rm = TRUE),
+            `2022 drops` = sum(drop_2022, na.rm = TRUE),
+            `2023 drops` = sum(drop_2023, na.rm = TRUE)) %>% 
+  mutate(across(`2019`:`2023 drops`, ~na_if(., 0))) %>% 
+  #bring in labels
+  left_join(labels, by = "var")
 
-plot_cor(cor, 
-         title = "Correlation heat map for all tags across years") +
-theme(legend.position = c(.85, .25))
-#prep df
-mat_to_df <- function(m) {
-  data.frame(row=rownames(m)[row(m)[upper.tri(m)]], 
-           col=colnames(m)[col(m)[upper.tri(m)]], 
-           corr=m[upper.tri(m)])
-}
+#overview table
+overall_2yr %>% 
+  select(Tag = label, `2019`, `2021`, `2022`, `2023`) %>% 
+  #table
+  datatable() %>%
+  #style
+  formatStyle(columns = c("2021", "2022", "2023"), 
+              color = styleInterval(cuts = 0, values = c("red", "green")),
+              textAlign = "center")
 
-df_cor <- mat_to_df(cor)
-#scree
-fa_cor <- fa.parallel(
-  cor, fm = "pa", fa = "fa", n.obs = nrow(wide),
-  main = "Correlation scree plot"
-) #suggested number of factors = 9
-#testing out 4
-fa(cor, nfactors = 4, rotate = "oblimin", fm = "minres") %>% 
-  model_parameters(sort = TRUE, threshold = "max") %>%
-  datatable(caption = "Max loadings") %>%
-  formatRound(digits = 2, columns = 2:6)
+#adds and drops table
+overall_2yr %>% 
+  select(Tag = label, ends_with("adds"), ends_with("drops")) %>% 
+  mutate(across(ends_with("drops"), ~.*-1)) %>% 
+  mutate(across(`2021 adds`:`2023 drops`, ~na_if(., 0))) %>% 
+  #table
+  datatable() %>%
+  #style
+  formatStyle(columns = c("2021 adds", "2022 adds", "2023 adds", "2021 drops", "2022 drops", "2023 drops"), 
+              color = styleInterval(cuts = 0, values = c("red", "green")),
+              textAlign = "center")
 ```
 
+### Raw Counts Table - 3 year tags
+
+
+```{r}
+# 3 year tags
+#overall view table
+overall_3yr <-
+n_dat %>% 
+  filter(n_year_tag == 3) %>% 
+  # mutate(n = sum(usage), .by = c(year, var)) %>% 
+  filter(n_year_schl > 3) %>% 
+  select(-n_year_tag, -n_year_schl) %>% 
+  # group_by(year, var) %>% 
+  # summarize(n = sum(usage, na.rm = TRUE)) %>% 
+  #make cols for each year to determine change
+  pivot_wider(names_from = year,
+              values_from = usage) %>% 
+  #calculate change
+  group_by(school_id, var) %>% 
+  mutate(change_2021 = `2021` - `2019`,
+         change_2022 = `2022` - `2021`,
+         change_2023 = `2023` - `2022`,
+         added_2021 = ifelse(change_2021 == 1, 1, 0),
+         added_2022 = ifelse(change_2022 == 1, 1, 0),
+         added_2023 = ifelse(change_2023 == 1, 1, 0),
+         drop_2021 = ifelse(change_2021 == -1, 1, 0),
+         drop_2022 = ifelse(change_2022 == -1, 1, 0),
+         drop_2023 = ifelse(change_2023 == -1, 1, 0)) %>% 
+  ungroup() %>% 
+  group_by(var) %>% 
+  summarize(`2019` = sum(`2019`, na.rm = TRUE),
+            `2021` = sum(change_2021, na.rm = TRUE),
+            `2022` = sum(change_2022, na.rm = TRUE),
+            `2023` = sum(change_2023, na.rm = TRUE),
+            `2021 adds` = sum(added_2021, na.rm = TRUE),
+            `2022 adds` = sum(added_2022, na.rm = TRUE),
+            `2023 adds` = sum(added_2023, na.rm = TRUE),
+            `2021 drops` = sum(drop_2021, na.rm = TRUE),
+            `2022 drops` = sum(drop_2022, na.rm = TRUE),
+            `2023 drops` = sum(drop_2023, na.rm = TRUE)) %>% 
+  mutate(across(`2019`:`2023 drops`, ~na_if(., 0))) %>% 
+  #bring in labels
+  left_join(labels, by = "var")
+
+#overview table
+overall_3yr %>% 
+  select(Tag = label, `2019`, `2021`, `2022`, `2023`) %>% 
+  #table
+  datatable() %>%
+  #style
+  formatStyle(columns = c("2021", "2022", "2023"), 
+              color = styleInterval(cuts = 0, values = c("red", "green")),
+              textAlign = "center")
+
+#adds and drops table
+overall_3yr %>% 
+  select(Tag = label, ends_with("adds"), ends_with("drops")) %>% 
+  mutate(across(ends_with("drops"), ~.*-1)) %>% 
+  mutate(across(`2021 adds`:`2023 drops`, ~na_if(., 0))) %>% 
+  #table
+  datatable() %>%
+  #style
+  formatStyle(columns = c("2021 adds", "2022 adds", "2023 adds", "2021 drops", "2022 drops", "2023 drops"), 
+              color = styleInterval(cuts = 0, values = c("red", "green")),
+              textAlign = "center")
+```
+
+### Raw Counts Table - 4 year tags
+
+
+```{r}
+# 4 year tags
+#overall view table
+overall_4yr <-
+n_dat %>% 
+  filter(n_year_tag == 4) %>% 
+  # mutate(n = sum(usage), .by = c(year, var)) %>% 
+  filter(n_year_schl == 4) %>% 
+  select(-n_year_tag, -n_year_schl) %>% 
+  # group_by(year, var) %>% 
+  # summarize(n = sum(usage, na.rm = TRUE)) %>% 
+  #make cols for each year to determine change
+  pivot_wider(names_from = year,
+              values_from = usage) %>% 
+  #calculate change
+  group_by(school_id, var) %>% 
+  mutate(change_2021 = `2021` - `2019`,
+         change_2022 = `2022` - `2021`,
+         change_2023 = `2023` - `2022`,
+         added_2021 = ifelse(change_2021 == 1, 1, 0),
+         added_2022 = ifelse(change_2022 == 1, 1, 0),
+         added_2023 = ifelse(change_2023 == 1, 1, 0),
+         drop_2021 = ifelse(change_2021 == -1, 1, 0),
+         drop_2022 = ifelse(change_2022 == -1, 1, 0),
+         drop_2023 = ifelse(change_2023 == -1, 1, 0)) %>% 
+  ungroup() %>% 
+  group_by(var) %>% 
+  summarize(`2019` = sum(`2019`, na.rm = TRUE),
+            `2021` = sum(change_2021, na.rm = TRUE),
+            `2022` = sum(change_2022, na.rm = TRUE),
+            `2023` = sum(change_2023, na.rm = TRUE),
+            `2021 adds` = sum(added_2021, na.rm = TRUE),
+            `2022 adds` = sum(added_2022, na.rm = TRUE),
+            `2023 adds` = sum(added_2023, na.rm = TRUE),
+            `2021 drops` = sum(drop_2021, na.rm = TRUE),
+            `2022 drops` = sum(drop_2022, na.rm = TRUE),
+            `2023 drops` = sum(drop_2023, na.rm = TRUE)) %>% 
+  mutate(across(`2019`:`2023 drops`, ~na_if(., 0))) %>% 
+  #bring in labels
+  left_join(labels, by = "var")
+
+#overview table
+overall_2yr %>% 
+  select(Tag = label, `2019`, `2021`, `2022`, `2023`) %>% 
+  #table
+  datatable() %>%
+  #style
+  formatStyle(columns = c("2021", "2022", "2023"), 
+              color = styleInterval(cuts = 0, values = c("red", "green")),
+              textAlign = "center")
+
+#adds and drops table
+overall_2yr %>% 
+  select(Tag = label, ends_with("adds"), ends_with("drops")) %>% 
+  mutate(across(ends_with("drops"), ~.*-1)) %>% 
+  mutate(across(`2021 adds`:`2023 drops`, ~na_if(., 0))) %>% 
+  #table
+  datatable() %>%
+  #style
+  formatStyle(columns = c("2021 adds", "2022 adds", "2023 adds", "2021 drops", "2022 drops", "2023 drops"), 
+              color = styleInterval(cuts = 0, values = c("red", "green")),
+              textAlign = "center")
+```
