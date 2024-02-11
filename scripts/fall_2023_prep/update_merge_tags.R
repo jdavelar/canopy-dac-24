@@ -74,7 +74,7 @@ tags_21a <- import(here("data", "schools_2021a.csv")) %>%
 # save COVID schools
 covid <- tags_21a %>% 
   filter(!is.na(covid_change))
-write.csv(covid, "data/covid_shifters_2021.csv")
+write.csv(covid, "data/covid_shifters_2021.csv", row.names = FALSE)
 tags_21a <- tags_21a %>% 
   mutate(usage = case_when(
     is.na(usage_a) & !is.na(usage_c) ~ usage_c,
@@ -119,7 +119,7 @@ tags_long <- tags_19 %>%
   bind_rows(tags_21) %>% 
   bind_rows(tags_22) %>% 
   bind_rows(tags_23)
-write.csv(tags_long, "data/longitudinal/tags-long.csv")
+write.csv(tags_long, "data/longitudinal/tags-long.csv", row.names = FALSE)
 
 #create wide version
 tags_wide <- tags_long %>% 
@@ -134,4 +134,4 @@ check <- tags_wide %>%
   group_by(year, tag) %>%
   summarise(school_count = sum(tag_sum), missing_count = sum(is.na(value))) %>%
   ungroup()
-write.csv(tags_wide, "data/longitudinal/tags-wide.csv")
+write.csv(tags_wide, "data/longitudinal/tags-wide.csv", row.names = FALSE)

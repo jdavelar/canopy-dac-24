@@ -129,9 +129,7 @@ A few ideas:
 
 ### Raw Counts Table - 2 year tags
 
-**J*: update tables below: HTML is pulling 2 year tag tables**
-**Add blended learning table below**
-
+This table displays the raw count differences across years for tags that appear in 2 years of data.
 
 
 ```{r}
@@ -190,7 +188,12 @@ overall_2yr %>%
   formatStyle(columns = c("2021", "2022", "2023"), 
               color = styleInterval(cuts = 0, values = c("red", "green")),
               textAlign = "center")
+```
 
+This table breaks down the raw count for 2-year tags, by displaying the number of adds and drops in each year.
+
+
+```{r}
 #adds and drops table
 overall_2yr %>% 
   select(Tag = label, ends_with("adds"), ends_with("drops")) %>% 
@@ -206,6 +209,7 @@ overall_2yr %>%
 
 ### Raw Counts Table - 3 year tags
 
+This table displays the raw count differences across years for tags that appear in 3 years of data.
 
 ```{r}
 # 3 year tags
@@ -257,7 +261,11 @@ overall_3yr %>%
   formatStyle(columns = c("2021", "2022", "2023"), 
               color = styleInterval(cuts = 0, values = c("red", "green")),
               textAlign = "center")
+```
 
+This table breaks down the raw count for 3-year tags, by displaying the number of adds and drops in each year.
+
+```{r}
 #adds and drops table
 overall_3yr %>% 
   select(Tag = label, ends_with("adds"), ends_with("drops")) %>% 
@@ -273,6 +281,7 @@ overall_3yr %>%
 
 ### Raw Counts Table - 4 year tags
 
+This table displays the raw count differences across years for tags that appear in all 4 years of data.
 
 ```{r}
 # 4 year tags
@@ -324,7 +333,11 @@ overall_2yr %>%
   formatStyle(columns = c("2021", "2022", "2023"), 
               color = styleInterval(cuts = 0, values = c("red", "green")),
               textAlign = "center")
+```
 
+This table breaks down the raw count for 4-year tags, by displaying the number of adds and drops in each year.
+
+```{r}
 #adds and drops table
 overall_2yr %>% 
   select(Tag = label, ends_with("adds"), ends_with("drops")) %>% 
@@ -337,3 +350,60 @@ overall_2yr %>%
               color = styleInterval(cuts = 0, values = c("red", "green")),
               textAlign = "center")
 ```
+
+# Blended learning tags
+
+### How has the rate of blended learning tags changed each year since 2019?
+
+For the following graph, I defined blended learning tags as those that are nested under the *blended learning* umbrella in years 23/24:  
+- blended learning  
+- à la carte model  
+- flipped classroom  
+- flex model  
+- enriched virtual model  
+- station rotation  
+
+Graph #1 looks at selection of tags across our whole sample, i.e., the number reflects the percentage of our total sample of schools that selected each tag.
+
+One of the questions we were hoping to investigate with this graph is whether the selection of blended learning tags may be due to changes in our survey design through the introduction of parent/child tags. We do see a sharp decrease in child tags in 2023. However, the selection for the parent tag `blended learning` remains high. All school leaders that selected `blended learning` would have received a follow-up question about the type of blended learning they use with our child tags listed below. This makes me think that schools are still using blended learning, but perhaps did not see their approach to blended learning reflected in our child tags. (So what are they using...?)
+
+```{r}
+# subset tags
+blended_tags <- c("practices_blended_learning", "practices_a_la_carte", "practices_flipped_classroom", "practices_flex", "practices_enriched_virtual", "practices_station_rotation")
+blended <- dat %>% 
+  filter(var %in% blended_tags) %>%
+  group_by(var, year) %>% 
+  summarize(n = sum(usage)) %>% 
+  ungroup()
+tots <- dat %>% 
+  group_by(year) %>% 
+  summarize(total = n_distinct(school_id)) %>% 
+  unique()
+blended <- blended %>% 
+  left_join(tots, by = "year") %>% 
+  mutate(pct = n/total) %>% 
+  left_join(labels, by = "var")
+#build plot
+#palette colors
+palette <- c("#BC2582", "#FFA630","#FFDE42","#99C24D","#218380","#D3B7D7")
+#labels
+labs <- blended %>% 
+  filter(year == 2023) %>% 
+  select(label, x = year, y = pct)
+#plot
+blended %>% 
+  ggplot(aes(year, pct, color = label)) +
+  geom_point() +
+  geom_line() +
+  theme_bw() +
+  scale_color_manual(values = palette) +
+  scale_x_continuous(expand = expansion(mult = c(.025, .3))) +
+  scale_y_continuous(labels = scales::percent_format(accuracy = 1)) +
+  theme(legend.position = "none") +
+  geom_text(data = labs, 
+            aes(label = label, 
+                x = x, 
+                y = y),
+            hjust = -.05)
+```
+
