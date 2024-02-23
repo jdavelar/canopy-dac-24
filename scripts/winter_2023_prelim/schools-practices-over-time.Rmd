@@ -7,7 +7,7 @@ output: html_document
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = FALSE)
-pacman::p_load(tidyverse, here, rio, DT, ggcorrplot, forcats)
+pacman::p_load(tidyverse, here, rio, DT, ggcorrplot, forcats, lme4)
 source(here("scripts/branding.R"))
 #read in data
 long = import(here("data/longitudinal", "tags-long.csv"))
@@ -348,3 +348,170 @@ ggplot(tag_changes_2y, aes(y = var)) +
 
 The *practices_services_learning* outlier needs some investigation, the table shows 81 adds and 57 drops, including
 30 waffles. 
+
+
+# Little bit of modeling
+
+Here we'll build a model for how volatile/dynamic school's tagging
+practices are.
+
+We'll look **within schools**. For all schools with multiple responses, we'll make 
+a data point out of each consecutive survey response, and for the 
+tags that were used in both of those response years, we will look at
+the **number of practices changed** (number added plus number dropped). We will then model count of practice changes using school
+demography and ecology as predictors.
+
+The time periods are important too, and we know that the pandemic had a 
+large effect on many practices. To try to capture the relevant time
+details without overcomplicating the model, we will classify each time
+transition into one of four cases:
+
+1. `to_covid` for transitions from 2019 to 2020
+2. `from_covid` for transitions from 2020 to a later year
+3. `post_covid` for transitions that start after 2020
+4. `skip_covid` for transitions from 2019 to a post-2020 year
+
+For now, we will not put the number of years in the transition as a numeric
+variable, as that will be mostly dependent on the transition types, though 
+with more years of data we may want to include that (and perhaps keep things
+focused post-pandemic).
+
+```{r tag_volatility_model, message = FALSE, warning = FALSE}
+volatility_data = 
+  wide |>
+  filter(n() > 1, .by = school_id) |>
+  arrange(school_id, year) |>
+  mutate(
+    i_seq = row_number(),
+    transition = case_when(
+      i_seq == 1 ~ NA_character_,
+      lag(year) == 2022 ~ 'post_covid',
+      year == 2021 ~ 'to_covid',
+      lag(year) == 2021 ~ 'from_covid',
+      year > 2021 & lag(year) == 2019 ~ 'skip_covid',
+      .default = "PROBLEM"
+    ),
+    across(
+      .cols = starts_with("practices"),
+      \(x) c(0, abs(diff(x))) 
+      # ^^^
+      # take absolute difference from prev row
+      # stick 0 on the front for first row
+      # NAs (when tags weren't in use) will stay as NAs
+    ),
+    n_changes = rowSums(across(.cols = starts_with("practices")), na.rm = TRUE),
+    .by = school_id
+  ) |>
+  filter(i_seq > 1) |> 
+  select(!starts_with("practices"))
+
+## get demographics
+xx = read_csv(here("data/longitudinal/combined-dat-ip.csv"))
+xx = xx |>
+  mutate(
+    stu_poc_pct = 1 - self_reported_race_white,
+  ) |>
+  select(
+    school_id,
+    year = panel_year, 
+    total_enroll = self_reported_total_enrollment,
+    stu_poc_pct,
+    locale, 
+    title_i_schoolwide,
+    starts_with("grades")
+  ) |>
+  mutate(
+    enroll_scaled = (total_enroll - mean(total_enroll, na.rm = TRUE)) / 
+      sd(total_enroll, na.rm = TRUE),
+    locale = relevel(factor(locale), ref = "Urban")
+  )
+
+mm = left_join(volatility_data, xx, by = c("school_id", "year"))
+
+mm = mm |>
+  group_by(school_id) |>
+  fill(everything(), .direction = "downup") |>
+  ungroup()
+
+mm = mm |>
+  mutate(transition = relevel(factor(transition), ref = "post_covid"))
+
+missing_count =  mm |> 
+  is.na() |> 
+  colSums() |> 
+  sort(decreasing = TRUE) |> 
+  data.frame(n_missing = _)
+
+datatable(missing_count)
+
+vol_mod = lm(
+  n_changes ~ transition + stu_poc_pct + enroll_scaled + locale +
+     grades_elementary + grades_middle + grades_high,
+  data = mm
+)
+
+vol_coef = broom::tidy(vol_mod) |>
+  arrange(desc(estimate)) |>
+  mutate(term = fct_inorder(term)) 
+
+ggplot(vol_coef, aes(y = term, x = estimate)) +
+  geom_linerange(aes(xmin = estimate - std.error, xmax = estimate + std.error)) +
+  geom_point() +
+  theme(panel.grid.major.y = element_blank()) +
+  labs(
+    x = "Estimated effect on practice changes",
+    y = "",
+    title = "Coefficient estimates for number of tags\nmodified by schools between survey years"
+  )
+
+```
+
+
+```{r n_tags_model, include = FALSE, eval=FALSE}
+## old code to model Number of tags each schools chose by year
+## model didn't converge, and probably isn't that useful...
+## get tags by year for the offset
+n_tags_by_year = long |>
+  summarize(n_sch = sum(usage), .by = c(var, year)) |>
+  filter(n_sch > 0) |>
+  summarize(n_tags_available = n(), .by = year)
+
+## response and school ID
+sch_total_tags = long |>
+  summarize(n_tags = sum(usage), .by = c(school_id, year))
+
+## get demographics
+xx = read_csv(here("data/longitudinal/combined-dat-ip.csv"))
+xx = xx |>
+  mutate(
+    stu_poc_pct = 1 - self_reported_race_white,
+  ) |>
+  select(
+    school_id,
+    year = panel_year, 
+    total_enroll = self_reported_total_enrollment,
+    stu_poc_pct,
+    locale, 
+    starts_with("grades")
+  )
+
+mod_dat = sch_total_tags |> left_join(xx, by = c("school_id", "year")) |>
+  left_join(n_tags_by_year) |>
+  mutate(year = factor(year)) |>
+  mutate(total_enroll_std = scale(total_enroll))
+  
+
+mod = glmer(
+  n_tags ~ year + total_enroll_std + stu_poc_pct + locale + 
+    grades_elementary + grades_middle + grades_high + offset(log(n_tags_available)) + (1|school_id),
+  data = mod_dat,
+  family = poisson,
+  )
+```
+
+
+
+```
+
+```
+
