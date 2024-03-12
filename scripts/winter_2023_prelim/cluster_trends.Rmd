@@ -1,0 +1,642 @@
+---
+title: "Cluster Trends"
+author: "Janette Avelar"
+date: '2024-03-07'
+output: 
+  html_document:
+    toc: true
+    toc_float: true
+    theme: flatly
+    highlight: tango
+    code_folding: hide
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, warnings = FALSE, message = FALSE)
+pacman::p_load(tidyverse, here, rio, DT, parameters)
+#read in data
+dat <- import(here("data/longitudinal", "tags-long.csv"))
+#read in tag labels
+labels <- import(here("data", "tag_labels.csv"))
+#read in cluster information
+cluster <- import(here("data/longitudinal", "tag_clusters_longitudinal.csv")) %>% 
+  janitor::clean_names()
+```
+
+
+```{r}
+# start by creating cluster subsets
+#subset values
+deeper <- cluster %>% 
+  filter(proposed_cluster_for_preliminary_24_analysis == "Deeper learning") %>% 
+  select(label = tag) %>% 
+  left_join(labels, by = "label") %>% 
+  pull(var)
+ed_justice <- cluster %>% 
+  filter(proposed_cluster_for_preliminary_24_analysis == "Ed justice") %>% 
+  select(label = tag) %>% 
+  left_join(labels, by = "label") %>% 
+  pull(var)
+individualized <- cluster %>% 
+  filter(proposed_cluster_for_preliminary_24_analysis == "Individualized") %>% 
+  select(label = tag) %>% 
+  left_join(labels, by = "label") %>% 
+  pull(var)
+postsecondary <- cluster %>% 
+  filter(proposed_cluster_for_preliminary_24_analysis == "Postsecondary") %>% 
+  select(label = tag) %>% 
+  left_join(labels, by = "label") %>% 
+  pull(var)
+none <- cluster %>%
+  filter(proposed_cluster_for_preliminary_24_analysis == "None" |
+           proposed_cluster_for_preliminary_24_analysis == "None?") %>%
+  select(label = tag) %>%
+  left_join(labels, by = "label") %>%
+  pull(var)
+```
+
+# Deeper Learning Cluster
+
+Tags:  
+- assessments for deeper learning           
+- competency/mastery-based education          
+- competency framework            
+- design thinking process          
+- interdisciplinary            
+- makerspace                  
+- multiple opportunities to demonstrate mastery  
+- project-based learning                  
+- performance based assessment            
+- place-based learning                      
+- student-led conferences                
+- students develop projects  
+
+Guiding question: How have the rates of deeper learning tags changed each year since 2019?
+
+```{r}
+#set up repeating schools
+repeaters <- dat %>% 
+  select(school_id, year) %>% 
+  unique() %>% 
+  mutate(rate = 1) %>% 
+  pivot_wider(names_from = "year",
+              values_from = "rate") %>% 
+  rowwise() %>% 
+  mutate(participate = sum(`2019`, `2021`, `2022`, `2023`, na.rm = TRUE)) %>% 
+  filter(participate > 1) %>% 
+  pull(school_id)
+#set up totals 
+tots <- dat %>% 
+  group_by(year) %>% 
+  summarize(total = n_distinct(school_id)) %>% 
+  unique()
+#labels
+# labs <- labels %>% 
+#   filter(year == 2023) %>% 
+#   select(label, x = year, y = pct)
+#prep data function across schools
+prep_across <- function(data, cluster){
+  dat <- data %>% 
+    filter(var %in% cluster) %>% 
+    group_by(var, year) %>% 
+    summarize(n = sum(usage)) %>% 
+    ungroup() %>% 
+    left_join(tots, by = "year") %>% 
+    mutate(pct = n/total) %>% 
+    left_join(labels, by = "var") %>% 
+    group_by(var) %>% 
+    mutate(x_coord = max(year),
+           y_coord = pct[which.max(year)])
+  
+  return(dat)
+}
+#prep data function within schools
+prep_within <- function(data, cluster){
+  dat <- data %>% 
+    filter(var %in% cluster) %>% 
+    filter(school_id %in% repeaters) %>% 
+    arrange(school_id, year) %>% 
+    group_by(school_id) %>%
+    mutate(wave = dense_rank(year)) %>% 
+    ungroup() %>% 
+    arrange(school_id, year) %>%
+    group_by(school_id, var) %>%
+    mutate(change = usage - lag(usage)) %>% 
+    ungroup() %>% 
+    mutate(adds = ifelse(change == 1, 1, NA),
+           drops = ifelse(change == -1, 1, NA)) %>% 
+    group_by(var, year) %>% 
+    summarize(`Overall rate` = sum(usage, na.rm = TRUE),
+              `Average change` = sum(change, na.rm = TRUE),
+              Adds = sum(adds, na.rm = TRUE),
+              Drops = sum(drops, na.rm = TRUE)) %>% 
+    ungroup() %>% 
+    pivot_longer(cols = c(`Overall rate`, `Average change`, Adds, Drops),
+                 names_to = "type",
+                 values_to = "n") %>% 
+    left_join(labels, by = "var") %>% 
+    mutate(type = factor(type, levels = c("Overall rate", "Average change", "Adds", "Drops")))
+           # x_coord = max(year),
+           # y_coord = n[which.max(year)])
+  
+  return(dat)
+}
+#plot function for across schools
+cluster_plot_across <- function(data, x, y, labels) {
+  #palette <- c("#BC2582", "#FFA630", "#FFDE42", "#99C24D", "#218380", "#D3B7D7")
+  
+  labels <- data %>% 
+    select(label, x_coord, y_coord) %>% 
+    unique()
+
+  plot <- ggplot(data, aes_string(x = x, y = y, color = "label")) +
+    geom_point() +
+    geom_line() +
+    theme_bw() +
+    scale_x_continuous(limits = c(2019, 2025),
+                       expand = c(0.01, 0),
+                       breaks = unique(data$year)) + #expand 0.025, .3
+    scale_y_continuous(limits = c(0, 1),
+                       expand = c(0, 0),
+                       labels = scales::percent_format(accuracy = 1)) +
+    theme(legend.position = "none") +
+    geom_text(data = labels,
+              aes_string(label = str_wrap("label", 10), x = "x_coord", y = "y_coord"),
+              position = position_jitterdodge(dodge.width = 0.5, jitter.height = 0.025),
+              hjust = -.05, 
+              vjust = 0.5)
+  
+  return(plot)
+}
+#plot function for within schools
+cluster_plot_within <- function(data, x, y, labels){
+  # labels <- data %>% 
+  #   select(label, x_coord, y_coord) %>% 
+  #   unique()
+  
+  plot <- ggplot(data, aes_string(x = x, y = y, color = "label")) +
+    geom_point() +
+    geom_line() +
+    theme_bw() +
+    # #scale_color_manual(values = palette) +
+    scale_x_continuous(expand = expansion(mult = c(.025, .3))) +
+    theme(panel.grid.major.x = element_blank(),
+          panel.grid.minor.x = element_blank()) +
+    theme(legend.position = "none") +
+    facet_wrap(~type) +
+    labs(x = "Year",
+       y = "Tag selection (N)")
+  
+  return(plot)
+}
+```
+
+
+### Across schools
+
+```{r}
+deep <- prep_across(dat, deeper)
+cluster_plot_across(deep, "year", "pct", labels)
+```
+
+### Within schools
+
+```{r}
+deep <- prep_within(dat, deeper)
+cluster_plot_within(deep, deep$year, deep$n, labels)
+```
+
+## Educational Justice Cluster
+
+Tags:  
+- adult wellness/SEL                    
+- anti-racist practices                 
+- assessments for social-emotional skills       
+- teachers as co-leaders           
+- co-leadership                       
+- family and community support services         
+- culturally responsive practices           
+- design to meet needs of students who have been marginalized  
+- hiring for equity and inclusion values                   
+- all courses designed for inclusion               
+- mental health services                       
+- physical well being services          
+- reallocation of resources for those most in need  
+- restorative practices                    
+- SEL curriculum                             
+- SEL integration school-wide               
+- social justice focus                  
+- translanguaging                       
+- trauma-informed practices  
+
+### Across schools
+
+```{r}
+justice_dat <- prep_across(dat, ed_justice)
+cluster_plot_across(justice_dat, "year", "pct", labels)
+```
+
+### Within schools
+
+```{r}
+justice_dat <- prep_within(dat, ed_justice)
+cluster_plot_within(justice_dat, justice_dat$year, justice_dat$n, labels)
+```
+
+## Individualized Cluster
+
+Tags:  
+- accommodations provided to all students  
+- blended learning              
+- flex model  
+- flipped classroom           
+- interoperable data from multiple technologies  
+- 1:1 mentoring  
+- station rotation  
+- students access their own data      
+- self-paced learning  
+
+### Across schools
+
+```{r}
+ind_dat <- prep_across(dat, individualized)
+cluster_plot_across(ind_dat, "year", "pct", labels)
+```
+
+
+### Within schools
+
+```{r}
+ind_dat <- prep_within(dat, individualized)
+cluster_plot_within(ind_dat, ind_dat$year, ind_dat$n, labels)
+```
+
+## Postsecondary Cluster
+
+Tags:  
+- à la carte model  
+- assessments for career readiness  
+- career prep and work-based learning  
+- community-based organizations as co-leaders  
+- industry-based partners as co-leaders  
+- community and business partnerships  
+- early college high school  
+- extended learning opportunities     
+- students earn industry credentials  
+
+### Across schools
+
+```{r}
+post_dat <- prep_across(dat, postsecondary)
+cluster_plot_across(post_dat, "year", "pct", labels)
+```
+
+### Within schools
+
+```{r}
+post_dat <- prep_within(dat, postsecondary)
+cluster_plot_within(post_dat, post_dat$year, post_dat$n, labels)
+```
+
+## Blended Learning Cluster
+
+Tags:
+- blended learning  
+- à la carte model  
+- flipped classroom  
+- flex model  
+- enriched virtual model  
+- station rotation  
+
+### Across schools
+Graph #1 looks at selection of tags across our whole sample, i.e., the number reflects the percentage of our total sample of schools that selected each tag. (AKA across schools)
+
+One of the questions we were hoping to investigate with this graph is whether the selection of blended learning tags may be due to changes in our survey design through the introduction of parent/child tags. We do see a sharp decrease in child tags in 2023. However, the selection for the parent tag `blended learning` remains high. All school leaders that selected `blended learning` would have received a follow-up question about the type of blended learning they use with our child tags listed below. This makes me think that schools are still using blended learning, but perhaps did not see their approach to blended learning reflected in our child tags. (So what are they using...?)
+
+```{r}
+# subset tags
+blended_tags <- c("practices_blended_learning", "practices_a_la_carte", "practices_flipped_classroom", "practices_flex", "practices_enriched_virtual", "practices_station_rotation")
+blended <- dat %>% 
+  filter(var %in% blended_tags) %>%
+  group_by(var, year) %>% 
+  summarize(n = sum(usage)) %>% 
+  ungroup()
+tots <- dat %>% 
+  group_by(year) %>% 
+  summarize(total = n_distinct(school_id)) %>% 
+  unique()
+blended <- blended %>% 
+  left_join(tots, by = "year") %>% 
+  mutate(pct = n/total) %>% 
+  left_join(labels, by = "var")
+#build plot
+#palette colors
+palette <- c("#BC2582", "#FFA630","#FFDE42","#99C24D","#218380","#D3B7D7")
+#labels
+labs <- blended %>% 
+  filter(year == 2023) %>% 
+  select(label, x = year, y = pct)
+#plot
+blended %>% 
+  ggplot(aes(year, pct, color = label)) +
+  geom_point() +
+  geom_line() +
+  theme_bw() +
+  scale_color_manual(values = palette) +
+  scale_x_continuous(expand = expansion(mult = c(.025, .3))) +
+  scale_y_continuous(labels = scales::percent_format(accuracy = 1)) +
+  theme(legend.position = "none") +
+  geom_text(data = labs, 
+            aes(label = label, 
+                x = x, 
+                y = y),
+            hjust = -.05)
+```
+
+### Across schools (no COVID)
+
+What if we omit 2021 to account for the big jump?
+
+```{r}
+blended <- dat %>% 
+  filter(var %in% blended_tags) %>%
+  filter(year != 2021) %>% 
+  group_by(var, year) %>% 
+  summarize(n = sum(usage)) %>% 
+  ungroup() %>% 
+  left_join(tots, by = "year") %>% 
+  mutate(pct = n/total) %>% 
+  left_join(labels, by = "var")
+
+#plot
+blended %>% 
+  ggplot(aes(year, pct, color = label)) +
+  geom_point() +
+  geom_line() +
+  theme_bw() +
+  scale_color_manual(values = palette) +
+  scale_x_continuous(expand = expansion(mult = c(.025, .3))) +
+  scale_y_continuous(labels = scales::percent_format(accuracy = 1)) +
+  theme(legend.position = "none") +
+  geom_text(data = labs, 
+            aes(label = label, 
+                x = x, 
+                y = y),
+            hjust = -.05)
+```
+
+### Within schools
+Graph #2 looks at the rate of change for blended learning tags only among schools that participated for 2 or more years. (AKA within schools)
+
+```{r}
+#key for participating schools 2+ times
+repeaters <- dat %>% 
+  select(school_id, year) %>% 
+  unique() %>% 
+  mutate(rate = 1) %>% 
+  pivot_wider(names_from = "year",
+              values_from = "rate") %>% 
+  rowwise() %>% 
+  mutate(participate = sum(`2019`, `2021`, `2022`, `2023`, na.rm = TRUE)) %>% 
+  filter(participate > 1) %>% 
+  pull(school_id)
+#data
+blended <- dat %>% 
+  #filter only blended tags
+  filter(var %in% blended_tags) %>% 
+  #filter only repeat schools
+  filter(school_id %in% repeaters) %>% 
+  #create wave variable
+  arrange(school_id, year) %>% 
+  group_by(school_id) %>%
+  mutate(wave = dense_rank(year)) %>% 
+  ungroup() %>% 
+  #create change column
+  arrange(school_id, year) %>%
+  group_by(school_id, var) %>%
+  mutate(change = usage - lag(usage)) %>% 
+  ungroup() %>% 
+  #create add/drop columns
+  mutate(adds = ifelse(change == 1, 1, NA),
+         drops = ifelse(change == -1, 1, NA)) %>% 
+  #create totals
+  group_by(var, year) %>% 
+  summarize(`Overall rate` = sum(usage, na.rm = TRUE),
+            `Average change` = sum(change, na.rm = TRUE),
+            Adds = sum(adds, na.rm = TRUE),
+            Drops = sum(drops, na.rm = TRUE)) %>% 
+  ungroup() %>% 
+  #pivot for plotting
+  pivot_longer(cols = c(`Overall rate`, `Average change`, Adds, Drops),
+               names_to = "type",
+               values_to = "n") %>% 
+  #labels for plotting
+  left_join(labels, by = "var") %>% 
+  #order for plotting
+  mutate(type = factor(type, levels = c("Overall rate", "Average change", "Adds", "Drops")))
+
+#palette for plot
+palette <- c("gray80", "#f1c1af", "#6bd497", "#b94c4c")
+#plot
+blended %>% 
+  ggplot(aes(year, n, color = type)) +
+  geom_point() +
+  geom_line() +
+  theme_bw() +
+  scale_color_manual(values = palette) +
+  scale_x_continuous(expand = expansion(mult = c(.025, .3))) +
+  theme(panel.grid.major.x = element_blank(),
+        panel.grid.minor.x = element_blank()) +
+  theme(legend.position = "bottom") +
+  facet_wrap(~label) +
+  labs(x = "Year",
+       y = "Tag selection (N)",
+       color = "Rate of change")
+```
+
+### Within schools (no COVID)
+Again, what if we omit 2021?
+
+```{r}
+#data
+blended <- dat %>% 
+  #filter only blended tags
+  filter(var %in% blended_tags) %>% 
+  #filter only repeat schools
+  filter(school_id %in% repeaters) %>% 
+  #drop 2021 year
+  filter(year != 2021) %>% 
+  #create wave variable
+  arrange(school_id, year) %>% 
+  group_by(school_id) %>%
+  mutate(wave = dense_rank(year)) %>% 
+  ungroup() %>% 
+  #create change column
+  arrange(school_id, year) %>%
+  group_by(school_id, var) %>%
+  mutate(change = usage - lag(usage)) %>% 
+  ungroup() %>% 
+  #create add/drop columns
+  mutate(adds = ifelse(change == 1, 1, NA),
+         drops = ifelse(change == -1, 1, NA)) %>% 
+  #create totals
+  group_by(var, year) %>% 
+  summarize(`Overall rate` = sum(usage, na.rm = TRUE),
+            `Average change` = sum(change, na.rm = TRUE),
+            Adds = sum(adds, na.rm = TRUE),
+            Drops = sum(drops, na.rm = TRUE)) %>% 
+  ungroup() %>% 
+  #pivot for plotting
+  pivot_longer(cols = c(`Overall rate`, `Average change`, Adds, Drops),
+               names_to = "type",
+               values_to = "n") %>% 
+  #labels for plotting
+  left_join(labels, by = "var") %>% 
+  #order for plotting
+  mutate(type = factor(type, levels = c("Overall rate", "Average change", "Adds", "Drops")))
+
+#plot
+blended %>% 
+  ggplot(aes(year, n, color = type)) +
+  geom_point() +
+  geom_line() +
+  theme_bw() +
+  scale_color_manual(values = palette) +
+  scale_x_continuous(expand = expansion(mult = c(.025, .3))) +
+  theme(panel.grid.major.x = element_blank(),
+        panel.grid.minor.x = element_blank()) +
+  theme(legend.position = "bottom") +
+  facet_wrap(~label) +
+  labs(x = "Year",
+       y = "Tag selection (N)",
+       color = "Rate of change")
+```
+
+### 2023 Drop Investigation
+
+Investigating drop in blended learning tags in 2023.
+
+*From CW*: Could you do a quick tally of: 
+a) how many schools in 2022 chose any of the child tags WITHOUT choosing "blended learning"
+
+There were 21 instances where a school leader chose child tags but did not choose blended learning.
+
+```{r}
+dat %>% 
+  filter(year == 2022) %>% 
+  filter(var %in% blended_tags) %>% 
+  pivot_wider(names_from = "var",
+              values_from = "usage") %>% 
+  group_by(school_id) %>% 
+  mutate(children = case_when(
+    practices_a_la_carte == 1 ~ 1,
+    practices_flex == 1 ~ 1,
+    practices_flipped_classroom == 1 ~ 1,
+    practices_enriched_virtual == 1 ~ 1,
+    practices_station_rotation == 1 ~ 1,
+    TRUE ~ 0
+  ),
+  childless = case_when(
+    practices_blended_learning == 1 & children == 0 ~ 1,
+    TRUE ~ 0
+  ),
+  parentless = case_when(
+    practices_blended_learning == 0 & children == 1 ~ 1,
+    TRUE ~ 0
+  )) %>% 
+  ungroup() %>% 
+  summarize(selected_children = sum(parentless),
+            selected_parent_only = sum(childless)) %>% 
+  datatable()
+```
+
+
+b) how many schools in 2023 chose "blended learning" as a parent tag but didn't choose any child tags?
+
+There were 53 instances where a school leader chose blended learning but did not choose one of the child tags. (And 94 instances where they did choose child tags, for comparison.)
+
+```{r}
+dat %>% 
+  filter(year == 2023) %>% 
+  filter(var %in% blended_tags) %>% 
+  pivot_wider(names_from = "var",
+              values_from = "usage") %>% 
+  group_by(school_id) %>% 
+  mutate(children = case_when(
+    practices_a_la_carte == 1 ~ 1,
+    practices_flex == 1 ~ 1,
+    practices_flipped_classroom == 1 ~ 1,
+    practices_enriched_virtual == 1 ~ 1,
+    practices_station_rotation == 1 ~ 1,
+    TRUE ~ 0
+  ),
+  childless = case_when(
+    practices_blended_learning == 1 & children == 0 ~ 1,
+    TRUE ~ 0
+  )) %>% 
+  ungroup() %>% 
+  summarize(selected_parent = sum(childless),
+            selected_children = sum(children)) %>% 
+  datatable()
+```
+
+# Models
+
+```{r}
+#set up model function
+tag_bayes <- function(data, id = "school_id", cov, threshold = NULL) {
+  mod_dat <- data %>%
+    select(id, cov, starts_with("practices")) %>%
+    pivot_longer(cols = starts_with("practices"), names_to = "tag", values_to = "value") %>%
+    na.omit()
+
+  if (!is.null(threshold)) {
+    mod_dat <- mod_dat %>% filter(value > threshold)
+  }
+
+  numeric_covs <- sapply(mod_dat[, cov], is.numeric) %>% names() %>% intersect(cov)
+  mod_dat <- mod_dat %>%
+    group_by(tag) %>%
+    mutate(across(all_of(numeric_covs), scale)) %>%
+    ungroup()
+
+  form <- as.formula(paste("value", "~", paste(cov, collapse = "+")))
+
+  bayes_mods <- unique(mod_dat$tag) %>%
+    setNames(nm = .) %>%
+    purrr::map(function(tag) stan_glm(
+      formula = form,
+      data = filter(mod_dat, tag == tag),
+      family = binomial(link = "logit"),
+      prior = student_t(df = 7, location = 0, scale = 2.5),
+      seed = 123
+    ))
+
+  bayes_tidy <- bayes_mods %>%
+    purrr::map_dfr(tidy, .id = "tag") %>%
+    filter(term != "(Intercept)") %>%
+    mutate(
+      nice_tag = label_tags(tag),
+      nice_demog = factor(label_dems(term))
+    )
+
+  return(bayes_tidy)
+}
+```
+
+## None tags
+
+```{r}
+#across
+none_dat <- prep_across(dat, none)
+cluster_plot_across(none_dat, "year", "pct", labels)
+```
+
+```{r}
+#within
+none_dat <- prep_within(dat, none)
+cluster_plot_within(none_dat, none_dat$year, none_dat$n, labels)
+```
+

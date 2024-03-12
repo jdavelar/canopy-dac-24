@@ -516,6 +516,11 @@ long_dat <- bind_rows(dat19, dat21, dat22, dat23) %>%
        locale_rural,
        locale_urban,
        locale_suburban,
+       school_address,
+       school_city,
+       school_state,
+       school_district,
+       website,
        school_desc_homeschool,
        school_desc_hybrid,
        school_desc_micro,
@@ -548,3 +553,4 @@ long_dat <- bind_rows(dat19, dat21, dat22, dat23) %>%
 #save dataset
 write.csv(long_dat, "data/longitudinal/longitudinal_data.csv", row.names = FALSE)
 #still need to close-comb fill and address any remaining NA we're able
+
