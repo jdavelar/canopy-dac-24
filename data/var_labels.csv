@@ -2,15 +2,15 @@ all,label,var_2024,var_2023,var_2022,var_2021,var_2019,notes
 school_locale,,school_locale,exclusive_locale,locale,locale,locale,All ensure urban/suburban/rural/NA
 focus_bipoc,students of color,focus_bipoc,focus_bipoc,focus_bipoc,,,
 focus_economic_disadvantage,economically disadvantaged students,focus_economic_disadvantage,focus_economic_disadvantage,focus_economic_disadvantage,,poverty_supports,
-focus_emergent_bilingual,emergent bilinguals,,focus_emergent_bilingual,focus_emergent_bilinguals,,ell_supports,
-focus_foster,students in foster care system,,focus_foster,focus_foster,,,"Considered tracking back ""design_equity"" in '21 and ""equity/school_purpose/school_model"" in '19 but don't feel equivalent without confirming which student groups"
-focus_homeless,unhoused students,,focus_homeless,focus_homeless,,,"Considered tracking back ""design_equity"" in '21 and ""equity/school_purpose/school_model"" in '19 but don't feel equivalent without confirming which student groups"
+focus_emergent_bilingual,emergent bilinguals,focus_emergent_bilingual,focus_emergent_bilingual,focus_emergent_bilinguals,,ell_supports,
+focus_foster,students in foster care system,focus_foster,focus_foster,focus_foster,,,"Considered tracking back ""design_equity"" in '21 and ""equity/school_purpose/school_model"" in '19 but don't feel equivalent without confirming which student groups"
+focus_homeless,unhoused students,focus_homeless,focus_homeless,focus_homeless,,,"Considered tracking back ""design_equity"" in '21 and ""equity/school_purpose/school_model"" in '19 but don't feel equivalent without confirming which student groups"
 focus_interrupted,students with interrupted formal education,focus_interrupted,focus_interrupted,,,,
-focus_juvenile_justice,students in juvenile justice system,,focus_juvenile_justice,focus_juvenile_justice,,,"Considered tracking back ""design_equity"" in '21 and ""equity/school_purpose/school_model"" in '19 but don't feel equivalent without confirming which student groups"
+focus_juvenile_justice,students in juvenile justice system,focus_juvenile_justice,focus_juvenile_justice,focus_juvenile_justice,,,"Considered tracking back ""design_equity"" in '21 and ""equity/school_purpose/school_model"" in '19 but don't feel equivalent without confirming which student groups"
 focus_multilingual,multilingual students,focus_multilingual,focus_multilingual,,,,
-focus_newcomer,newcomers,,focus_newcomer,focus_newcomer,,immigrants_supports,
-focus_other,other,focus_other_student_group,focus_other_student_group,focus_other_student_group,,,
-focus_other_text,,focus_other_student_group_text,focus_other_student_group_text,focus_other_student_group_text,,,
+focus_newcomer,newcomers,focus_newcomer,focus_newcomer,focus_newcomer,,immigrants_supports,
+focus_other,other,focus_other,focus_other_student_group,focus_other_student_group,,,
+focus_other_text,,focus_other_text,focus_other_student_group_text,focus_other_student_group_text,,,
 focus_swd,students with disabilities,focus_swd,focus_swd,focus_swd,,,
 grades_elementary,elementary,grades_elementary,grades_elementary,grades_elementary,grades_elementary,grades_elementary,2019 'level' needs to be split into grades_* format for matching and renamed; 2021 needs to be created from scratch
 grades_high,high,grades_high,grades_high,grades_high,grades_high,grades_high,2020 'level' needs to be split into grades_* format for matching and renamed; 2021 needs to be created from scratch
@@ -19,11 +19,11 @@ grades_pk,,grades_pk,grades_prek,grades_pre_k,pk_grade,pk_grade,self_reported ve
 inclusive_emergent_bilingual,emergent bilinguals,inclusive_emergent_bilingual,inclusive_emergent_bilingual,,,,
 inclusive_juvenile_justice,students in juvenile justice system,inclusive_juvenile_justice,inclusive_juvenile_justice,,,,
 inclusive_newcomer,newcomers,inclusive_newcomer,inclusive_newcomer,,,,
-inclusive_other,other,inclusive_other_student_group,inclusive_other_student_group,,,,
-inclusive_other_text,,inclusive_other_student_group_text,inclusive_other_student_group_text,,,,
+inclusive_other,other,inclusive_other,inclusive_other_student_group,,,,
+inclusive_other_text,,inclusive_other_text,inclusive_other_student_group_text,,,,
 inclusive_swd,students with disabilities,inclusive_swd,inclusive_swd,,,,
-leader_gender,,contact_gender,leader1_gender,confidential_leader_gender,,,2024 contact_gender needs to be modified - retain only if contact is the primary leader; in 2023 merge leader1_gender_self_identify_text and leader1_gender_multiple with standard categories
-leader_race,,,leader1_race,confidential_leader_race,,,2024 contact_race needs to be modified - retain only if contact is the primary leader; in 2023 merge leader1_race_self_identify_text and leader1_race_multiple with standard categories
+leader_gender,,leader_gender,leader1_gender,confidential_leader_gender,,,2024 contact_gender needs to be modified - retain only if contact is the primary leader; in 2023 merge leader1_gender_self_identify_text and leader1_gender_multiple with standard categories
+leader_race,,leader_race,leader1_race,confidential_leader_race,,,2024 contact_race needs to be modified - retain only if contact is the primary leader; in 2023 merge leader1_race_self_identify_text and leader1_race_multiple with standard categories
 leadership_diversity,leadership diversity,leadership_diversity,leadership_diversity,confidential_leadership_team_diversity,,,
 leaps_affirmation,affirmation of self & others,,leaps_affirmation,leaps_affirmation,,,
 leaps_anytime_anywhere,anytime anywhere learning,,leaps_anytime_anywhere,leaps_anytime_anywhere,,,

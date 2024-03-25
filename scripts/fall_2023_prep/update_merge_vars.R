@@ -156,7 +156,13 @@ setdiff(names(dat21b), names(dat21a))
 #promising_practices not asked in first round - weird.
 #doesn't affect long. merging, so ignore
 
-dat21 <- bind_rows(dat21a, dat21b) %>% 
+dat21 <- bind_rows(dat21a, dat21b)
+#set vector to ignore conditions_other_text - throwing error later on
+conditions <- dat21 %>% 
+  select(starts_with("conditions"), -conditions_other_text) %>% 
+  colnames()
+#continue cleaning data
+dat21 <- dat21 %>% 
   #recode yes/no
   mutate(across(where(~any(. %in% c("Yes", "No"))), ~case_when(
     . == "No" ~ 0,
@@ -293,12 +299,26 @@ dat21 <- bind_rows(dat21a, dat21b) %>%
          rank_stakeholders = ifelse(conditions_stakeholder_demand < 4 & conditions_stakeholder_demand > 0, 1, 0),
          rank_student_agency = ifelse(conditions_lack_of_student_agency < 4 & conditions_lack_of_student_agency > 0, 1, 0),
          rank_teacher_agency = ifelse(conditions_lack_of_teacher_agency < 4 & conditions_lack_of_teacher_agency > 0, 1, 0)) %>% 
-  mutate(across(starts_with("conditions_"), ~ifelse(!is.na(.), 1, 0))) %>% 
+  mutate(across(.cols = all_of(conditions), .fns = ~ifelse(!is.na(.), 1, 0))) %>% 
   #select relevant cols
   select(all_of(cols21)) %>% 
   #rename cols
   rename_with(~merge21)
-rm(merge21, cols21, dat21a, dat21b)
+#merge nominator data
+nom_21 <- import(here("data", "nominations_2021.csv")) %>% 
+  select(school_id, nominator) %>% 
+  mutate(year = 2021)
+# dat21 <- dat21 %>% 
+#   left_join(nom, by = "school_id")
+nom_19 <- dat19 %>% 
+  select(school_id, nominator) %>% 
+  mutate(year = 2019)
+merge_nom <- bind_rows(nom_21, nom_19) %>% 
+  group_by(school_id) %>%
+  summarise(nominator = if(n_distinct(nominator) == 1) first(nominator) else toString(nominator))
+dat21 <- dat21 %>% 
+  left_join(merge_nom, by = "school_id")
+rm(merge21, cols21, dat21a, dat21b, nom_19, nom_21, merge_nom, conditions)
 
 
 ####################################
@@ -495,9 +515,17 @@ rm(confidential, dictionary, full, impact, schools, tags, cols23, merge23)
 ####################################
 ########## 2024 DATASET ############
 ####################################
-
-#placeholder until we get data
-
+load("data/2024 data/complete_canopy_2024.RData")
+dat24 <- full %>% 
+  #drop tag data
+  select(-starts_with("practices"), -starts_with("core"), -starts_with("time"), -starts_with("pilot")) %>% 
+  #add year
+  mutate(year = 2024) %>% 
+  #select relevant cols
+  select(all_of(cols24)) %>% 
+  #rename cols
+  rename_with(~merge24)
+rm(dictionary, full, tags, var, variables, cols24, merge24)
 
 
 #####################################################
@@ -505,9 +533,9 @@ rm(confidential, dictionary, full, impact, schools, tags, cols23, merge23)
 #####################################################
 order <- import(here("data", "var_order.csv")) %>% 
   pull(order)
-long_dat <- bind_rows(dat19, dat21, dat22, dat23) %>% 
+long_dat <- bind_rows(dat19, dat21, dat22, dat23, dat24) %>% 
   #organize cols
-  select(order) %>%
+  select(all_of(order)) %>%
   #backwards/forwards fill time-invariant vars
   group_by(school_id) %>%
   arrange(year) %>%
