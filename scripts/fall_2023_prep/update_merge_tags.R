@@ -28,6 +28,16 @@ merge21 <- tag_dat %>%
 merge19 <- tag_dat %>% 
   select(all, var_19) %>% 
   filter(!is.na(var_19)) #87 tags (portfolios & exhibitions are merged into 1)
+#2024 rename
+load("data/2024 data/complete_canopy_2024.RData")
+tags_24 <- tags %>% 
+  pivot_longer(cols = starts_with("practices"),
+               names_to = "var_24",
+               values_to = "usage") %>% 
+  left_join(merge24, by = "var_24") %>% 
+  select(school_id, var = all, usage) %>% 
+  mutate(year = 2024) # in long format
+rm(dictionary, full, tag_dat, tags, variables)
 #2023 rename
 load("data/complete_canopy_2023.RData")
 tags_23 <- full %>% 
@@ -118,7 +128,8 @@ tags_19 <- import(here("data", "schools_2019.csv")) %>%
 tags_long <- tags_19 %>% 
   bind_rows(tags_21) %>% 
   bind_rows(tags_22) %>% 
-  bind_rows(tags_23)
+  bind_rows(tags_23) %>% 
+  bind_rows(tags_24)
 write.csv(tags_long, "data/longitudinal/tags-long.csv", row.names = FALSE)
 
 #create wide version
