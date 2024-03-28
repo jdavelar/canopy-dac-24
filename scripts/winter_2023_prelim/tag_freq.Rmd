@@ -1,7 +1,7 @@
 ---
 title: "Tag Frequency Changes"
 author: "Janette Avelar"
-date: '2023-12-16'
+date: '12/16/23 Updated 3/26/24'
 output: 
   html_document:
     toc: true
@@ -56,14 +56,15 @@ dat %>%
   #calculate change
   mutate(change_2021 = `2021` - `2019`,
          change_2022 = `2022` - `2021`,
-         change_2023 = `2023` - `2022`) %>% 
+         change_2023 = `2023` - `2022`,
+         change_2024 = `2024` - `2023`) %>% 
   #bring in labels
   left_join(labels, by = "var") %>% 
-  select(Tag = label, `2019`, `2021` = change_2021, `2022` = change_2022, `2023` = change_2023) %>% 
+  select(Tag = label, `2019`, `2021` = change_2021, `2022` = change_2022, `2023` = change_2023, `2024` = change_2024) %>% 
   #table
   datatable() %>%
   #style
-  formatStyle(columns = c("2021", "2022", "2023"), 
+  formatStyle(columns = c("2021", "2022", "2023", "2024"), 
               color = styleInterval(cuts = 0, values = c("red", "green")),
               textAlign = "center")
 ```
@@ -101,17 +102,18 @@ dat %>%
   #calculate change
   mutate(change_2021 = `2021` - `2019`,
          change_2022 = `2022` - `2021`,
-         change_2023 = `2023` - `2022`) %>% 
+         change_2023 = `2023` - `2022`,
+         change_2024 = `2024` - `2023`) %>% 
   #bring in labels
   left_join(labels, by = "var") %>% 
-  select(Tag = label, `2019`, `2021` = change_2021, `2022` = change_2022, `2023` = change_2023) %>% 
+  select(Tag = label, `2019`, `2021` = change_2021, `2022` = change_2022, `2023` = change_2023, `2024` = change_2024) %>% 
   #table
   datatable() %>%
   #style
-  formatStyle(columns = c("2021", "2022", "2023"), 
+  formatStyle(columns = c("2021", "2022", "2023", "2024"), 
               color = styleInterval(cuts = 0, values = c("red", "green")),
               textAlign = "center") %>% 
-  formatPercentage(c("2019", "2021", "2022", "2023"), 0)
+  formatPercentage(c("2019", "2021", "2022", "2023", "2024"), 0)
 ```
 
 
@@ -157,35 +159,41 @@ n_dat %>%
   mutate(change_2021 = `2021` - `2019`,
          change_2022 = `2022` - `2021`,
          change_2023 = `2023` - `2022`,
+         change_2024 = `2024` - `2023`,
          added_2021 = ifelse(change_2021 == 1, 1, 0),
          added_2022 = ifelse(change_2022 == 1, 1, 0),
          added_2023 = ifelse(change_2023 == 1, 1, 0),
+         added_2024 = ifelse(change_2024 == 1, 1, 0),
          drop_2021 = ifelse(change_2021 == -1, 1, 0),
          drop_2022 = ifelse(change_2022 == -1, 1, 0),
-         drop_2023 = ifelse(change_2023 == -1, 1, 0)) %>% 
+         drop_2023 = ifelse(change_2023 == -1, 1, 0),
+         drop_2024 = ifelse(change_2024 == -1, 1, 0)) %>% 
   ungroup() %>% 
   group_by(var) %>% 
   summarize(`2019` = sum(`2019`, na.rm = TRUE),
             `2021` = sum(change_2021, na.rm = TRUE),
             `2022` = sum(change_2022, na.rm = TRUE),
             `2023` = sum(change_2023, na.rm = TRUE),
+            `2024` = sum(change_2024, na.rm = TRUE),
             `2021 adds` = sum(added_2021, na.rm = TRUE),
             `2022 adds` = sum(added_2022, na.rm = TRUE),
             `2023 adds` = sum(added_2023, na.rm = TRUE),
+            `2024 adds` = sum(added_2024, na.rm = TRUE),
             `2021 drops` = sum(drop_2021, na.rm = TRUE),
             `2022 drops` = sum(drop_2022, na.rm = TRUE),
-            `2023 drops` = sum(drop_2023, na.rm = TRUE)) %>% 
-  mutate(across(`2019`:`2023 drops`, ~na_if(., 0))) %>% 
+            `2023 drops` = sum(drop_2023, na.rm = TRUE),
+            `2024 drops` = sum(drop_2024, na.rm = TRUE)) %>% 
+  mutate(across(`2019`:`2024 drops`, ~na_if(., 0))) %>% 
   #bring in labels
   left_join(labels, by = "var")
 
 #overview table
 overall_2yr %>% 
-  select(Tag = label, `2019`, `2021`, `2022`, `2023`) %>% 
+  select(Tag = label, `2019`, `2021`, `2022`, `2023`, `2024`) %>% 
   #table
   datatable() %>%
   #style
-  formatStyle(columns = c("2021", "2022", "2023"), 
+  formatStyle(columns = c("2021", "2022", "2023", "2024"), 
               color = styleInterval(cuts = 0, values = c("red", "green")),
               textAlign = "center")
 ```
@@ -198,11 +206,11 @@ This table breaks down the raw count for 2-year tags, by displaying the number o
 overall_2yr %>% 
   select(Tag = label, ends_with("adds"), ends_with("drops")) %>% 
   mutate(across(ends_with("drops"), ~.*-1)) %>% 
-  mutate(across(`2021 adds`:`2023 drops`, ~na_if(., 0))) %>% 
+  mutate(across(`2021 adds`:`2024 drops`, ~na_if(., 0))) %>% 
   #table
   datatable() %>%
   #style
-  formatStyle(columns = c("2021 adds", "2022 adds", "2023 adds", "2021 drops", "2022 drops", "2023 drops"), 
+  formatStyle(columns = c("2021 adds", "2022 adds", "2023 adds", "2024 adds", "2021 drops", "2022 drops", "2023 drops", "2024 drops"), 
               color = styleInterval(cuts = 0, values = c("red", "green")),
               textAlign = "center")
 ```
@@ -230,35 +238,41 @@ n_dat %>%
   mutate(change_2021 = `2021` - `2019`,
          change_2022 = `2022` - `2021`,
          change_2023 = `2023` - `2022`,
+         change_2024 = `2024` - `2023`,
          added_2021 = ifelse(change_2021 == 1, 1, 0),
          added_2022 = ifelse(change_2022 == 1, 1, 0),
          added_2023 = ifelse(change_2023 == 1, 1, 0),
+         added_2024 = ifelse(change_2024 == 1, 1, 0),
          drop_2021 = ifelse(change_2021 == -1, 1, 0),
          drop_2022 = ifelse(change_2022 == -1, 1, 0),
-         drop_2023 = ifelse(change_2023 == -1, 1, 0)) %>% 
+         drop_2023 = ifelse(change_2023 == -1, 1, 0),
+         drop_2024 = ifelse(change_2024 == -1, 1, 0)) %>% 
   ungroup() %>% 
   group_by(var) %>% 
   summarize(`2019` = sum(`2019`, na.rm = TRUE),
             `2021` = sum(change_2021, na.rm = TRUE),
             `2022` = sum(change_2022, na.rm = TRUE),
             `2023` = sum(change_2023, na.rm = TRUE),
+            `2024` = sum(change_2024, na.rm = TRUE),
             `2021 adds` = sum(added_2021, na.rm = TRUE),
             `2022 adds` = sum(added_2022, na.rm = TRUE),
             `2023 adds` = sum(added_2023, na.rm = TRUE),
+            `2024 adds` = sum(added_2024, na.rm = TRUE),
             `2021 drops` = sum(drop_2021, na.rm = TRUE),
             `2022 drops` = sum(drop_2022, na.rm = TRUE),
-            `2023 drops` = sum(drop_2023, na.rm = TRUE)) %>% 
-  mutate(across(`2019`:`2023 drops`, ~na_if(., 0))) %>% 
+            `2023 drops` = sum(drop_2023, na.rm = TRUE),
+            `2024 drops` = sum(drop_2024, na.rm = TRUE)) %>% 
+  mutate(across(`2019`:`2024 drops`, ~na_if(., 0))) %>% 
   #bring in labels
   left_join(labels, by = "var")
 
 #overview table
 overall_3yr %>% 
-  select(Tag = label, `2019`, `2021`, `2022`, `2023`) %>% 
+  select(Tag = label, `2019`, `2021`, `2022`, `2023`, `2024`) %>% 
   #table
   datatable() %>%
   #style
-  formatStyle(columns = c("2021", "2022", "2023"), 
+  formatStyle(columns = c("2021", "2022", "2023", "2024"), 
               color = styleInterval(cuts = 0, values = c("red", "green")),
               textAlign = "center")
 ```
@@ -270,18 +284,18 @@ This table breaks down the raw count for 3-year tags, by displaying the number o
 overall_3yr %>% 
   select(Tag = label, ends_with("adds"), ends_with("drops")) %>% 
   mutate(across(ends_with("drops"), ~.*-1)) %>% 
-  mutate(across(`2021 adds`:`2023 drops`, ~na_if(., 0))) %>% 
+  mutate(across(`2021 adds`:`2024 drops`, ~na_if(., 0))) %>% 
   #table
   datatable() %>%
   #style
-  formatStyle(columns = c("2021 adds", "2022 adds", "2023 adds", "2021 drops", "2022 drops", "2023 drops"), 
+  formatStyle(columns = c("2021 adds", "2022 adds", "2023 adds", "2024 adds", "2021 drops", "2022 drops", "2023 drops", "2024 drops"), 
               color = styleInterval(cuts = 0, values = c("red", "green")),
               textAlign = "center")
 ```
 
 ### Raw Counts Table - 4 year tags
 
-This table displays the raw count differences across years for tags that appear in all 4 years of data.
+This table displays the raw count differences across years for tags that appear in 4 years of data.
 
 ```{r}
 # 4 year tags
@@ -302,35 +316,41 @@ n_dat %>%
   mutate(change_2021 = `2021` - `2019`,
          change_2022 = `2022` - `2021`,
          change_2023 = `2023` - `2022`,
+         change_2024 = `2024` - `2023`,
          added_2021 = ifelse(change_2021 == 1, 1, 0),
          added_2022 = ifelse(change_2022 == 1, 1, 0),
          added_2023 = ifelse(change_2023 == 1, 1, 0),
+         added_2024 = ifelse(change_2024 == 1, 1, 0),
          drop_2021 = ifelse(change_2021 == -1, 1, 0),
          drop_2022 = ifelse(change_2022 == -1, 1, 0),
-         drop_2023 = ifelse(change_2023 == -1, 1, 0)) %>% 
+         drop_2023 = ifelse(change_2023 == -1, 1, 0),
+         drop_2024 = ifelse(change_2024 == -1, 1, 0)) %>% 
   ungroup() %>% 
   group_by(var) %>% 
   summarize(`2019` = sum(`2019`, na.rm = TRUE),
             `2021` = sum(change_2021, na.rm = TRUE),
             `2022` = sum(change_2022, na.rm = TRUE),
             `2023` = sum(change_2023, na.rm = TRUE),
+            `2024` = sum(change_2024, na.rm = TRUE),
             `2021 adds` = sum(added_2021, na.rm = TRUE),
             `2022 adds` = sum(added_2022, na.rm = TRUE),
             `2023 adds` = sum(added_2023, na.rm = TRUE),
+            `2024 adds` = sum(added_2024, na.rm = TRUE),
             `2021 drops` = sum(drop_2021, na.rm = TRUE),
             `2022 drops` = sum(drop_2022, na.rm = TRUE),
-            `2023 drops` = sum(drop_2023, na.rm = TRUE)) %>% 
-  mutate(across(`2019`:`2023 drops`, ~na_if(., 0))) %>% 
+            `2023 drops` = sum(drop_2023, na.rm = TRUE),
+            `2024 drops` = sum(drop_2024, na.rm = TRUE)) %>% 
+  mutate(across(`2019`:`2024 drops`, ~na_if(., 0))) %>% 
   #bring in labels
   left_join(labels, by = "var")
 
 #overview table
-overall_2yr %>% 
-  select(Tag = label, `2019`, `2021`, `2022`, `2023`) %>% 
+overall_4yr %>% 
+  select(Tag = label, `2019`, `2021`, `2022`, `2023`, `2024`) %>% 
   #table
   datatable() %>%
   #style
-  formatStyle(columns = c("2021", "2022", "2023"), 
+  formatStyle(columns = c("2021", "2022", "2023", "2024"), 
               color = styleInterval(cuts = 0, values = c("red", "green")),
               textAlign = "center")
 ```
@@ -339,15 +359,92 @@ This table breaks down the raw count for 4-year tags, by displaying the number o
 
 ```{r}
 #adds and drops table
-overall_2yr %>% 
+overall_4yr %>% 
   select(Tag = label, ends_with("adds"), ends_with("drops")) %>% 
   mutate(across(ends_with("drops"), ~.*-1)) %>% 
-  mutate(across(`2021 adds`:`2023 drops`, ~na_if(., 0))) %>% 
+  mutate(across(`2021 adds`:`2024 drops`, ~na_if(., 0))) %>% 
   #table
   datatable() %>%
   #style
-  formatStyle(columns = c("2021 adds", "2022 adds", "2023 adds", "2021 drops", "2022 drops", "2023 drops"), 
+  formatStyle(columns = c("2021 adds", "2022 adds", "2023 adds", "2024 adds", "2021 drops", "2022 drops", "2023 drops", "2024 drops"), 
               color = styleInterval(cuts = 0, values = c("red", "green")),
               textAlign = "center")
 ```
 
+### Raw Counts Table - 5 year tags
+
+This table displays the raw count differences across years for tags that appear in all 5 years of data.
+
+```{r}
+# 4 year tags
+#overall view table
+overall_5yr <-
+n_dat %>% 
+  filter(n_year_tag == 5) %>% 
+  # mutate(n = sum(usage), .by = c(year, var)) %>% 
+  filter(n_year_schl == 5) %>% 
+  select(-n_year_tag, -n_year_schl) %>% 
+  # group_by(year, var) %>% 
+  # summarize(n = sum(usage, na.rm = TRUE)) %>% 
+  #make cols for each year to determine change
+  pivot_wider(names_from = year,
+              values_from = usage) %>% 
+  #calculate change
+  group_by(school_id, var) %>% 
+  mutate(change_2021 = `2021` - `2019`,
+         change_2022 = `2022` - `2021`,
+         change_2023 = `2023` - `2022`,
+         change_2024 = `2024` - `2023`,
+         added_2021 = ifelse(change_2021 == 1, 1, 0),
+         added_2022 = ifelse(change_2022 == 1, 1, 0),
+         added_2023 = ifelse(change_2023 == 1, 1, 0),
+         added_2024 = ifelse(change_2024 == 1, 1, 0),
+         drop_2021 = ifelse(change_2021 == -1, 1, 0),
+         drop_2022 = ifelse(change_2022 == -1, 1, 0),
+         drop_2023 = ifelse(change_2023 == -1, 1, 0),
+         drop_2024 = ifelse(change_2024 == -1, 1, 0)) %>% 
+  ungroup() %>% 
+  group_by(var) %>% 
+  summarize(`2019` = sum(`2019`, na.rm = TRUE),
+            `2021` = sum(change_2021, na.rm = TRUE),
+            `2022` = sum(change_2022, na.rm = TRUE),
+            `2023` = sum(change_2023, na.rm = TRUE),
+            `2024` = sum(change_2024, na.rm = TRUE),
+            `2021 adds` = sum(added_2021, na.rm = TRUE),
+            `2022 adds` = sum(added_2022, na.rm = TRUE),
+            `2023 adds` = sum(added_2023, na.rm = TRUE),
+            `2024 adds` = sum(added_2024, na.rm = TRUE),
+            `2021 drops` = sum(drop_2021, na.rm = TRUE),
+            `2022 drops` = sum(drop_2022, na.rm = TRUE),
+            `2023 drops` = sum(drop_2023, na.rm = TRUE),
+            `2024 drops` = sum(drop_2024, na.rm = TRUE)) %>% 
+  mutate(across(`2019`:`2024 drops`, ~na_if(., 0))) %>% 
+  #bring in labels
+  left_join(labels, by = "var")
+
+#overview table
+overall_5yr %>% 
+  select(Tag = label, `2019`, `2021`, `2022`, `2023`, `2024`) %>% 
+  #table
+  datatable() %>%
+  #style
+  formatStyle(columns = c("2021", "2022", "2023", "2024"), 
+              color = styleInterval(cuts = 0, values = c("red", "green")),
+              textAlign = "center")
+```
+
+This table breaks down the raw count for 4-year tags, by displaying the number of adds and drops in each year.
+
+```{r}
+#adds and drops table
+overall_5yr %>% 
+  select(Tag = label, ends_with("adds"), ends_with("drops")) %>% 
+  mutate(across(ends_with("drops"), ~.*-1)) %>% 
+  mutate(across(`2021 adds`:`2024 drops`, ~na_if(., 0))) %>% 
+  #table
+  datatable() %>%
+  #style
+  formatStyle(columns = c("2021 adds", "2022 adds", "2023 adds", "2024 adds", "2021 drops", "2022 drops", "2023 drops", "2024 drops"), 
+              color = styleInterval(cuts = 0, values = c("red", "green")),
+              textAlign = "center")
+```

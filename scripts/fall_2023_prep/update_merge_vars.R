@@ -300,6 +300,7 @@ dat21 <- dat21 %>%
          rank_student_agency = ifelse(conditions_lack_of_student_agency < 4 & conditions_lack_of_student_agency > 0, 1, 0),
          rank_teacher_agency = ifelse(conditions_lack_of_teacher_agency < 4 & conditions_lack_of_teacher_agency > 0, 1, 0)) %>% 
   mutate(across(.cols = all_of(conditions), .fns = ~ifelse(!is.na(.), 1, 0))) %>% 
+  mutate(across(.cols = starts_with("rank"), .fns = ~ifelse(is.na(.), 0, .))) %>% 
   #select relevant cols
   select(all_of(cols21)) %>% 
   #rename cols

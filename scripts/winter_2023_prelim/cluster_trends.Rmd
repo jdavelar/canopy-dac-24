@@ -15,7 +15,7 @@ editor_options:
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE, warnings = FALSE, message = FALSE)
-pacman::p_load(tidyverse, here, rio, DT, parameters)
+pacman::p_load(tidyverse, here, rio, DT, parameters, ggrepel)
 #read in data
 dat <- import(here("data/longitudinal", "tags-long.csv"))
 #read in tag labels
@@ -84,7 +84,7 @@ repeaters <- dat %>%
   pivot_wider(names_from = "year",
               values_from = "rate") %>% 
   rowwise() %>% 
-  mutate(participate = sum(`2019`, `2021`, `2022`, `2023`, na.rm = TRUE)) %>% 
+  mutate(participate = sum(`2019`, `2021`, `2022`, `2023`, `2024`, na.rm = TRUE)) %>% 
   filter(participate > 1) %>% 
   pull(school_id)
 #set up totals 
@@ -92,10 +92,6 @@ tots <- dat %>%
   group_by(year) %>% 
   summarize(total = n_distinct(school_id)) %>% 
   unique()
-#labels
-# labs <- labels %>% 
-#   filter(year == 2023) %>% 
-#   select(label, x = year, y = pct)
 #prep data function across schools
 prep_across <- function(data, cluster){
   dat <- data %>% 
@@ -137,12 +133,29 @@ prep_within <- function(data, cluster){
                  names_to = "type",
                  values_to = "n") %>% 
     left_join(labels, by = "var") %>% 
-    mutate(type = factor(type, levels = c("Overall rate", "Average change", "Adds", "Drops")))
-           # x_coord = max(year),
-           # y_coord = n[which.max(year)])
-  
-  return(dat)
+    mutate(type = factor(type, levels = c("Overall rate", "Average change", "Adds", "Drops"))) %>% 
+    #3.27.24 modification = remove 2019 & only present adds/drops
+    filter(year > 2019, type == "Adds" | type == "Drops")
+    return(dat)
 }
+#prep data function overall pct
+prep_overall <- function(data, cluster){
+  dat <- data %>% 
+    filter(var %in% cluster) %>% 
+    filter(school_id %in% repeaters) %>% 
+    group_by(var, year) %>% 
+    summarize(n = sum(usage, na.rm = TRUE)) %>% 
+    ungroup() %>% 
+    left_join(tots, by = "year") %>% 
+    mutate(pct = n/total) %>% 
+    left_join(labels, by = "var") %>% 
+    group_by(var) %>% 
+    mutate(x_coord = max(year),
+           y_coord = pct[which.max(year)])
+
+    return(dat)
+}
+
 #plot function for across schools
 cluster_plot_across <- function(data, x, y, labels) {
   #palette <- c("#BC2582", "#FFA630", "#FFDE42", "#99C24D", "#218380", "#D3B7D7")
@@ -155,40 +168,54 @@ cluster_plot_across <- function(data, x, y, labels) {
     geom_point() +
     geom_line() +
     theme_bw() +
-    scale_x_continuous(limits = c(2019, 2025),
+    scale_x_continuous(limits = c(2019, 2026),
                        expand = c(0.01, 0),
                        breaks = unique(data$year)) + #expand 0.025, .3
     scale_y_continuous(limits = c(0, 1),
                        expand = c(0, 0),
                        labels = scales::percent_format(accuracy = 1)) +
     theme(legend.position = "none") +
-    geom_text(data = labels,
-              aes_string(label = str_wrap("label", 10), x = "x_coord", y = "y_coord"),
-              position = position_jitterdodge(dodge.width = 0.5, jitter.height = 0.025),
-              hjust = -.05, 
-              vjust = 0.5)
+    geom_text_repel(data = labels,
+              aes_string(label = str_wrap("label", 10), x = "x_coord", y = "y_coord")
+              #position = position_jitterdodge(dodge.width = 0.5, jitter.height = 0.025),
+              #hjust = -.05, 
+              #vjust = 0.5
+              )
   
   return(plot)
 }
 #plot function for within schools
-cluster_plot_within <- function(data, x, y, labels){
-  # labels <- data %>% 
-  #   select(label, x_coord, y_coord) %>% 
-  #   unique()
-  
-  plot <- ggplot(data, aes_string(x = x, y = y, color = "label")) +
-    geom_point() +
-    geom_line() +
+# cluster_plot_within <- function(data, x, y, labels){
+#   
+#   plot <- ggplot(data, aes_string(x = x, y = y, group = type)) +
+#     geom_point() +
+#     geom_line(aes_string(group = type), color = "gray") +
+#     geom_smooth(method = "lm", formula = y ~ x, se = FALSE, color = "blue", aes(group = 1)) +
+#     theme_bw() +
+#     scale_x_continuous(expand = expansion(mult = c(.025, .3))) +
+#     theme(panel.grid.major.x = element_blank(),
+#           panel.grid.minor.x = element_blank(),
+#           legend.position = "none") +
+#     facet_wrap(~type) +
+#     labs(x = "Year",
+#        y = "Tag selection (N)") +
+#     scale_color_identity()
+#   
+#   return(plot)
+# }
+cluster_plot_within <- function(data, x, y, facet, group) {
+  plot <- ggplot(data, aes_string(x = x, y = y)) +
+    geom_line(aes(group = group), color = "gray", alpha = 0.5) + 
+    geom_point(aes(group = group), color = "gray", alpha = 0.5, size = 1) +
+    geom_smooth(se = FALSE, color = "cornflowerblue", aes(group = 1)) + 
+    #straight line before
+    #geom_smooth(method = "lm", se = FALSE, color = "blue", aes(group = 1)) +
     theme_bw() +
-    # #scale_color_manual(values = palette) +
-    scale_x_continuous(expand = expansion(mult = c(.025, .3))) +
-    theme(panel.grid.major.x = element_blank(),
-          panel.grid.minor.x = element_blank()) +
-    theme(legend.position = "none") +
-    facet_wrap(~type) +
-    labs(x = "Year",
-       y = "Tag selection (N)")
-  
+    scale_x_continuous(name = x, expand = expansion(mult = c(.025, .3))) +
+    theme(panel.grid.major.x = element_blank(), panel.grid.minor.x = element_blank(), legend.position = "none") +
+    facet_wrap(as.formula(paste0("~", facet)), scales = "free_y") +  
+    labs(x = x, y = y)
+
   return(plot)
 }
 ```
@@ -203,9 +230,16 @@ cluster_plot_across(deep, "year", "pct", labels)
 
 ### Within schools
 
+Overall rate among repeat schools:
+
+```{r}
+deep <- prep_overall(dat, deeper)
+cluster_plot_across(deep, "year", "pct", labels)
+```
+
 ```{r}
 deep <- prep_within(dat, deeper)
-cluster_plot_within(deep, deep$year, deep$n, labels)
+cluster_plot_within(deep, deep$year, deep$n, "type", deep$label)
 ```
 
 ## Educational Justice Cluster
@@ -240,9 +274,16 @@ cluster_plot_across(justice_dat, "year", "pct", labels)
 
 ### Within schools
 
+Overall rate among repeat schools:
+
+```{r}
+justice_dat <- prep_overall(dat, ed_justice)
+cluster_plot_across(justice_dat, "year", "pct", labels)
+```
+
 ```{r}
 justice_dat <- prep_within(dat, ed_justice)
-cluster_plot_within(justice_dat, justice_dat$year, justice_dat$n, labels)
+cluster_plot_within(justice_dat, justice_dat$year, justice_dat$n, "type", justice_dat$label)
 ```
 
 ## Individualized Cluster
@@ -268,9 +309,16 @@ cluster_plot_across(ind_dat, "year", "pct", labels)
 
 ### Within schools
 
+Overall rate among repeat schools:
+
+```{r}
+ind_dat <- prep_overall(dat, individualized)
+cluster_plot_across(ind_dat, "year", "pct", labels)
+```
+
 ```{r}
 ind_dat <- prep_within(dat, individualized)
-cluster_plot_within(ind_dat, ind_dat$year, ind_dat$n, labels)
+cluster_plot_within(ind_dat, ind_dat$year, ind_dat$n, "type", ind_dat$label)
 ```
 
 ## Postsecondary Cluster
@@ -295,12 +343,146 @@ cluster_plot_across(post_dat, "year", "pct", labels)
 
 ### Within schools
 
+Overall rate among repeat schools:
+
 ```{r}
-post_dat <- prep_within(dat, postsecondary)
-cluster_plot_within(post_dat, post_dat$year, post_dat$n, labels)
+post_dat <- prep_overall(dat, postsecondary)
+cluster_plot_across(post_dat, "year", "pct", labels)
 ```
 
+```{r}
+post_dat <- prep_within(dat, postsecondary)
+cluster_plot_within(post_dat, post_dat$year, post_dat$n, "type", post_dat$label)
+```
+
+### High Schools only - Across
+
+```{r}
+# set up data prep
+# ID high schools
+hs <- import(here("data/longitudinal", "longitudinal_data.csv")) %>% 
+  select(school_id, grades_high) %>% 
+  filter(grades_high == 1) %>% 
+  pull(school_id)
+#set up repeating schools
+hs_repeaters <- dat %>% 
+  filter(school_id %in% hs) %>% 
+  select(school_id, year) %>% 
+  unique() %>% 
+  mutate(rate = 1) %>% 
+  pivot_wider(names_from = "year",
+              values_from = "rate") %>% 
+  rowwise() %>% 
+  mutate(participate = sum(`2019`, `2021`, `2022`, `2023`, `2024`, na.rm = TRUE)) %>% 
+  filter(participate > 1) %>% 
+  pull(school_id)
+#set up totals 
+hs_tots <- dat %>% 
+  filter(school_id %in% hs) %>% 
+  group_by(year) %>% 
+  summarize(total = n_distinct(school_id)) %>% 
+  unique()
+#prep data across schools
+hs_across <- dat %>% 
+  filter(school_id %in% hs) %>% 
+    filter(var %in% postsecondary) %>% 
+    group_by(var, year) %>% 
+    summarize(n = sum(usage)) %>% 
+    ungroup() %>% 
+    left_join(hs_tots, by = "year", relationship = "many-to-many") %>% 
+    mutate(pct = n/total) %>% 
+    left_join(labels, by = "var") %>% 
+    group_by(var) %>% 
+    mutate(x_coord = max(year),
+           y_coord = pct[which.max(year)])
+#prep data within schools
+hs_within <- dat %>% 
+  filter(school_id %in% hs) %>% 
+    filter(var %in% postsecondary) %>% 
+    filter(school_id %in% hs_repeaters) %>% 
+    arrange(school_id, year) %>% 
+    group_by(school_id) %>%
+    mutate(wave = dense_rank(year)) %>% 
+    ungroup() %>% 
+    arrange(school_id, year) %>%
+    group_by(school_id, var) %>%
+    mutate(change = usage - lag(usage)) %>% 
+    ungroup() %>% 
+    mutate(adds = ifelse(change == 1, 1, NA),
+           drops = ifelse(change == -1, 1, NA)) %>% 
+    group_by(var, year) %>% 
+    summarize(`Overall rate` = sum(usage, na.rm = TRUE),
+              `Average change` = sum(change, na.rm = TRUE),
+              Adds = sum(adds, na.rm = TRUE),
+              Drops = sum(drops, na.rm = TRUE)) %>% 
+    ungroup() %>% 
+    pivot_longer(cols = c(`Overall rate`, `Average change`, Adds, Drops),
+                 names_to = "type",
+                 values_to = "n") %>% 
+    left_join(labels, by = "var") %>% 
+    mutate(type = factor(type, levels = c("Overall rate", "Average change", "Adds", "Drops"))) %>% 
+    #3.27.24 modification = remove 2019 & only present adds/drops
+    filter(year > 2019, type == "Adds" | type == "Drops")
+#prep data overall pct
+hs_overall <- dat %>% 
+    filter(var %in% postsecondary) %>% 
+    filter(school_id %in% hs_repeaters) %>% 
+    group_by(var, year) %>% 
+    summarize(n = sum(usage, na.rm = TRUE)) %>% 
+    ungroup() %>% 
+    left_join(hs_tots, by = "year") %>% 
+    mutate(pct = n/total) %>% 
+    left_join(labels, by = "var") %>% 
+    group_by(var) %>% 
+    mutate(x_coord = max(year),
+           y_coord = pct[which.max(year)])
+```
+
+### Across high schools
+
+```{r}
+cluster_plot_across(hs_across, "year", "pct", labels)
+```
+
+### Within high schools
+
+Overall rate among repeat high schools:
+
+```{r}
+cluster_plot_across(hs_overall, "year", "pct", labels)
+```
+
+```{r}
+cluster_plot_within(hs_within, hs_within$year, hs_within$n, "type", hs_within$label)
+```
+
+## None tags
+
+### Across schools
+
+```{r}
+none_dat <- prep_across(dat, none)
+cluster_plot_across(none_dat, "year", "pct", labels)
+```
+
+### Within schools
+
+Overall rate among repeat schools:
+
+```{r}
+none_dat <- prep_overall(dat, none)
+cluster_plot_across(none_dat, "year", "pct", labels)
+```
+
+```{r}
+none_dat <- prep_within(dat, none)
+cluster_plot_within(none_dat, none_dat$year, none_dat$n, "type", none_dat$label)
+```
+
+
 ## Blended Learning Cluster
+
+Reminder: This cluster is separate from the analysis - this was a starting point.
 
 Tags:
 - blended learning  
@@ -311,13 +493,35 @@ Tags:
 - station rotation  
 
 ### Across schools
+
+```{r}
+# subset tags
+blended_tags <- c("practices_blended_learning", "practices_a_la_carte", "practices_flipped_classroom", "practices_flex", "practices_enriched_virtual", "practices_station_rotation")
+blend_dat <- prep_across(dat, blended_tags)
+cluster_plot_across(blend_dat, "year", "pct", labels)
+```
+
+### Within schools
+
+Overall rate among repeat schools:
+
+```{r}
+blend_dat <- prep_overall(dat, blended_tags)
+cluster_plot_across(blend_dat, "year", "pct", labels)
+```
+
+```{r}
+blend_dat <- prep_within(dat, blended_tags)
+cluster_plot_within(blend_dat, blend_dat$year, blend_dat$n, "type", blend_dat$label)
+```
+
+============= FIRST VERSION GRAPHS ===============
+### Across schools
 Graph #1 looks at selection of tags across our whole sample, i.e., the number reflects the percentage of our total sample of schools that selected each tag. (AKA across schools)
 
 One of the questions we were hoping to investigate with this graph is whether the selection of blended learning tags may be due to changes in our survey design through the introduction of parent/child tags. We do see a sharp decrease in child tags in 2023. However, the selection for the parent tag `blended learning` remains high. All school leaders that selected `blended learning` would have received a follow-up question about the type of blended learning they use with our child tags listed below. This makes me think that schools are still using blended learning, but perhaps did not see their approach to blended learning reflected in our child tags. (So what are they using...?)
 
 ```{r}
-# subset tags
-blended_tags <- c("practices_blended_learning", "practices_a_la_carte", "practices_flipped_classroom", "practices_flex", "practices_enriched_virtual", "practices_station_rotation")
 blended <- dat %>% 
   filter(var %in% blended_tags) %>%
   group_by(var, year) %>% 
@@ -336,7 +540,7 @@ blended <- blended %>%
 palette <- c("#BC2582", "#FFA630","#FFDE42","#99C24D","#218380","#D3B7D7")
 #labels
 labs <- blended %>% 
-  filter(year == 2023) %>% 
+  filter(year == 2024) %>% 
   select(label, x = year, y = pct)
 #plot
 blended %>% 
@@ -624,19 +828,5 @@ tag_bayes <- function(data, id = "school_id", cov, threshold = NULL) {
 
   return(bayes_tidy)
 }
-```
-
-## None tags
-
-```{r}
-#across
-none_dat <- prep_across(dat, none)
-cluster_plot_across(none_dat, "year", "pct", labels)
-```
-
-```{r}
-#within
-none_dat <- prep_within(dat, none)
-cluster_plot_within(none_dat, none_dat$year, none_dat$n, labels)
 ```
 
