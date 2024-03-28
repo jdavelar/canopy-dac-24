@@ -1,0 +1,134 @@
+---
+title: "Catalysts for Innovation"
+author: "Anwesha Guha"
+date: "2024-03-28"
+output: 
+  html_document:
+    toc: true
+    toc_float: true
+    theme: flatly
+    highlight: tango
+    code_folding: hide
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE)
+pacman::p_load(tidyverse, here, rio, DT, ggcorrplot, psych, parameters)
+
+#read in catalyst data
+dat <- import(here("data/longitudinal", "longitudinal_data.csv"))
+
+#read in tag data
+tag_dat <- import(here("data/longitudinal", "tags-long.csv"))
+
+#import tag labels
+labels <- import(here("data/longitudinal", "tag-labels.csv"))
+```
+
+
+```{r}
+load(here("data/2024 data", "complete_canopy_2024.RData"))
+```
+
+## Reflections
+
+For `catalyst_key`, here are some notable relationships/correlations (0.25 and above).
+
+_2021_
+
+* cutting_edge: flexible_facilities
+* inequities: culturally_responsive, hiring_equity, social_justice, anti-racist, design-marginalized
+
+_2024_
+
+* covid: enriched_virtual
+* stakeholders: adult_wellness
+
+For just `catalyst_`, here are some notable relationships/correlations (0.25 and above).
+
+_2021_
+
+* cutting_edge: flexible_facilities
+* inequities: culturally_responsive, social_justice, hiring_equity,  anti-racist, design-marginalized
+
+_2024_
+
+* cutting_edge: interdisciplinary
+* demographics: translanguaging
+* inequities: hiring_equity
+
+## Analysis
+
+### Catalyst Correlations with 2021 data
+
+```{r}
+catalyst_dat_2021 <- dat %>% 
+  filter(year == 2021) %>% 
+  select(school_id, starts_with("catalyst_"))
+
+tag_dat_2021 <- tag_dat %>% 
+  filter(year == 2021) %>% 
+  select(-year)
+
+# Combine catalyst and tag files.
+dat_2021 <- full_join(catalyst_dat_2021, tag_dat_2021)
+
+
+# Calculate correlations for practice by catalyst. 
+results_catalyst_2021 <- dat_2021 %>%
+  select(starts_with("catalyst_"), usage, var, -catalyst_other_text, -starts_with("catalyst_key")) %>%
+  group_by(var) %>%
+  summarise(across(starts_with("catalyst_"), ~round(cor(.x, usage, use="complete.obs"), 2)))
+
+results_catalyst_2021 %>% 
+  datatable()
+```
+
+```{r}
+results_catalyst_key_2021 <- dat_2021 %>%
+  select(starts_with("catalyst_key"), usage, var) %>%
+  group_by(var) %>%
+  summarise(across(starts_with("catalyst_"), ~round(cor(.x, usage, use="complete.obs"), 2)))
+
+results_catalyst_key_2021 %>% 
+  datatable()
+```
+
+
+### Catalyst Correlations with 2024 data
+
+```{r}
+catalyst_dat_2024 <- dat %>% 
+  filter(year == 2024) %>% 
+  select(school_id, starts_with("catalyst_"))
+
+tag_dat_2024 <- tag_dat %>% 
+  filter(year == 2024) %>% 
+  select(-year)
+
+# Combine catalyst and tag files.
+dat_2024 <- full_join(catalyst_dat_2024, tag_dat_2024)
+
+
+# Calculate correlations for practice by catalyst. 
+results_catalyst_2024 <- dat_2024 %>%
+  select(starts_with("catalyst_"), usage, var, -catalyst_other_text, -starts_with("catalyst_key")) %>%
+  group_by(var) %>%
+  summarise(across(starts_with("catalyst_"), ~round(cor(.x, usage, use="complete.obs"), 2)))
+
+results_catalyst_2024 %>% 
+  datatable()
+```
+
+```{r}
+results_catalyst_key_2024 <- dat_2024 %>%
+  select(starts_with("catalyst_key"), usage, var) %>%
+  group_by(var) %>%
+  summarise(across(starts_with("catalyst_"), ~round(cor(.x, usage, use="complete.obs"), 2)))
+
+results_catalyst_key_2024 %>% 
+  datatable()
+```
+
