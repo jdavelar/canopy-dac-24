@@ -110,5 +110,66 @@ most_net_dropped %>%
 
 ### Visualizing Changes
 
+```{r}
+most_added %>% 
+  left_join(labels, by = "var") %>% 
+  ggplot(aes(x = dropped, xend = added, y = reorder(label, added), yend = label)) +
+  geom_segment(color = "black", linetype = "dotted") +
+  geom_point(aes(x = dropped), color = "red") +
+  geom_point(aes(x = added), color = "blue") +
+  guides(col = guide_legend(nrow = 1, title = NULL)) + 
+  bar_x_scale_count +
+  geom_text(
+    aes(x = (added + dropped)/2, label = paste("Δ =", net_adds), color = factor(sign(net_adds))),
+    nudge_y = .3,
+    hjust = 0,
+    show.legend = FALSE
+  ) +
+  scale_color_manual(
+    values = c("red", "blue"),
+    labels = c("Drops", "Adds")
+  ) +
+  labs(
+    y = "",
+    x = "",
+    title = "Top 15 Most-Added Practices"
+  ) +
+  theme(
+    panel.grid.major.y = element_blank(),
+    legend.position = "bottom",
+    axis.text.y = element_text(size = rel(0.6))
+  )
+```
 
+
+```{r}
+most_removed %>% 
+  left_join(labels, by = "var") %>% 
+  ggplot(aes(x = dropped, xend = added, y = reorder(label, dropped), yend = label)) +
+  geom_segment(color = "black", linetype = "dotted") +
+  geom_point(aes(x = dropped), color = "red") +
+  geom_point(aes(x = added), color = "blue") +
+  guides(col = guide_legend(nrow = 1, title = NULL)) + 
+  bar_x_scale_count +
+  geom_text(
+    aes(x = (added + dropped)/2 - 1, label = paste("Δ =", net_adds), color = factor(sign(net_adds))),
+    nudge_y = .3,
+    hjust = 0,
+    show.legend = FALSE
+  ) +
+  scale_color_manual(
+    values = c("red", "blue"),
+    labels = c("Drops", "Adds")
+  ) +
+  labs(
+    y = "",
+    x = "",
+    title = "Top 15 Most-Removed Practices"
+  ) +
+  theme(
+    panel.grid.major.y = element_blank(),
+    legend.position = "bottom",
+    axis.text.y = element_text(size = rel(0.6))
+  )
+```
 
