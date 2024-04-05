@@ -197,12 +197,12 @@ Evolution of catalyst questions (changes to questions from 2021):
 * Other (please specify) __________ -- *same*
 
 ```{r}
-catalyst_dat <- dat %>% 
+catalyst_dat_long <- dat %>% 
   filter(year == 2021 | year == 2024) %>% 
   select(school_id, year, starts_with("catalyst_")) %>% 
   select(-starts_with("catalyst_key"), -starts_with("catalyst_other"))
 
-catalyst_key_dat <- dat %>% 
+catalyst_key_dat_long <- dat %>% 
   filter(year == 2021 | year == 2024) %>% 
   select(school_id, year, starts_with("catalyst_key")) %>% 
   select(-starts_with("catalyst_key_other"))
@@ -213,7 +213,7 @@ catalyst_key_dat <- dat %>%
 
 For just catalyst: 
 ```{r}
-catalyst_dat <- catalyst_dat %>% 
+catalyst_dat <- catalyst_dat_long %>% 
   pivot_longer(cols = -c(school_id, year),
                names_to = "catalyst",
                values_to = "usage",
@@ -245,7 +245,7 @@ catalyst_use %>%
 
 For catalyst_key:
 ```{r}
-catalyst_key_dat <- catalyst_key_dat %>% 
+catalyst_key_dat <- catalyst_key_dat_long %>% 
   pivot_longer(cols = -c(school_id, year),
                names_to = "catalyst_key",
                values_to = "usage",
@@ -274,7 +274,66 @@ catalyst_key_use %>%
 
 
 ### Within Schools
-```{r}
 
+For just catalyst:
+```{r}
+repeat_sch_catalyst <- catalyst_dat_long[duplicated(catalyst_dat_long$school_id) | duplicated(catalyst_dat_long$school_id, fromLast = TRUE),]
+
+repeat_sch_catalyst_long <- repeat_sch_catalyst %>% 
+  pivot_longer(cols = -c(school_id, year),
+               names_to = "catalyst",
+               values_to = "usage",
+               names_pattern = "^catalyst_(.*)$")
+
+repeat_sch_catalyst_long <- repeat_sch_catalyst_long %>% 
+  pivot_wider(names_from = "year",
+              values_from = "usage")
+
+repeat_sch_catalyst_long <- repeat_sch_catalyst_long %>% 
+  mutate(status = case_when(`2021` == 1 & `2024` == 1 ~ "selected both years",
+                            `2021` == 1 & `2024` == 0 ~ "dropped",
+                            `2021` == 0 & `2024` == 1 ~ "added",
+                            `2021` == 0 & `2024` == 0 ~ "never selected"))
 ```
 
+```{r}
+catalyst_status_dat <- repeat_sch_catalyst_long %>% 
+  group_by(catalyst, status) %>% 
+  summarise(n = n()) %>% 
+  pivot_wider(names_from = "status",
+              values_from = "n")
+
+catalyst_status_dat %>%  datatable()
+```
+
+
+For catalyst_key:
+```{r}
+repeat_sch_catalyst_key <- catalyst_key_dat_long[duplicated(catalyst_key_dat_long$school_id) | duplicated(catalyst_key_dat_long$school_id, fromLast = TRUE),]
+
+repeat_sch_catalyst_key_long <- repeat_sch_catalyst_key %>% 
+  pivot_longer(cols = -c(school_id, year),
+               names_to = "catalyst_key",
+               values_to = "usage",
+               names_pattern = "^catalyst_key_(.*)$")
+
+repeat_sch_catalyst_key_long <- repeat_sch_catalyst_key_long %>% 
+  pivot_wider(names_from = "year",
+              values_from = "usage")
+
+repeat_sch_catalyst_key_long <- repeat_sch_catalyst_key_long %>% 
+  mutate(status = case_when(`2021` == 1 & `2024` == 1 ~ "selected both years",
+                            `2021` == 1 & `2024` == 0 ~ "dropped",
+                            `2021` == 0 & `2024` == 1 ~ "added",
+                            `2021` == 0 & `2024` == 0 ~ "never selected"))
+```
+
+```{r}
+catalyst_key_status_dat <- repeat_sch_catalyst_key_long %>% 
+  group_by(catalyst_key, status) %>% 
+  summarise(n = n()) %>% 
+  pivot_wider(names_from = "status",
+              values_from = "n")
+
+catalyst_key_status_dat %>%  datatable()
+```
