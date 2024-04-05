@@ -132,3 +132,36 @@ results_catalyst_key_2024 %>%
   datatable()
 ```
 
+### Catalyst Update -- just 2024 data
+
+```{r}
+catalyst_dat_only_2024 <- variables %>% 
+  select(school_id, starts_with("catalyst_"))
+
+tag_dat_2024 <- tag_dat %>% 
+  filter(year == 2024) %>% 
+  select(-year)
+
+# Combine catalyst and tag files.
+dat_only_2024 <- full_join(catalyst_dat_only_2024, tag_dat_2024)
+
+
+# Calculate correlations for practice by catalyst. 
+results_catalyst_only_2024 <- dat_only_2024 %>%
+  select(starts_with("catalyst_"), usage, var, -catalyst_other_text, -starts_with("catalyst_key")) %>%
+  group_by(var) %>%
+  summarise(across(starts_with("catalyst_"), ~round(cor(.x, usage, use="complete.obs"), 2)))
+
+results_catalyst_only_2024 %>% 
+  datatable()
+```
+
+```{r}
+results_catalyst_key_only_2024 <- dat_only_2024 %>%
+  select(starts_with("catalyst_key"), usage, var) %>%
+  group_by(var) %>%
+  summarise(across(starts_with("catalyst_"), ~round(cor(.x, usage, use="complete.obs"), 2)))
+
+results_catalyst_key_only_2024 %>% 
+  datatable()
+```
