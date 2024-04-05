@@ -59,7 +59,7 @@ _2024_
 * demographics: translanguaging
 * inequities: hiring_equity
 
-## Analysis
+## Correlation Analysis
 
 ### Catalyst Correlations with 2021 data
 
@@ -134,10 +134,18 @@ results_catalyst_key_2024 %>%
 
 ### Catalyst Update -- just 2024 data
 
+Which catalysts are unique to 2024?
 ```{r}
 catalyst_dat_only_2024 <- variables %>% 
   select(school_id, starts_with("catalyst_"))
 
+setdiff(colnames(catalyst_dat_only_2024), colnames(catalyst_dat_2024))
+```
+
+* absence (chronic absenteeism)
+* mental_health (mental health)
+
+```{r}
 tag_dat_2024 <- tag_dat %>% 
   filter(year == 2024) %>% 
   select(-year)
@@ -156,6 +164,7 @@ results_catalyst_only_2024 %>%
   datatable()
 ```
 
+
 ```{r}
 results_catalyst_key_only_2024 <- dat_only_2024 %>%
   select(starts_with("catalyst_key"), usage, var) %>%
@@ -165,3 +174,107 @@ results_catalyst_key_only_2024 <- dat_only_2024 %>%
 results_catalyst_key_only_2024 %>% 
   datatable()
 ```
+
+## Changes over Time
+
+```{r}
+source(here("scripts/branding.R"))
+```
+
+Evolution of catalyst questions (changes to questions from 2021):
+
+* Desire to be on the cutting edge and demonstrate what’s possible -- *same*
+* External catalyst events (e.g., a partnership, a visit to another school, an unexpected source of funding) -- *same*
+* Lack of student agency -- *same*
+* Lack of teacher agency -- *same*
+* Change in demographics in our community -- *"in our community" added*
+* Negative factors inside the school (e.g., toxic culture, low achievement) -- *same*
+* Stakeholder demand or advocacy (e.g., from the community, district leadership, teachers, or state agency) -- *same*
+* Systemic inequities (e.g., racism, poverty) -- *same*
+* Chronic absenteeism -- *ADDED*
+* Learning disruptions due to COVID -- *changed from "School building closures related to COVID-19"*
+* Mental health concerns -- *ADDED*
+* Other (please specify) __________ -- *same*
+
+```{r}
+catalyst_dat <- dat %>% 
+  filter(year == 2021 | year == 2024) %>% 
+  select(school_id, year, starts_with("catalyst_")) %>% 
+  select(-starts_with("catalyst_key"), -starts_with("catalyst_other"))
+
+catalyst_key_dat <- dat %>% 
+  filter(year == 2021 | year == 2024) %>% 
+  select(school_id, year, starts_with("catalyst_key")) %>% 
+  select(-starts_with("catalyst_key_other"))
+```
+
+
+### Across Schools
+
+For just catalyst: 
+```{r}
+catalyst_dat <- catalyst_dat %>% 
+  pivot_longer(cols = -c(school_id, year),
+               names_to = "catalyst",
+               values_to = "usage",
+               names_pattern = "^catalyst_(.*)$")
+
+catalyst_use <- catalyst_dat %>%
+  group_by(catalyst, year) %>%
+  summarize(total_use = sum(usage))
+```
+
+```{r}
+library(ggrepel)
+label_positions <- catalyst_use %>% 
+  group_by(catalyst) %>% 
+  summarize(year = 2021, total_use = first(total_use))
+
+catalyst_use %>% 
+  ggplot(aes(x = year, y = total_use, color = catalyst)) +
+  geom_line() +
+  geom_text_repel(data = label_positions, aes(label = catalyst)) +
+  scale_x_continuous(breaks = c(2021, 2024)) +
+  labs(x = "Year",
+       y = "Number of Times Selected",
+       title = "Catalyst Selection by Year") +
+  theme(legend.position = "none")
+```
+
+*Note:* Demographics and teacher_agency are increasingly selected as a catalyst for innovation, though selection for other catalyst categories on the whole have decreased.
+
+For catalyst_key:
+```{r}
+catalyst_key_dat <- catalyst_key_dat %>% 
+  pivot_longer(cols = -c(school_id, year),
+               names_to = "catalyst_key",
+               values_to = "usage",
+               names_pattern = "^catalyst_key_(.*)$")
+
+catalyst_key_use <- catalyst_key_dat %>%
+  group_by(catalyst_key, year) %>%
+  summarize(total_use = sum(usage))
+```
+
+```{r}
+label_positions <- catalyst_key_use %>% 
+  group_by(catalyst_key) %>% 
+  summarize(year = 2021, total_use = first(total_use))
+
+catalyst_key_use %>% 
+  ggplot(aes(x = year, y = total_use, color = catalyst_key)) +
+  geom_line() +
+  geom_text_repel(data = label_positions, aes(label = catalyst_key)) +
+  scale_x_continuous(breaks = c(2021, 2024)) +
+  labs(x = "Year",
+       y = "Number of Times Selected",
+       title = "Catalyst Key Selection by Year") +
+  theme(legend.position = "none")
+```
+
+
+### Within Schools
+```{r}
+
+```
+
