@@ -35,7 +35,7 @@ clean <- dat %>%
   #NA for all missing values
   mutate(across(where(is.character), ~na_if(.x, ""))) %>% 
   #merge updated leader info
-  full_join(lead, by = "school_id") %>% 
+  left_join(lead, by = "school_id") %>% 
   #remove extraneous descriptors
   mutate(school_desc_other_text = ifelse(grepl("(?i)\\b(n/a|none)\\b", school_desc_other_text), 
                                          NA, 
@@ -149,6 +149,24 @@ clean <- clean %>%
   )) %>% 
   select(-c(nom_24, nom_23, nom_22, nom_21))
 rm(noms_24, noms_23, noms_22, noms_21, lead, long, dat)
+#still some missing - track down
+miss_nom <- clean %>% 
+  filter(is.na(nominator))
+#manual fill
+clean <- clean %>% 
+  mutate(nominator = case_when(
+    school_id == 66 ~ "Anonymous",
+    school_id == 184 ~ "Arkansas Team Digital",
+    school_id == 205 ~ "Big Picture Learning, EdSurge, Anonymous",
+    school_id == 233 ~ "Clayton Christensen Institute",
+    school_id == 361 ~ "Big Picture Learning, Anonymous",
+    school_id == 686 ~ "NewSchools Venture Fund",
+    school_id == 704 ~ "NewSchools Venture Fund",
+    school_id == 775 ~ "Transcend",
+    TRUE ~ as.character(nominator)
+  ))
+sum(is.na(clean$nominator)) #fixed
+rm(miss_nom)
 
 ######################################
 #### CREATE PUBLIC FACING DATASET ####

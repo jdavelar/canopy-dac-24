@@ -204,6 +204,7 @@ org_names <- import(here("data/nominations", "org-name-check.csv")) %>%
 check <- check %>% 
   mutate(test_match = nominator) %>% 
   left_join(org_names, by = c("school_id", "year", "test_match"))
+#some NA values in large merge with main data; need to be updated
 
 #save
 write.csv(portal, "data/nominations/most-recent-nomination-reasons.csv", row.names = FALSE)
