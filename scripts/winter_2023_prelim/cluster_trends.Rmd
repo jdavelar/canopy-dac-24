@@ -15,7 +15,7 @@ editor_options:
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE, warnings = FALSE, message = FALSE)
-pacman::p_load(tidyverse, here, rio, DT, parameters, ggrepel)
+pacman::p_load(tidyverse, here, rio, DT, parameters, ggrepel, plotly)
 #read in data
 dat <- import(here("data/longitudinal", "tags-long.csv"))
 #read in tag labels
@@ -76,8 +76,9 @@ Tags:
 Guiding question: How have the rates of deeper learning tags changed each year since 2019?
 
 ```{r}
-#set up repeating schools
-repeaters <- dat %>% 
+### DATA FUNCTIONS ###
+#set up repeating schools - 2+ years
+repeaters_2 <- dat %>% 
   select(school_id, year) %>% 
   unique() %>% 
   mutate(rate = 1) %>% 
@@ -87,11 +88,31 @@ repeaters <- dat %>%
   mutate(participate = sum(`2019`, `2021`, `2022`, `2023`, `2024`, na.rm = TRUE)) %>% 
   filter(participate > 1) %>% 
   pull(school_id)
+#set up repeating schools - 3+ years
+repeaters_3 <- dat %>% 
+  select(school_id, year) %>% 
+  unique() %>% 
+  mutate(rate = 1) %>% 
+  pivot_wider(names_from = "year",
+              values_from = "rate") %>% 
+  rowwise() %>% 
+  mutate(participate = sum(`2019`, `2021`, `2022`, `2023`, `2024`, na.rm = TRUE)) %>% 
+  filter(participate > 2) %>% 
+  pull(school_id)
 #set up totals 
 tots <- dat %>% 
   group_by(year) %>% 
   summarize(total = n_distinct(school_id)) %>% 
   unique()
+#set up 3+ year tags
+rep_tags <- dat %>% 
+  group_by(var) %>% 
+  summarize(num_years = n_distinct(year)) %>% 
+  ungroup() %>% 
+  filter(num_years >= 3) %>% 
+  select(var) %>% 
+  unique() %>% 
+  pull(var)
 #prep data function across schools
 prep_across <- function(data, cluster){
   dat <- data %>% 
@@ -112,7 +133,7 @@ prep_across <- function(data, cluster){
 prep_within <- function(data, cluster){
   dat <- data %>% 
     filter(var %in% cluster) %>% 
-    filter(school_id %in% repeaters) %>% 
+    filter(school_id %in% repeaters_2) %>% 
     arrange(school_id, year) %>% 
     group_by(school_id) %>%
     mutate(wave = dense_rank(year)) %>% 
@@ -139,10 +160,10 @@ prep_within <- function(data, cluster){
     return(dat)
 }
 #prep data function overall pct
-prep_overall <- function(data, cluster){
+prep_overall <- function(data, cluster, group){
   dat <- data %>% 
     filter(var %in% cluster) %>% 
-    filter(school_id %in% repeaters) %>% 
+    filter(school_id %in% group) %>% 
     group_by(var, year) %>% 
     summarize(n = sum(usage, na.rm = TRUE)) %>% 
     ungroup() %>% 
@@ -155,32 +176,72 @@ prep_overall <- function(data, cluster){
 
     return(dat)
 }
+prep_net <- function(data){
+  data <- data %>% 
+    pivot_wider(names_from = type,
+                values_from = n) %>%
+    group_by(var) %>% 
+    mutate(net = Adds - Drops) %>% 
+    ungroup() %>% 
+    left_join(tots, by = "year") %>% 
+    group_by(year, var, label) %>% 
+    summarize(norm_net = net/total) %>% 
+    ungroup() %>% 
+    group_by(var) %>% 
+    mutate(cum_norm_net = mean(norm_net)) %>% #average net change over time
+    ungroup() %>% 
+    mutate(type = case_when(
+      cum_norm_net == max(cum_norm_net) ~ "Largest net change over time",
+      cum_norm_net == min(cum_norm_net) ~ "Smallest net change over time",
+      TRUE ~ "Average net change"
+    ),
+    type = factor(type, levels = c("Largest net change over time", "Smallest net change over time", "Average net change"))) #specify order for palette
+}
+prep_net_3 <- function(data){
+  data <- data %>% 
+    filter(var %in% rep_tags) %>% 
+    mutate(max_cum = max(cum_norm_net),
+           min_cum = min(cum_norm_net)) %>% 
+  group_by(var) %>% 
+  mutate(type = case_when(
+         max_cum == cum_norm_net ~ "Largest net change over time",
+         min_cum == cum_norm_net ~ "Smallest net change over time",
+         TRUE ~ "Average net change"),
+         type = factor(type, levels = c("Largest net change over time", "Smallest net change over time", "Average net change")))
+}
+```
 
+```{r}
+### PLOT FUNCTIONS ###
 #plot function for across schools
 cluster_plot_across <- function(data, x, y, labels) {
   #palette <- c("#BC2582", "#FFA630", "#FFDE42", "#99C24D", "#218380", "#D3B7D7")
+  data <- data %>% 
+    mutate(wrapped_label = str_wrap(get(labels), 40))
   
-  labels <- data %>% 
-    select(label, x_coord, y_coord) %>% 
+  labels <- data %>%
+    select(label = wrapped_label, x_coord, y_coord) %>%
     unique()
 
   plot <- ggplot(data, aes_string(x = x, y = y, color = "label")) +
     geom_point() +
     geom_line() +
     theme_bw() +
-    scale_x_continuous(limits = c(2019, 2026),
-                       expand = c(0.01, 0),
+    scale_x_continuous(limits = c(2019, 2027),
+                       expand = c(0.01, 0.5),
                        breaks = unique(data$year)) + #expand 0.025, .3
     scale_y_continuous(limits = c(0, 1),
                        expand = c(0, 0),
                        labels = scales::percent_format(accuracy = 1)) +
     theme(legend.position = "none") +
     geom_text_repel(data = labels,
-              aes_string(label = str_wrap("label", 10), x = "x_coord", y = "y_coord")
-              #position = position_jitterdodge(dodge.width = 0.5, jitter.height = 0.025),
-              #hjust = -.05, 
-              #vjust = 0.5
-              )
+                    aes(label = label, x = x_coord, y = y_coord),
+                    nudge_x = 0.5,
+                    direction = "y",
+                    size = 3,
+                    box.padding = 0.3,
+                    point.padding = 2
+                    )
   
   return(plot)
 }
@@ -203,19 +264,46 @@ cluster_plot_across <- function(data, x, y, labels) {
 #   
 #   return(plot)
 # }
-cluster_plot_within <- function(data, x, y, facet, group) {
-  plot <- ggplot(data, aes_string(x = x, y = y)) +
-    geom_line(aes(group = group), color = "gray", alpha = 0.5) + 
-    geom_point(aes(group = group), color = "gray", alpha = 0.5, size = 1) +
-    geom_smooth(se = FALSE, color = "cornflowerblue", aes(group = 1)) + 
+cluster_plot_within <- function(data, facet) { #data, x, y, facet, group
+  plot <- ggplot(data, aes_string(x = "year", y = "n")) + #aes_string(x = x, y = y, text = group)
+    geom_line(aes(group = label), color = "gray", alpha = 0.5) + #group = group
+    geom_point(aes(group = label), color = "gray", alpha = 0.5, size = 1) + #group = group
+    geom_smooth(se = FALSE, method = "lm", color = "cornflowerblue", aes(group = 1)) + 
     #straight line before
     #geom_smooth(method = "lm", se = FALSE, color = "blue", aes(group = 1)) +
     theme_bw() +
-    scale_x_continuous(name = x, expand = expansion(mult = c(.025, .3))) +
+    scale_x_continuous(name = "Year", expand = expansion(mult = c(.025, .3))) +
     theme(panel.grid.major.x = element_blank(), panel.grid.minor.x = element_blank(), legend.position = "none") +
-    facet_wrap(as.formula(paste0("~", facet)), scales = "free_y") +  
-    labs(x = x, y = y)
+    facet_wrap(as.formula(paste0("~", facet))) #+  #, scales = "free_y"
+    #labs(x = x, y = y)
 
+  return(plot)
+}
+net_change_plot <- function(data){
+  palette <- c("#6cac8c", "#ff6f69","#d3d3d3")
+  
+  plot <- ggplot(data, aes(year, norm_net, color = type, group = var, text = label)) +
+    geom_line(alpha = 0.8) +
+    geom_point(alpha = 0.5, size = 1) +
+    scale_color_manual(values = palette) +
+    theme_bw() +
+    theme(panel.grid.major.x = element_blank(), panel.grid.minor.x = element_blank(), legend.position = "none") +
+    scale_x_continuous(expand = expansion(mult = c(0, 0))) +
+    scale_y_continuous(labels = scales::percent_format(accuracy = 1)) +
+    labs(x = "", y = "Normalized net change")
+  
+  interactive <- ggplotly(plot, tooltip = c("year", "norm_net", "label"))
+  
+  return(interactive)
+}
+```
+
+```{r}
+#try plotly
+#across plot
+fancy_across <- function(data){
+  plot <- plot_ly(data, x = ~year, y = ~pct, type = 'scatter', mode = 'lines+markers', text = ~label, hoverinfo = 'text+y') %>% 
+    layout(yaxis = list(tickformat = ".0%"))
   return(plot)
 }
 ```
@@ -225,24 +313,54 @@ cluster_plot_within <- function(data, x, y, facet, group) {
 
 ```{r}
 deep <- prep_across(dat, deeper)
-cluster_plot_across(deep, "year", "pct", labels)
+#cluster_plot_across(deep, "year", "pct", "label")
+fancy_across(deep)
 ```
 
 ### Within schools
 
-Overall rate among repeat schools:
+Overall rate among repeat schools (2+ years):
 
 ```{r}
-deep <- prep_overall(dat, deeper)
-cluster_plot_across(deep, "year", "pct", labels)
+deep <- prep_overall(dat, deeper, repeaters_2)
+#cluster_plot_across(deep, "year", "pct", "label")
+fancy_across(deep)
 ```
+
+Overall rate among repeat schools (3+ years):
+
+```{r}
+deep <- prep_overall(dat, deeper, repeaters_3)
+fancy_across(deep)
+```
+
 
 ```{r}
 deep <- prep_within(dat, deeper)
-cluster_plot_within(deep, deep$year, deep$n, "type", deep$label)
+plot <- cluster_plot_within(deep, "type") #deep, deep$year, deep$n, "type", deep$label
+suppressWarnings({ggplotly(plot)})
 ```
 
-## Educational Justice Cluster
+### Net change
+
+In the following graph I used net change (Adds - Drops) to calculate the rate of change for each tag. I then created a cumulative rate for each tag (average across years) to identify the highest and lowest rates of change in the cluster. The highest rate of change is colored in green and the lowest rate of change in red.
+
+Note these plots are interactive--if you're curious about a particular line you can hover over one of it's points to see which tag it corresponds to. 
+
+```{r}
+deep <- prep_net(deep)
+net_change_plot(deep)
+```
+
+### Net change 3+ year tags
+
+```{r}
+deep <- prep_net_3(deep)
+net_change_plot(deep)
+```
+
+
+# Educational Justice Cluster
 
 Tags:  
 - adult wellness/SEL                    
@@ -269,24 +387,46 @@ Tags:
 
 ```{r}
 justice_dat <- prep_across(dat, ed_justice)
-cluster_plot_across(justice_dat, "year", "pct", labels)
+fancy_across(justice_dat)
 ```
 
 ### Within schools
 
-Overall rate among repeat schools:
+Overall rate among repeat schools (2+ years):
 
 ```{r}
-justice_dat <- prep_overall(dat, ed_justice)
-cluster_plot_across(justice_dat, "year", "pct", labels)
+justice_dat <- prep_overall(dat, ed_justice, repeaters_2)
+fancy_across(justice_dat)
+```
+
+Overall rate among repeat schools (3+ years):
+
+```{r}
+justice_dat <- prep_overall(dat, ed_justice, repeaters_3)
+fancy_across(justice_dat)
 ```
 
 ```{r}
 justice_dat <- prep_within(dat, ed_justice)
-cluster_plot_within(justice_dat, justice_dat$year, justice_dat$n, "type", justice_dat$label)
+plot <- cluster_plot_within(justice_dat, "type")
+suppressWarnings({ggplotly(plot)})
 ```
 
-## Individualized Cluster
+### Net change
+
+```{r}
+justice_dat <- prep_net(justice_dat)
+net_change_plot(justice_dat)
+```
+
+### Net change 3+ year tags
+
+```{r}
+justice_dat <- prep_net_3(justice_dat)
+net_change_plot(justice_dat)
+```
+
+# Individualized Cluster
 
 Tags:  
 - accommodations provided to all students  
@@ -303,25 +443,47 @@ Tags:
 
 ```{r}
 ind_dat <- prep_across(dat, individualized)
-cluster_plot_across(ind_dat, "year", "pct", labels)
+fancy_across(ind_dat)
 ```
 
 
 ### Within schools
 
-Overall rate among repeat schools:
+Overall rate among repeat schools (2+ years):
 
 ```{r}
-ind_dat <- prep_overall(dat, individualized)
-cluster_plot_across(ind_dat, "year", "pct", labels)
+ind_dat <- prep_overall(dat, individualized, repeaters_2)
+fancy_across(ind_dat)
+```
+
+Overall rate among repeat schools (3+ years):
+
+```{r}
+ind_dat <- prep_overall(dat, individualized, repeaters_3)
+fancy_across(ind_dat)
 ```
 
 ```{r}
 ind_dat <- prep_within(dat, individualized)
-cluster_plot_within(ind_dat, ind_dat$year, ind_dat$n, "type", ind_dat$label)
+plot <- cluster_plot_within(ind_dat, "type")
+suppressWarnings({ggplotly(plot)})
 ```
 
-## Postsecondary Cluster
+### Net change
+
+```{r}
+ind_dat <- prep_net(ind_dat)
+net_change_plot(ind_dat)
+```
+
+### Net change 3+ year tags
+
+```{r}
+ind_dat <- prep_net_3(ind_dat)
+net_change_plot(ind_dat)
+```
+
+# Postsecondary Cluster
 
 Tags:  
 - à la carte model  
@@ -338,24 +500,46 @@ Tags:
 
 ```{r}
 post_dat <- prep_across(dat, postsecondary)
-cluster_plot_across(post_dat, "year", "pct", labels)
+fancy_across(post_dat)
 ```
 
 ### Within schools
 
-Overall rate among repeat schools:
+Overall rate among repeat schools (2+ years):
 
 ```{r}
-post_dat <- prep_overall(dat, postsecondary)
-cluster_plot_across(post_dat, "year", "pct", labels)
+post_dat <- prep_overall(dat, postsecondary, repeaters_2)
+fancy_across(post_dat)
+```
+
+Overall rate among repeat schools (3+ years):
+
+```{r}
+post_dat <- prep_overall(dat, postsecondary, repeaters_3)
+fancy_across(post_dat)
 ```
 
 ```{r}
 post_dat <- prep_within(dat, postsecondary)
-cluster_plot_within(post_dat, post_dat$year, post_dat$n, "type", post_dat$label)
+plot <- cluster_plot_within(post_dat, "type")
+suppressWarnings({ggplotly(plot)})
 ```
 
-### High Schools only - Across
+### Net change
+
+```{r}
+post_dat <- prep_net(post_dat)
+net_change_plot(post_dat)
+```
+
+### Net change 3+ year tags
+
+```{r}
+post_dat <- prep_net_3(post_dat)
+net_change_plot(post_dat)
+```
+
+### High Schools only
 
 ```{r}
 # set up data prep
@@ -441,46 +625,82 @@ hs_overall <- dat %>%
 ### Across high schools
 
 ```{r}
-cluster_plot_across(hs_across, "year", "pct", labels)
+fancy_across(hs_across)
 ```
 
 ### Within high schools
 
-Overall rate among repeat high schools:
+Overall rate among repeat high schools (2+ years):
 
 ```{r}
-cluster_plot_across(hs_overall, "year", "pct", labels)
+fancy_across(hs_overall)
 ```
 
 ```{r}
-cluster_plot_within(hs_within, hs_within$year, hs_within$n, "type", hs_within$label)
+plot <- cluster_plot_within(hs_within, "type")
+suppressWarnings({ggplotly(plot)})
 ```
 
-## None tags
+### Net change
+
+```{r}
+hs_within <- prep_net(hs_within)
+net_change_plot(hs_within)
+```
+
+### Net change 3+ year tags
+
+```{r}
+hs_within <- prep_net_3(hs_within)
+net_change_plot(hs_within)
+```
+
+# None tags
 
 ### Across schools
 
 ```{r}
 none_dat <- prep_across(dat, none)
-cluster_plot_across(none_dat, "year", "pct", labels)
+fancy_across(none_dat)
 ```
 
 ### Within schools
 
-Overall rate among repeat schools:
+Overall rate among repeat schools (2+ years):
 
 ```{r}
-none_dat <- prep_overall(dat, none)
-cluster_plot_across(none_dat, "year", "pct", labels)
+none_dat <- prep_overall(dat, none, repeaters_2)
+fancy_across(none_dat)
+```
+
+Overall rate among repeat schools (3+ years):
+
+```{r}
+none_dat <- prep_overall(dat, none, repeaters_3)
+fancy_across(none_dat)
 ```
 
 ```{r}
 none_dat <- prep_within(dat, none)
-cluster_plot_within(none_dat, none_dat$year, none_dat$n, "type", none_dat$label)
+plot <- cluster_plot_within(none_dat, "type")
+suppressWarnings({ggplotly(plot)})
 ```
 
+### Net change
 
-## Blended Learning Cluster
+```{r}
+none_dat <- prep_net(none_dat)
+net_change_plot(none_dat)
+```
+
+### Net change 3+ year tags
+
+```{r}
+none_dat <- prep_net_3(none_dat)
+net_change_plot(none_dat)
+```
+
+# Blended Learning Cluster
 
 Reminder: This cluster is separate from the analysis - this was a starting point.
 
@@ -498,24 +718,122 @@ Tags:
 # subset tags
 blended_tags <- c("practices_blended_learning", "practices_a_la_carte", "practices_flipped_classroom", "practices_flex", "practices_enriched_virtual", "practices_station_rotation")
 blend_dat <- prep_across(dat, blended_tags)
-cluster_plot_across(blend_dat, "year", "pct", labels)
+fancy_across(blend_dat)
 ```
 
 ### Within schools
 
-Overall rate among repeat schools:
+Overall rate among repeat schools (2+ years):
 
 ```{r}
-blend_dat <- prep_overall(dat, blended_tags)
-cluster_plot_across(blend_dat, "year", "pct", labels)
+blend_dat <- prep_overall(dat, blended_tags, repeaters_2)
+fancy_across(blend_dat)
+```
+
+Overall rate among repeat schools (3+ years):
+
+```{r}
+blend_dat <- prep_overall(dat, blended_tags, repeaters_3)
+fancy_across(blend_dat)
 ```
 
 ```{r}
 blend_dat <- prep_within(dat, blended_tags)
-cluster_plot_within(blend_dat, blend_dat$year, blend_dat$n, "type", blend_dat$label)
+plot <- cluster_plot_within(blend_dat, "type")
+suppressWarnings({ggplotly(plot)})
 ```
 
-============= FIRST VERSION GRAPHS ===============
+### Net change
+
+```{r}
+blend_dat <- prep_net(blend_dat)
+net_change_plot(blend_dat)
+```
+
+### Net change 3+ year tags
+
+```{r}
+blend_dat <- prep_net_3(blend_dat)
+net_change_plot(blend_dat)
+```
+
+# All Clusters
+
+### Net change
+
+```{r}
+merge_deep <- deep %>% 
+  select(year, var, label, norm_net) %>% 
+  mutate(cluster = "Deeper learning") %>% 
+  group_by(year, cluster) %>% 
+  summarize(cum_norm_net = mean(norm_net)) %>% 
+  ungroup()
+merge_ed_justice <- justice_dat %>% 
+  select(year, var, label, norm_net) %>% 
+  mutate(cluster = "Educational Justice") %>% 
+  group_by(year, cluster) %>% 
+  summarize(cum_norm_net = mean(norm_net)) %>% 
+  ungroup()
+merge_individualized <- ind_dat %>% 
+  select(year, var, label, norm_net) %>% 
+  mutate(cluster = "Individualized learning") %>% 
+  group_by(year, cluster) %>% 
+  summarize(cum_norm_net = mean(norm_net)) %>% 
+  ungroup()
+merge_postsecondary <- post_dat %>% 
+  select(year, var, label, norm_net) %>% 
+  mutate(cluster = "Postsecondary pathways") %>% 
+  group_by(year, cluster) %>% 
+  summarize(cum_norm_net = mean(norm_net)) %>% 
+  ungroup()
+merge_none <- none_dat %>% 
+  select(year, var, label, norm_net) %>% 
+  mutate(cluster = "No cluster") %>% 
+  group_by(year, cluster) %>% 
+  summarize(cum_norm_net = mean(norm_net)) %>% 
+  ungroup()
+merge_blended <- blend_dat %>% 
+  select(year, var, label, norm_net) %>% 
+  mutate(cluster = "Blended learning (alternate)") %>% 
+  group_by(year, cluster) %>% 
+  summarize(cum_norm_net = mean(norm_net)) %>% 
+  ungroup()
+all_clust <- bind_rows(merge_deep, merge_ed_justice, merge_individualized, merge_postsecondary, merge_none, merge_blended) %>% 
+  rename("norm_net" = cum_norm_net) %>% 
+  group_by(cluster) %>% 
+  mutate(cum_norm_net = mean(norm_net)) %>% 
+  ungroup() %>% 
+  mutate(type = case_when(
+         cum_norm_net == max(cum_norm_net) ~ "Largest net change over time",
+         cum_norm_net == min(cum_norm_net) ~ "Smallest net change over time",
+         TRUE ~ "Average net change"
+        ),
+        type = factor(type, levels = c("Largest net change over time", "Smallest net change over time", "Average net change")),
+        label = cluster) %>% 
+  rename("var" = cluster)
+net_change_plot(all_clust)
+rm(merge_blended, merge_deep, merge_individualized, merge_postsecondary, merge_ed_justice, merge_none)
+```
+
+### Net change (excluding alternate blended learning cluster)
+
+```{r}
+all_clust <- all_clust %>% 
+  filter(var != "Blended learning (alternate)") %>% 
+  mutate(max_cum = max(cum_norm_net),
+           min_cum = min(cum_norm_net)) %>% 
+  group_by(var) %>% 
+  mutate(type = case_when(
+         max_cum == cum_norm_net ~ "Largest net change over time",
+         min_cum == cum_norm_net ~ "Smallest net change over time",
+         TRUE ~ "Average net change"),
+         type = factor(type, levels = c("Largest net change over time", "Smallest net change over time", "Average net change")))
+net_change_plot(all_clust)
+```
+
+
+# FIRST VERSION GRAPHS
+
 ### Across schools
 Graph #1 looks at selection of tags across our whole sample, i.e., the number reflects the percentage of our total sample of schools that selected each tag. (AKA across schools)
 

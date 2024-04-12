@@ -147,7 +147,7 @@ overall_2yr <-
 n_dat %>% 
   filter(n_year_tag == 2) %>% 
   # mutate(n = sum(usage), .by = c(year, var)) %>% 
-  filter(n_year_schl > 2) %>% 
+  filter(n_year_schl > 1) %>% 
   select(-n_year_tag, -n_year_schl) %>% 
   # group_by(year, var) %>% 
   # summarize(n = sum(usage, na.rm = TRUE)) %>% 
@@ -226,7 +226,7 @@ overall_3yr <-
 n_dat %>% 
   filter(n_year_tag == 3) %>% 
   # mutate(n = sum(usage), .by = c(year, var)) %>% 
-  filter(n_year_schl > 3) %>% 
+  filter(n_year_schl > 1) %>% 
   select(-n_year_tag, -n_year_schl) %>% 
   # group_by(year, var) %>% 
   # summarize(n = sum(usage, na.rm = TRUE)) %>% 
@@ -304,7 +304,7 @@ overall_4yr <-
 n_dat %>% 
   filter(n_year_tag == 4) %>% 
   # mutate(n = sum(usage), .by = c(year, var)) %>% 
-  filter(n_year_schl == 4) %>% 
+  filter(n_year_schl > 1) %>% 
   select(-n_year_tag, -n_year_schl) %>% 
   # group_by(year, var) %>% 
   # summarize(n = sum(usage, na.rm = TRUE)) %>% 
@@ -382,7 +382,7 @@ overall_5yr <-
 n_dat %>% 
   filter(n_year_tag == 5) %>% 
   # mutate(n = sum(usage), .by = c(year, var)) %>% 
-  filter(n_year_schl == 5) %>% 
+  filter(n_year_schl > 1) %>% 
   select(-n_year_tag, -n_year_schl) %>% 
   # group_by(year, var) %>% 
   # summarize(n = sum(usage, na.rm = TRUE)) %>% 
