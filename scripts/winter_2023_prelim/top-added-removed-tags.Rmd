@@ -1,0 +1,175 @@
+---
+title: "Top Added and Removed Tags"
+author: "Anwesha Guha"
+date: "2024-03-28"
+output: 
+  html_document:
+    toc: true
+    toc_float: true
+    theme: flatly
+    highlight: tango
+    code_folding: hide
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, warnings = FALSE, message = FALSE)
+pacman::p_load(tidyverse, here, rio, DT, ggcorrplot, psych, parameters)
+source(here("scripts/branding.R"))
+#read in data
+dat <- import(here("data/longitudinal", "tags-long.csv"))
+#read in tag labels
+labels <- import(here("data", "tag_labels.csv"))
+# read in school info
+sch <- import(here("data/long_school.csv")) |>
+  summarize(n_years = n_distinct(year), .by = c(school_id, school_name))
+```
+
+## Reflections
+
+**Guiding RQ:** What are the top 15 most-added and most-removed practices? 
+
+## Analysis
+
+```{r}
+# setup from Gregor's code
+tags_2y = dat |>
+  filter(usage == 1) |>
+  filter(n_distinct(year) >= 2, .by = var) |>
+  pull(var)
+
+long_2y = dat |> filter(var %in% tags_2y) # 87 tags total here
+
+changes = long_2y |>
+  arrange(school_id, var, year) |>
+  summarize(
+    added = any(diff(usage) == 1),
+    dropped = any(diff(usage) == -1),
+    waffled = added & dropped,
+    .by = c(var, school_id)
+  ) |>
+  filter(added | dropped)
+
+tag_changes = changes |>
+  summarize(
+    across(c(added, dropped, waffled), sum),
+    .by = var
+  ) |>
+  mutate(net_adds = added - dropped) |>
+  arrange(net_adds, added) |>
+  mutate(var = fct_inorder(var))
+
+tag_changes |> arrange(desc(net_adds), desc(added)) |> datatable()
+```
+
+
+### Top 15 most added practices:
+```{r}
+most_added <- tag_changes %>% 
+  arrange(desc(added)) %>% 
+  head(15)
+
+most_added %>% 
+  datatable(options = list(pageLength = 15))
+```
+
+
+### Top 15 most net-added practices:
+```{r}
+most_net_added <- tag_changes %>% 
+  arrange(desc(net_adds)) %>% 
+  head(15)
+
+most_net_added %>% 
+  datatable(options = list(pageLength = 15))
+```
+
+
+### Top 15 most-removed practices:
+```{r}
+most_removed <- tag_changes %>% 
+  arrange(desc(dropped)) %>% 
+  head(15)
+
+most_removed %>% 
+  datatable(options = list(pageLength = 15))
+```
+
+
+### Top 15 most net-dropped practices:
+```{r}
+most_net_dropped <- tag_changes %>% 
+  arrange(net_adds) %>% 
+  head(15)
+
+most_net_dropped %>% 
+  datatable(options = list(pageLength = 15))
+```
+
+
+### Visualizing Changes
+
+```{r}
+most_added %>% 
+  left_join(labels, by = "var") %>% 
+  ggplot(aes(x = dropped, xend = added, y = reorder(label, added), yend = label)) +
+  geom_segment(color = "black", linetype = "dotted") +
+  geom_point(aes(x = dropped), color = "red") +
+  geom_point(aes(x = added), color = "blue") +
+  guides(col = guide_legend(nrow = 1, title = NULL)) + 
+  bar_x_scale_count +
+  geom_text(
+    aes(x = (added + dropped)/2, label = paste("Δ =", net_adds), color = factor(sign(net_adds))),
+    nudge_y = .3,
+    hjust = 0,
+    show.legend = FALSE
+  ) +
+  scale_color_manual(
+    values = c("red", "blue"),
+    labels = c("Drops", "Adds")
+  ) +
+  labs(
+    y = "",
+    x = "",
+    title = "Top 15 Most-Added Practices"
+  ) +
+  theme(
+    panel.grid.major.y = element_blank(),
+    legend.position = "bottom",
+    axis.text.y = element_text(size = rel(0.6))
+  )
+```
+
+
+```{r}
+most_removed %>% 
+  left_join(labels, by = "var") %>% 
+  ggplot(aes(x = dropped, xend = added, y = reorder(label, dropped), yend = label)) +
+  geom_segment(color = "black", linetype = "dotted") +
+  geom_point(aes(x = dropped), color = "red") +
+  geom_point(aes(x = added), color = "blue") +
+  guides(col = guide_legend(nrow = 1, title = NULL)) + 
+  bar_x_scale_count +
+  geom_text(
+    aes(x = (added + dropped)/2 - 1, label = paste("Δ =", net_adds), color = factor(sign(net_adds))),
+    nudge_y = .3,
+    hjust = 0,
+    show.legend = FALSE
+  ) +
+  scale_color_manual(
+    values = c("red", "blue"),
+    labels = c("Drops", "Adds")
+  ) +
+  labs(
+    y = "",
+    x = "",
+    title = "Top 15 Most-Removed Practices"
+  ) +
+  theme(
+    panel.grid.major.y = element_blank(),
+    legend.position = "bottom",
+    axis.text.y = element_text(size = rel(0.6))
+  )
+```
+

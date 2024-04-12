@@ -1,0 +1,132 @@
+all,label,var_2024,var_2023,var_2022,var_2021,var_2019,notes
+school_locale,,school_locale,exclusive_locale,locale,locale,locale,All ensure urban/suburban/rural/NA
+focus_bipoc,students of color,focus_bipoc,focus_bipoc,focus_bipoc,,,
+focus_economic_disadvantage,economically disadvantaged students,focus_economic_disadvantage,focus_economic_disadvantage,focus_economic_disadvantage,,poverty_supports,
+focus_emergent_bilingual,emergent bilinguals,focus_emergent_bilingual,focus_emergent_bilingual,focus_emergent_bilinguals,,ell_supports,
+focus_foster,students in foster care system,focus_foster,focus_foster,focus_foster,,,"Considered tracking back ""design_equity"" in '21 and ""equity/school_purpose/school_model"" in '19 but don't feel equivalent without confirming which student groups"
+focus_homeless,unhoused students,focus_homeless,focus_homeless,focus_homeless,,,"Considered tracking back ""design_equity"" in '21 and ""equity/school_purpose/school_model"" in '19 but don't feel equivalent without confirming which student groups"
+focus_interrupted,students with interrupted formal education,focus_interrupted,focus_interrupted,,,,
+focus_juvenile_justice,students in juvenile justice system,focus_juvenile_justice,focus_juvenile_justice,focus_juvenile_justice,,,"Considered tracking back ""design_equity"" in '21 and ""equity/school_purpose/school_model"" in '19 but don't feel equivalent without confirming which student groups"
+focus_multilingual,multilingual students,focus_multilingual,focus_multilingual,,,,
+focus_newcomer,newcomers,focus_newcomer,focus_newcomer,focus_newcomer,,immigrants_supports,
+focus_other,other,focus_other,focus_other_student_group,focus_other_student_group,,,
+focus_other_text,,focus_other_text,focus_other_student_group_text,focus_other_student_group_text,,,
+focus_swd,students with disabilities,focus_swd,focus_swd,focus_swd,,,
+grades_elementary,elementary,grades_elementary,grades_elementary,grades_elementary,grades_elementary,grades_elementary,2019 'level' needs to be split into grades_* format for matching and renamed; 2021 needs to be created from scratch
+grades_high,high,grades_high,grades_high,grades_high,grades_high,grades_high,2020 'level' needs to be split into grades_* format for matching and renamed; 2021 needs to be created from scratch
+grades_middle,middle,grades_middle,grades_middle,grades_middle,grades_middle,grades_middle,2021 'level' needs to be split into grades_* format for matching and renamed; 2021 needs to be created from scratch
+grades_pk,,grades_pk,grades_prek,grades_pre_k,pk_grade,pk_grade,self_reported versions have not merged self-report & NCES data in 2022
+inclusive_emergent_bilingual,emergent bilinguals,inclusive_emergent_bilingual,inclusive_emergent_bilingual,,,,
+inclusive_juvenile_justice,students in juvenile justice system,inclusive_juvenile_justice,inclusive_juvenile_justice,,,,
+inclusive_newcomer,newcomers,inclusive_newcomer,inclusive_newcomer,,,,
+inclusive_other,other,inclusive_other,inclusive_other_student_group,,,,
+inclusive_other_text,,inclusive_other_text,inclusive_other_student_group_text,,,,
+inclusive_swd,students with disabilities,inclusive_swd,inclusive_swd,,,,
+leader_gender,,leader_gender,leader1_gender,confidential_leader_gender,,,2024 contact_gender needs to be modified - retain only if contact is the primary leader; in 2023 merge leader1_gender_self_identify_text and leader1_gender_multiple with standard categories
+leader_race,,leader_race,leader1_race,confidential_leader_race,,,2024 contact_race needs to be modified - retain only if contact is the primary leader; in 2023 merge leader1_race_self_identify_text and leader1_race_multiple with standard categories
+leadership_diversity,leadership diversity,leadership_diversity,leadership_diversity,confidential_leadership_team_diversity,,,
+leaps_affirmation,affirmation of self & others,,leaps_affirmation,leaps_affirmation,,,
+leaps_anytime_anywhere,anytime anywhere learning,,leaps_anytime_anywhere,leaps_anytime_anywhere,,,
+leaps_connection,connection & community,,leaps_connection,leaps_connection,,,
+leaps_customization,customization,,leaps_customization,leaps_customization,,,
+leaps_high_expectations,high expectations with unlimited opportunities,,leaps_high_expectations,leaps_high_expectations,,,
+leaps_rank_affirmation,affirmation of self & others,,leaps_rank_affirmation,leaps_rank_affirmation,,,
+leaps_rank_anytime_anywhere,anytime anywhere learning,,leaps_rank_anytime_anywhere,leaps_rank_anytime_anywhere,,,
+leaps_rank_connection,connection & community,,leaps_rank_connection,leaps_rank_connection,,,
+leaps_rank_customization,customization,,leaps_rank_customization,leaps_rank_customization,,,
+leaps_rank_high_expectations,high expectations with unlimited opportunities,,leaps_rank_high_expectations,leaps_rank_high_expectations,,,
+leaps_rank_relevance,relevance,,leaps_rank_relevance,leaps_rank_relevance,,,
+leaps_rank_rigorous_learning,rigorous learning,,leaps_rank_rigorous_learning,leaps_rank_rigorous_learning,,,
+leaps_rank_self_direction,active self-direction,,leaps_rank_self_direction,leaps_rank_self_direction,,,
+leaps_rank_social_consciousness,social consciousness & action,,leaps_rank_social_consciousness,leaps_rank_social_consciousness,,,
+leaps_rank_whole_child,whole-child focus,,leaps_rank_whole_child,leaps_rank_whole_child,,,
+leaps_relevance,relevance,,leaps_relevance,leaps_relevance,,,
+leaps_rigorous_learning,rigorous learning,,leaps_rigorous_learning,leaps_rigorous_learning,,,
+leaps_self_direction,active self-direction,,leaps_self_direction,leaps_self_direction,,,
+leaps_social_consciousness,social consciousness & action,,leaps_social_consciousness,leaps_social_consciousness,,,
+leaps_whole_child,whole-child focus,,leaps_whole_child,leaps_whole_child,,,
+nces_id,,nces_id,nces_id,nces_id,NCES_id,nces_id,
+nominator,,nominator,nominator,nominator,,nominator,
+pct_bipoc,students of color,pct_bipoc,pct_bipoc,pct_bipoc,pct_bipoc,pct_bipoc,"Create pct_bipoc vars for 2022, 2021, and 2019 using race vars"
+contact_email,,contact_email,public_contact_email,public_contact_email,public_contact_email,,
+contact_name,,contact_name,public_contact_name,public_contact,public_contact,,
+contact_role,,contact_role,public_contact_role,public_contact_role,public_contact_role,,
+respondent_email,,respondent_email,respondent_email,confidential_survey_participant_email,,,
+respondent_name,,respondent_name,respondent_name,confidential_survey_participant_name,,,
+respondent_role,,respondent_role,respondent_role,confidential_survey_participante_role,,,
+school_address,,school_address,school_address,school_address,,,
+school_city,,school_city,school_city,school_city,school_city,school_city,
+school_type,,school_type,school_descriptor,type,type,type,"2022 need to combine school_descriptor_district/charter/independent; in 2019 need to combine school_type and charter, if school_type is private then mark it independent, else public (this was as close as I could get to original report rates)"
+school_desc_homeschool,homeschool,school_desc_homeschool,school_descriptor_homeschool,school_descriptor_homeschool,,,
+school_desc_hybrid,hybrid,school_desc_hybrid,school_descriptor_hybrid,hybrid,hybrid,,2022 rename practices_hybrid as hybrid
+school_desc_micro,microschool,school_desc_micro,school_descriptor_microschool,school_descriptor_microschool,,,
+school_desc_other,other,school_desc_other,school_descriptor_other,school_descriptor_other,,,
+school_desc_other_text,,school_desc_other_text,school_descriptor_other_text,school_descriptor_other_text,,,
+school_desc_sws,school-within-school,school_desc_sws,school_descriptor_sws,school_descriptor_sws,school_within_school,school_within_school,
+school_desc_virtual,virtual,school_desc_virtual,school_descriptor_virtual,school_descriptor_virtual,,,
+school_district,,school_district,school_district,school_district,school_district,school_district,
+school_id,,school_id,school_id,school_id,school_id,school_id,
+school_name,,school_name,school_name,school_name,school_name,school_name,
+school_state,,school_state,school_state,school_state,school_state,school_state,
+average_ela,average passing ELA rate,,self_reported_ela,self_reported_ela,ELA_School_Average,,
+pct_ell,english learners,pct_ell,self_reported_ell,ell_percent,LEP_percent,LEP_percent,2019 transform decimal
+pct_frpl,free & reduced-price lunch eligible,pct_frpl,self_reported_frpl,frpl_percent,FRPL_percent,FRPL_percent,2019 change numeric & transform decimal
+grades_10,,grades_10,self_reported_grades_10th,grades_10th,10_grade,10_grade,2019 transform binary
+grades_11,,grades_11,self_reported_grades_11th,grades_11th,11_grade,11_grade,2019 transform binary
+grades_12,,grades_12,self_reported_grades_12th,grades_12th,12_grade,12_grade,2019 transform binary
+grades_1,,grades_1,self_reported_grades_1st,grades_1st,1_grade,1_grade,2019 transform binary
+grades_2,,grades_2,self_reported_grades_2nd,grades_2nd,2_grade,2_grade,2019 transform binary
+grades_3,,grades_3,self_reported_grades_3rd,grades_3rd,3_grade,3_grade,2019 transform binary
+grades_4,,grades_4,self_reported_grades_4th,grades_4th,4_grade,4_grade,2019 transform binary
+grades_5,,grades_5,self_reported_grades_5th,grades_5th,5_grade,5_grade,2019 transform binary
+grades_6,,grades_6,self_reported_grades_6th,grades_6th,6_grade,6_grade,2019 transform binary
+grades_7,,grades_7,self_reported_grades_7th,grades_7th,7_grade,7_grade,2019 transform binary
+grades_8,,grades_8,self_reported_grades_8th,grades_8th,8_grade,8_grade,2019 transform binary
+grades_9,,grades_9,self_reported_grades_9th,grades_9th,9_grade,9_grade,2019 transform binary
+grades_k,,grades_k,self_reported_grades_kindergarten,grades_kindergarten,kg_grade,kg_grade,2019 transform binary
+grades_other,,grades_other,self_reported_grades_other,grades_other,,ae_grade,Missing grades_other equiv in 2021 - backfill from later years where possible after merging
+grades_other_text,,grades_other_text,self_reported_grades_other_text,,,,
+grades_past_12,,grades_past_12,self_reported_grades_past_12th,grades_past_12th,,13_grade,2019 transform binary
+locale_rural,rural,locale_rural,self_reported_locale_rural,locale_rural,locale_rural,locale_rural,2019 & 2021 'locale' needs to be split into rural/suburban/urban/other; maintain for merging with exclusive locale var
+locale_suburban,suburban,locale_suburban,self_reported_locale_suburban,locale_suburban,locale_suburban,locale_suburban,2020 & 2021 'locale' needs to be split into rural/suburban/urban/other; maintain for merging with exclusive locale var
+locale_urban,urban,locale_urban,self_reported_locale_urban,locale_urban,locale_urban,locale_urban,2021 & 2021 'locale' needs to be split into rural/suburban/urban/other; maintain for merging with exclusive locale var
+average_math,averaging passing math rate,,self_reported_math,self_reported_math,Math_School_Average,,
+pct_aian,american indian & alaska native,pct_aian,self_reported_race_aian,aian_percent,native_percent,native_percent,2019 change numeric & transform decimal
+pct_asian,asian,pct_asian,self_reported_race_asian,asian_percent,asian_percent,asian_percent,2019 change numeric & transform decimal
+pct_black,black,pct_black,self_reported_race_black,black_percent,black_percent,black_percent,2019 change numeric & transform decimal
+pct_latinx,latinx,pct_latinx,self_reported_race_hispanic,hispanic_percent,hispanic_percent,hispanic_percent,2019 change numeric & transform decimal
+pct_multiple,multiple races,pct_multiple,self_reported_race_multiple,multiple_percent,multiple_races_percent,multiple_races_percent,2019 change numeric & transform decimal
+pct_nhpi,native hawaiian & pacific islander,pct_nhpi,self_reported_race_nhpi,nhpi_percent,hawaiian_native_percent,hawaiian_native_percent,2019 change numeric & transform decimal
+pct_white,white,pct_white,self_reported_race_white,white_percent,white_percent,white_percent,2019 change numeric & transform decimal
+pct_swd,students with disabilities,pct_swd,self_reported_swd,swd_percent,IDEA_percent,IDEA_percent,2019 change numeric & transform decimal
+school_enrollment,,school_enrollment,self_reported_total_enrollment,enrollment,student_count,CCD_student_count,2022 need to merge self_reported_total_enrollment and nces_total_enrollment (where missing self report); in 2019 there were 2 student count vars but CCD was most complete
+school_description,,student_experience,student_experience,learning_model,,school_purpose,
+teaching_diversity,teaching staff diversity,teaching_diversity,teaching_diversity,confidential_teaching_staff_diversity,,,
+website,,website,website,website,website,website,
+year,,year,year,year,year,year,create year var for all datasets
+leader_tenure,,,,leader_tenure,leader_tenure,,
+suggested_tags,,,,suggested_tags_s,suggested_tags_s,suggested_tags_n,
+school_desc_magnet,,,,,magnet,magnet,
+tag_eval,,,,,tag_evaluation_s,tag_evaluation_s,
+school_desc_title_i,,,,,title_i_schoolwide,title_i_status,
+catalyst_covid,COVID disruptions,catalyst_covid,,,conditions_covid19_closures,,"Not entirely equivalent - in 2024 we asked about disruptions due to covid and in 2021 about school closures, but retaining for covid comparison"
+catalyst_cutting_edge,desire to be on the cutting edge,catalyst_cutting_edge,,,conditions_desire_cutting_edge,,
+catalyst_demographics,change in demographics,catalyst_demographics,,,conditions_change_in_demographics,,
+catalyst_external,external catalyst events,catalyst_external,,,conditions_external_catalyst_events,,
+catalyst_inequities,systemic inequities,catalyst_inequities,,,conditions_systemic_inequities,,
+catalyst_internal,negative factors inside the school,catalyst_internal,,,conditions_negative_factors_inside_school,,
+catalyst_key_covid,COVID disruptions,catalyst_key_covid,,,rank_covid,,"Original vars from 2021 are rank ordered - top 3 should be set to 1 to create equivalent then transformed to catalyst_key1, etc."
+catalyst_key_cutting_edge,desire to be on the cutting edge,catalyst_key_cutting_edge,,,rank_cutting_edge,,"Original vars from 2021 are rank ordered - top 3 should be set to 1 to create equivalent then transformed to catalyst_key1, etc."
+catalyst_key_demographics,change in demographics,catalyst_key_demographics,,,rank_demographics,,"Original vars from 2021 are rank ordered - top 3 should be set to 1 to create equivalent then transformed to catalyst_key1, etc."
+catalyst_key_external,external catalyst events,catalyst_key_external,,,rank_external,,"Original vars from 2021 are rank ordered - top 3 should be set to 1 to create equivalent then transformed to catalyst_key1, etc."
+catalyst_key_inequities,systemic inequities,catalyst_key_inequities,,,rank_inequities,,"Original vars from 2021 are rank ordered - top 3 should be set to 1 to create equivalent then transformed to catalyst_key1, etc."
+catalyst_key_internal,negative factors inside the school,catalyst_key_internal,,,rank_internal,,"Original vars from 2021 are rank ordered - top 3 should be set to 1 to create equivalent then transformed to catalyst_key1, etc."
+catalyst_key_other,other,catalyst_key_other,,,rank_other,,"Original vars from 2021 are rank ordered - top 3 should be set to 1 to create equivalent then transformed to catalyst_key1, etc."
+catalyst_key_stakeholders,stakeholder demand/advocacy,catalyst_key_stakeholders,,,rank_stakeholders,,"Original vars from 2021 are rank ordered - top 3 should be set to 1 to create equivalent then transformed to catalyst_key1, etc."
+catalyst_key_student_agency,lack of student agency,catalyst_key_student_agency,,,rank_student_agency,,"Original vars from 2021 are rank ordered - top 3 should be set to 1 to create equivalent then transformed to catalyst_key1, etc."
+catalyst_key_teacher_agency,lack of teacher agency,catalyst_key_teacher_agency,,,rank_teacher_agency,,"Original vars from 2021 are rank ordered - top 3 should be set to 1 to create equivalent then transformed to catalyst_key1, etc."
+catalyst_other,other,catalyst_other,,,conditions_other_rank,,Create binary equivalent
+catalyst_other_text,,catalyst_other_text,,,conditions_other_text,,
+catalyst_stakeholders,stakeholder demand/advocacy,catalyst_stakeholders,,,conditions_stakeholder_demand,,
+catalyst_student_agency,lack of student agency,catalyst_student_agency,,,conditions_lack_of_student_agency,,
+catalyst_teacher_agency,lack of teacher agency,catalyst_teacher_agency,,,conditions_lack_of_teacher_agency,,

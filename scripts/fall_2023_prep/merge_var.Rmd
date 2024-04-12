@@ -7,7 +7,7 @@ output: html_document
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE, warning = FALSE)
-pacman::p_load(rio, here, dplyr,tidyverse,lubridate, ggplot2,viridis, naniar)
+pacman::p_load(rio, here, dplyr,tidyverse,lubridate, ggplot2,viridis, naniar, DT)
 ```
 
 ```{r}
@@ -38,7 +38,7 @@ Check for school_descriptor in 2019
 var %>% 
   filter(panel_year == 2019) %>% 
   count(school_descriptor_alt2019) %>% 
-  mutate(pct = n / sum(n))
+  mutate(pct = n / sums(n))
 var %>% 
   filter(panel_year == 2019) %>% 
   count(school_descriptor) %>% 
@@ -46,4 +46,372 @@ var %>%
   
 ```
 
+## Janette 12.28.23
+
+```{r}
+#save WIP
+write.csv(var, "data/longitudinal/combined-dat-ip.csv")
+#clear environment
+rm(var_2019, var_2021, var_2022, var_2023)
+#pull in datasets
+var_19 <- import(here("data/datasets_by_year", "Schools 2019 (Public).xlsx - Confirmed Schools.csv"))
+var_21a <- import(here("data/datasets_by_year", "Schools 2021a (Public).xlsx - Fall 2020 School Data.csv"))
+var_21b <- import(here("data/datasets_by_year", "Schools 2021b (Public).xlsx - Winter 2020-21 School Data.csv"))
+load("data/complete_canopy_2022.RData")
+var_22 <- clean_data_full
+rm(clean_data_dictionary, clean_data_full, demographic_data, practices_data, learning_model_data, school_data, survey_data)
+load("data/complete_canopy_2023.RData")
+var_23 <- full
+rm(confidential, dictionary, impact, schools, full, tags)
+#pull in labels
+labels <- import(here("data", "var_labels.csv"))
+```
+
+2019 dataset
+
+```{r}
+var_19 <- var_19 %>% 
+  #ae_grade -> grades_other
+  mutate(grades_other = case_when(
+    ae_grade == "Yes" ~ 1,
+    ae_grade == "No" ~ 0
+  )) %>% 
+  #format pct vars
+  mutate_at(vars(ends_with("percent")), ~gsub("%", "", .)) %>% 
+  mutate_at(vars(ends_with("percent")), ~as.numeric(.)/100) %>% 
+  #recreate level var
+  mutate(grades_elementary = case_when(
+    level == "Elementary" ~ 1,
+    level == "Elementary, Middle, High" ~ 1,
+    TRUE ~ 0
+  ),
+  grades_middle = case_when(
+    level == "Middle" ~ 1,
+    level == "Middle, High" ~ 1,
+    level == "Elementary, Middle, High" ~ 1,
+    TRUE ~ 0
+  ),
+  grades_high = case_when(
+    level == "High" ~ 1,
+    level == "Middle, High" ~ 1,
+    level == "Elementary, Middle, High" ~ 1,
+    TRUE ~ 0
+  ),
+  #fix school within school var
+  school_within_school = ifelse(school_within_school == "Yes", 1, 0)) %>% 
+  #convert grades vars
+  select(-c(ug_grade, ae_grade, low_grade, high_grade)) %>% #drop
+  mutate_at(vars(ends_with("grade")), ~ifelse(. == "Yes", 1, 0)) %>% 
+  #support vars
+  mutate_at(vars(ends_with("supports")), ~replace(., is.na(.), 0)) %>% 
+  #recreate type
+  mutate(type = case_when(
+    charter == "Yes" ~ "Public charter",
+    school_type == "Private" ~ "Independent",
+    TRUE ~ "Public district"
+  ),
+  #add year var
+  year = 2019)
+#rename vars and subset
+labs_19 <- labels %>% filter(!var_19 == "")
+var_19 <- var_19 %>% 
+  select(all_of(labs_19$var_19))
+colnames(var_19) <- dplyr::recode(
+  colnames(var_19), 
+  !!!setNames(as.character(labs_19$var), labs_19$var_19)
+)
+rm(labs_19)
+```
+
+2021 datasets
+
+```{r}
+#pull in labels to select relevant vars
+vars <- import(here("data", "var_labels.csv")) %>% 
+  filter(!var_21 == "") %>% 
+  pull(var_21)
+#limit datasets to relevant vars for joining
+var_21a <- var_21a %>% 
+  select(any_of(vars))
+var_21b <- var_21b %>% 
+  select(any_of(vars)) %>% 
+  mutate_at(vars(ends_with("_Average")), ~as.character(.))
+var_21 <- bind_rows(var_21a, var_21b) %>% 
+  #recode conditions qs as binary
+  mutate_at(vars(starts_with("conditions_"), -conditions_other_text), ~if_else(is.na(.), 0, 1)) %>% 
+  #format pct vars
+  mutate_at(vars(ends_with("percent")), ~gsub("%", "", .)) %>% 
+  mutate_at(vars(ends_with("percent")), ~as.numeric(.)/100) %>% 
+  #fix type
+  mutate(type = na_if(type, "")) %>% 
+  #create level vars using 2023 template
+  mutate(grades_elementary = case_when(`1_grade` == "Yes" |
+                                       `2_grade` == "Yes" |
+                                       `3_grade` == "Yes" |
+                                       `4_grade` == "Yes" |
+                                       `5_grade` == "Yes" ~ 1,
+                                       TRUE ~ 0),
+         #middle = grades 7 AND 8
+         grades_middle = case_when(`7_grade` == "Yes" | 
+                                  (`8_grade` == "Yes" & `9_grade` == "No") |
+                                  (`6_grade` == "Yes" & `5_grade` == "No") ~ 1,
+                                     TRUE ~ 0),
+         #high = ANY grades 10-12
+         grades_high = case_when(`10_grade` == "Yes" |
+                                 `11_grade` == "Yes" |
+                                 `12_grade` == "Yes" ~ 1,
+                                 TRUE ~ 0),
+         #fix school within school var
+         school_within_school = ifelse(school_within_school == "Yes", 1, 0)) %>% 
+  #transform other grades vars
+  mutate_at(vars(ends_with("grade")), ~ifelse(. == "Yes", 1, 0)) %>% 
+  #ELA & Math vars
+  mutate_at(vars(ends_with("Average")), ~gsub("%", "", .)) %>% 
+  mutate_at(vars(ends_with("Average")), ~as.numeric(.)/100) %>% 
+  #hybrid var
+  mutate(hybrid = ifelse(hybrid != "", 1, 0),
+         #add year var
+         year = 2021)
+rm(var_21a, var_21b)
+#rename vars and subset
+labs_21 <- labels %>% filter(!var_21 == "")
+var_21 <- var_21 %>% 
+  select(all_of(labs_21$var_21))
+colnames(var_21) <- dplyr::recode(
+  colnames(var_21), 
+  !!!setNames(as.character(labs_21$var), labs_21$var_21)
+)
+rm(labs_21)
+```
+
+2022 Dataset
+
+```{r}
+var_22 <- var_22 %>% 
+  #create type var
+  mutate(pct_bipoc = 1 - white_percent,
+         type = case_when(
+           school_descriptor_charter == 1 ~ "Public charter",
+           school_descriptor_independent == 1 ~ "Independent",
+           school_descriptor_district == 1 ~ "Public district"
+         ),
+  #ELA & Math vars
+         self_reported_ela = self_reported_ela / 100,
+         self_reported_math = self_reported_math / 100,
+  #create total enrollment var
+         total_enrollment = case_when(
+           !is.na(self_reported_total_enrollment) ~ as.numeric(self_reported_total_enrollment),
+           !is.na(nces_total_enrollment) ~ as.numeric(nces_total_enrollment)
+         ),
+  #leader race
+  confidential_leader_race = case_when(
+    confidential_leader_race == "Biracial" ~ "Multiple",
+    confidential_leader_race == "Hispanic" ~ "Hispanic or Latinx",
+    confidential_leader_race == "AIAN" ~ "American Indian or Alaska Native",
+    confidential_leader_race == "Black" ~ "Black or African American",
+    TRUE ~ as.character(confidential_leader_race)
+  ),
+  #leader gender
+  confidential_leader_gender = ifelse(confidential_leader_gender == "0", NA, as.character(confidential_leader_gender)),
+  #un-factor locale for merging
+  locale = as.character(locale),
+  #add year var
+  year = 2022) %>% 
+  #recode leaps binary
+  mutate_at(vars(starts_with("leaps"), -starts_with("leaps_rank")), ~ifelse(. == "0", 0, 1)) %>% 
+  #fix binary character cols
+  mutate_at(vars(starts_with("grades")), ~case_when(. == "0" ~ 0, . == "1" ~ 1))
+#rename vars and subset
+labs_22 <- labels %>% filter(!var_22 == "")
+var_22 <- var_22 %>% 
+  select(all_of(labs_22$var_22))
+colnames(var_22) <- dplyr::recode(
+  colnames(var_22), 
+  !!!setNames(as.character(labs_22$var), labs_22$var_22)
+)
+rm(labs_22)
+```
+
+2023 dataset
+
+```{r}
+var_23 <- var_23 %>% 
+  #mutually exclusive race for primary leader
+  mutate(leader_race = case_when(
+    leader1_race_self_identify_text == "Several principals" ~ NA,
+    leader1_race == "0" ~ "Prefer not to say",
+    leader1_race == "1" ~ "American Indian or Alaska Native",
+    leader1_race == "2" ~ "Asian",
+    leader1_race == "3" ~ "Black or African American",
+    leader1_race == "4" ~ "Hispanic or Latinx",
+    leader1_race == "5" ~ "Native Hawaiian or Pacific Islander",
+    leader1_race == "6" ~ "White",
+    leader1_race == "7" ~ as.character(leader1_race_self_identify_text),
+    str_detect(leader1_race, ",") ~ "Multiple",
+    TRUE ~ NA
+  ),
+  leader_gender = case_when(
+    leader1_gender_self_identify_text == 1 ~ NA,
+    leader1_gender == "0" ~ "Prefer not to say",
+    leader1_gender == "1" ~ "Man",
+    leader1_gender == "2" ~ "Woman",
+    leader1_gender == "3" ~ "Nonbinary or gender non-conforming",
+    leader1_gender == "4" ~ "Transgender",
+    leader1_gender == "5" ~ as.character(leader1_gender_self_identify_text),
+    str_detect(leader1_gender, ",") ~ "Multiple"
+  ),
+  #school descriptor var
+  school_descriptor = case_when(
+    school_descriptor == 1 ~ "Public district",
+    school_descriptor == 2 ~ "Public charter",
+    school_descriptor == 3 ~ "Independent"
+  ),
+  #ELA & Math
+  self_reported_ela = self_reported_ela / 100,
+  self_reported_math = self_reported_math / 100,
+  #add year var
+  year = 2023) %>% 
+  #leadership & teaching diversity vars
+  mutate_at(vars(ends_with("diversity")), ~case_when(. == 0 ~ "Prefer not to say",
+                                                     . == 1 ~ "0 - 24% people of color",
+                                                     . == 2 ~ "25 - 49% people of color",
+                                                     . == 3 ~ "50 - 74% people of color",
+                                                     . == 4 ~ "75 - 100% people of color",
+                                                     . == 5 ~ "Not sure",
+                                                     TRUE ~ NA)) %>% 
+  #fix percent to decimals
+  mutate_at(vars(starts_with("percent")), ~./100)
+#rename vars and subset
+labs_23 <- labels %>% filter(!var_23 == "")
+var_23 <- var_23 %>% 
+  select(all_of(labs_23$var_23))
+colnames(var_23) <- dplyr::recode(
+  colnames(var_23), 
+  !!!setNames(as.character(labs_23$var), labs_23$var_23)
+)
+rm(labs_23)
+```
+
+# Merge datasets
+
+```{r}
+longitudinal <- bind_rows(var_19, var_21, var_22, var_23)
+gg_miss_var(longitudinal)
+write.csv(var, "data/longitudinal/combined-dat-ip.csv", row.names = FALSE)
+```
+
+To do:
+Backwards fill vars
+Fill in NAs as possible
+
+```{r}
+#create a function that takes a variable or set of variables and applies backwards filling
+#then go by variable to hand remove instances that should be NA
+
+back_fill <- function(data, id_col, district_cols, year_col) {
+  result <- data %>%
+    filter_at(vars({{ district_cols }}), any_vars(!is.na(.))) %>%
+    unique() %>%
+    group_by({{ id_col }}) %>%
+    mutate(new = max({{ year_col }})) %>%
+    ungroup() %>%
+    filter({{ year_col }} == new) %>%
+    select({{ id_col }}, {{ district_cols }})
+
+  return(result)
+}
+#backwards fill time-invariant vars
+#double check that school descriptors and focus vars should be treated this way
+to_fill <- longitudinal %>% 
+  select("school_district", "website", "nces_id", starts_with("school_desc"), starts_with("focus"), starts_with("inclusive")) %>% 
+  colnames()
+
+filled <- back_fill(longitudinal, school_id, to_fill, year)
+
+test <- longitudinal %>%
+  select(school_id) %>% 
+  left_join(filled, by = "school_id") %>%
+  summarize(across(everything(), ~sum(is.na(.), na.rm = TRUE)))
+
+compare <- longitudinal %>% 
+  select(all_of(to_fill)) %>% 
+  summarize(across(everything(), ~sum(is.na(.), na.rm = TRUE))) %>% 
+  bind_rows(test)
+#most school desc, focus, inclusive vars went down (except hub?)
+#district, NCES ID, and website went up - maybe because it catches true 0s?
+```
+
+
+```{r}
+#first begin by creating table of school IDs & years to check when backwards filling
+longitudinal %>% 
+  select(school_id, year) %>% 
+  mutate(rate = 1) %>% 
+  pivot_wider(names_from = "year",
+              values_from = "rate") %>% 
+  datatable()
+#workspace to test missing
+test <- longitudinal %>% 
+  select(school_id, school_district, school_type) %>% 
+  filter(is.na(school_district))
+
+#backwards fill district
+district <- longitudinal %>% 
+  select(school_id, school_district, year) %>% 
+  mutate(school_district = case_when(
+    school_district == "N/A" ~ NA,
+    school_district == "n/a" ~ NA
+    str_detect(school_district, "none|None") ~ NA,  
+    school_district == "" ~ NA,
+    school_district == "(independent school)" ~ NA,
+    school_district == "Private|Private school" ~ NA,
+    school_district == "Unsure" ~ NA,
+    school_district == "tuition-based" ~ NA,
+    TRUE ~ as.character(school_district)
+  )) %>% 
+  filter(!is.na(school_district)) %>% 
+  unique() %>% 
+  group_by(school_id) %>% 
+  mutate(new = max(year)) %>% 
+  ungroup() %>% 
+  filter(year == new) %>% 
+  select(school_id, school_district)
+test <- longitudinal %>% 
+  left_join(district, by = "school_id") %>% 
+  select(-school_district.x) %>% 
+  rename(school_district = school_district.y)
+
+
+test %>% select(school_id, school_district, year) %>% filter(is.na(school_district)) %>% datatable()
+```
+
+How often is the SL the one filling out the survey?
+
+```{r}
+#pull in datasets
+dat_19 <- import(here("data/datasets_by_year", "Schools 2019 (Public).xlsx - Confirmed Schools.csv"))
+dat_21a <- import(here("data/datasets_by_year", "Schools 2021a (Public).xlsx - Fall 2020 School Data.csv"))
+dat_21b <- import(here("data/datasets_by_year", "Schools 2021b (Public).xlsx - Winter 2020-21 School Data.csv"))
+load("data/complete_canopy_2022.RData")
+dat_22 <- clean_data_full
+rm(clean_data_dictionary, clean_data_full, demographic_data, practices_data, learning_model_data, school_data, survey_data)
+load("data/complete_canopy_2023.RData")
+dat_23 <- full
+rm(confidential, dictionary, impact, schools, full, tags)
+
+dat_23 %>% 
+  select(starts_with("public_contact"), starts_with("respondent")) %>% 
+  select(ends_with("name")) %>% 
+  mutate(match = ifelse(public_contact_name == respondent_name, 1, 0),
+         rate = 1) %>% 
+  group_by(match) %>% 
+  summarize(n = sum(rate)) #88% of the time, the SL responded in 2023
+dat_22 %>% 
+  select(starts_with("public_contact"), starts_with("confidential_survey_part")) %>% 
+  select(contact = public_contact, respondent = confidential_survey_participant_name) %>% 
+  mutate(match = ifelse(contact == respondent, 1, 0),
+         rate = 1) %>% 
+  group_by(match) %>% 
+  summarize(n = sum(rate)) #79% of the time, the SL responded in 2023
+```
 

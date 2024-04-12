@@ -1,0 +1,685 @@
+---
+title: "Preliminary Look at Schools over Time"
+author: "Gregor Thomas"
+date: "2023-12-30"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+pacman::p_load(tidyverse, here, rio, DT, ggcorrplot, forcats, ggtext)
+source(here("scripts/branding.R"))
+#read in data
+long = import(here("data/longitudinal", "tags-long.csv"))
+wide = import(here("data/longitudinal", "tags-wide.csv"))
+sch = import(here("data/long_school.csv")) |>
+  summarize(n_years = n_distinct(year), .by = c(school_id, school_name))
+
+old_clusters = import(here("data/clusters_through_2024.csv"))
+#read in tag labels
+#labels <- import(here("data", "tag_labels.csv"))
+```
+
+> The object of inquiry here is the school - how has each school's number of reported practices changed?
+
+We'll begin by including schools that participated in 2, 3, and 4 surveys, and 
+looking at how many practices they selected each year in total. (The blue line
+shows the average, and the points for each school are connected by light gray lines.)
+
+
+```{r, fig.width = 9, fig.height = 4}
+school_summary = long |>
+  filter(usage == 1) |>
+  mutate(
+    n_years = n_distinct(year),
+    .by = school_id
+  ) |>
+  filter(n_years > 1) |>
+  summarize(
+    n_tags = sum(usage),
+    .by = c(year, school_id, n_years)
+  )
+
+overall_summary = school_summary |>
+  summarize(avg_tags = mean(n_tags), .by = c(year, n_years))
+
+ggplot(school_summary, aes(x = year, y = n_tags)) +
+  geom_line(aes(group = school_id), alpha = 0.2) +
+  geom_point(aes(group = school_id), alpha = 0.2, color = "blue") +
+  geom_line(data = overall_summary, aes(y = avg_tags), color = transcend_cols[1]) +
+  facet_wrap(vars(paste(n_years, "years participation"))) +
+  labs(
+    title = "# of practices selected by schools (all practices)"
+  ) +
+  angle_text_x()
+```
+
+The above reflects the number of practices available to select, it is effected
+by what practices schools indicate, but also the number of choices they were given
+each year. Below, we recreate the same graph but limit it to practices that were
+included in all 4 surveys. Comparing the two, we see above decreases in the averages,
+but this is mostly due to culling of tags--below we can see that the averages
+increase over time.
+
+```{r, fig.width = 9, fig.height = 4}
+## get vector of 4-year tags
+tags_4y = long |>
+  filter(usage == 1) |>
+  filter(n_distinct(year) >= 4, .by = var) |>
+  pull(var)
+
+long_4y = long |> filter(var %in% tags_4y)
+
+school_summary_4p = long_4y |>
+  mutate(
+    n_years = n_distinct(year),
+    .by = school_id
+  ) |>
+  filter(n_years > 1) |>
+  summarize(
+    n_tags = sum(usage),
+    .by = c(year, school_id, n_years)
+  )
+
+overall_summary_4p = school_summary_4p |>
+  summarize(avg_tags = mean(n_tags), .by = c(year, n_years))
+
+ggplot(school_summary_4p, aes(x = year, y = n_tags)) +
+  geom_line(aes(group = school_id), alpha = 0.2) +
+  geom_point(aes(group = school_id), alpha = 0.2, color = "blue") +
+  geom_line(data = overall_summary_4p, aes(y = avg_tags), color = transcend_cols[1], linewidth = 1.2) +
+  facet_wrap(vars(paste(n_years, "years participation"))) +
+  labs(
+    title = "# of practices selected by schools (4+-year practices only)"
+  ) +
+  angle_text_x()
+```
+
+The table below shows the blue-line averages of the above graph (with 4+-year practices).
+There we can see that while the average number of selected practices by about 6-7
+practices over the entire 2019-2024 period (focusing mostly on the schools responding 
+in 3 or more years).
+
+
+```{r}
+overall_summary_4p |>
+  arrange(n_years, year) |>
+  datatable(
+    rownames = FALSE,
+    caption = "Average number of practices selected in each survey year, by the number of years the school responded to the survey (blue lines in the graph above). (Restricted to practices present on at least 4 surveys.)",
+    options = list(autoWidth = TRUE, iDisplayLength = 25)
+  ) |>
+  formatRound("avg_tags", digits = 1) |>
+  formatStyle(
+    'n_years', 
+    backgroundColor = styleEqual(levels = c(2, 3, 4, 5), values = transcend_cols[1:4])
+  )
+```
+
+Which schools are adding and dropping practices? The table below shows, for
+each school responding to multiple surveys, how many practices they added,
+dropped, and waffled on (both added and dropped). While the average may be 6 or 7
+practices added overall, plenty of schools have added 20+ practices.
+
+I recommend digging deeper into the waffling, especially the few schools that have 
+a lot of waffling. If a school indicates a practice was dropped and then re-added,
+there are possibilities of data compilation error,  survey response error, or a COVID blip, 
+and we may not want to read too much into any of those.
+
+I'd also be interested in the schools that appear to have made drastic changes--if
+those changes can be corroborated and explained with some interviews or even just
+another survey response, it may be worth targeting them for some outreach.
+
+```{r}
+changes = long_4y |>
+  arrange(school_id, var, year) |>
+  summarize(
+    added = any(diff(usage) == 1),
+    dropped = any(diff(usage) == -1),
+    waffled = added & dropped,
+    modified = added | dropped,
+    .by = c(var, school_id)
+  ) |>
+  filter(added | dropped)
+
+school_changes = changes |>
+  summarize(
+    across(c(added, dropped, waffled, modified), sum),
+    .by = school_id
+  ) |>
+  mutate(net_adds = added - dropped) |>
+  arrange(desc(net_adds), desc(added)) |>
+  left_join(sch, by = "school_id") |>
+  mutate(school_id = fct_inorder(as.character(school_id))) |>
+  select(school_id, school_name, n_years, added, dropped, waffled, modified, net_adds) 
+
+school_changes |>
+  datatable(
+    rownames = FALSE,
+    caption = "Number of 4+-survey-year practices added, dropped, and waffled (both added and dropped) by schools with multiple survey responses.") 
+```
+
+## Focus on the Wafflers
+
+Purdue Polytechnic and Juab HS waffled a lot. Here's the raw data, including all
+practices that they selected in at least 1 year.
+
+```{r}
+wafflers = c(105, 165)
+waffle_detail = long_4y |>
+  filter(school_id %in% wafflers) |>
+  filter(all(0:1 %in% usage), .by = c(var, school_id)) |>
+  mutate(
+    added = any(diff(usage) == 1),
+    dropped = any(diff(usage) == -1),
+    waffled = added & dropped,
+    .by = c(var, school_id)
+  ) |>
+  pivot_wider(names_from = year, values_from = usage) |>
+  left_join(schools, by = "school_id") |>
+  select(school_id, school_name, tag = var, `2019`:`2024`, added, dropped, waffled) |>
+  arrange(school_id, desc(waffled))
+
+waffle_detail |>
+  datatable(rownames = FALSE)
+```
+
+Here's a summary of the patterns, where 1 indicates selected and 0 indicates
+not selected in each survey, respectively. E.g., "1,0,1,1" means the practice was
+selected in 2019, not selected in 2021, and then selected again in 2022 and 2023.
+`n` is the number of practices for which this pattern was observed. We can see
+that Juab HS has 11 tags with the `1,0,1,1` pattern, meaning there are 11 
+practices that Juab indicated in all survey years *except* 2021.
+
+```{r}
+waffle_detail |>
+  mutate(binary_summary = paste(`2019`, `2021`, `2022`, `2023`, `2024`, sep = ",")) |>
+  count(school_name, binary_summary) |>
+  arrange(desc(n)) |>
+  datatable(rownames = FALSE, options = list(autoWidth = TRUE, iDisplayLength = 25))
+```
+
+
+## Practices added and dropped
+
+The next obvious question is which practices are schools adding and dropping?
+Again, we look at the tags present on 4+ surveys and see how many multiply-responding
+schools added or dropped them. The "waffled" column counts schools that both added
+and dropped the practice
+
+```{r}
+tag_changes = changes |>
+  summarize(
+    across(c(added, dropped, waffled, modified), sum),
+    .by = var
+  ) |>
+  mutate(net_adds = added - dropped) |>
+  arrange(modified, net_adds, added) |>
+  mutate(var = fct_inorder(var))
+
+tag_changes |> arrange(desc(net_adds), desc(added)) |> datatable()
+```
+
+The same information from the table above is presented in the graph below. 
+Unsurprisingly, far more practices were added that dropped, with 8 practices
+showing a net decrease (was only 4 until we added 2024!). 
+
+
+I am surprised by how many drops there are - 10 practices are dropped by 20 or more schools,
+and the 3 most dropped practices are dropped by 40+ schools. Those 3 are also
+the highest on the "waffle" count and should be investigated more deeply before
+we jump to conclusions. I can imagine a COVID-effect or an error in combining the
+data.
+
+
+```{r, fig.height = 8, fig.width = 10}
+cluster_colors = unique(old_clusters$cluster) |> setNames(object = c(transcend_cols2[c(1, 2, 4, 5)], "#000000"))
+  
+tag_changes_with_color = left_join(tag_changes, old_clusters, by = "var") |>
+  mutate(
+    color = cluster_colors[cluster],
+    var = fct_inorder(glue("<i style='color:{color}'>{var}</i>"))
+  )
+
+ggplot(tag_changes_with_color, aes(y = var)) +
+  geom_segment(aes(x = dropped, xend = added, yend = var, color = factor(sign(net_adds)))) +
+  geom_point(aes(x = dropped), color = transcend_cols[3]) +
+  geom_point(aes(x = added), color = transcend_cols[2]) +
+  geom_point(aes(x = modified), color = transcend_cols[1]) +
+  geom_text(
+    aes(x = pmax(added, dropped), label = paste("Δ =", net_adds), color = factor(sign(net_adds))),
+    nudge_x = 1,
+    hjust = 0,
+    show.legend = FALSE
+  ) +
+  scale_color_manual(
+    values = transcend_cols[c(3, 1, 4)],
+    labels = c("Drops", "Net 0", "Adds")
+  ) +
+  #scale_y_discrete(labels = trimws) +
+  guides(col = guide_legend(nrow = 1, title = NULL)) + 
+  bar_x_scale_count +
+  labs(
+    y = "",
+    x = "Number of schools adding/dropping",
+    title = "4+-year tags added and dropped"
+  ) +
+  theme(
+    panel.grid.major.y = element_blank(),
+    legend.position = "bottom",
+    axis.text.y = element_markdown(size = rel(0.6))
+  ) 
+```
+
+## Broadening: Practices in 2+ years
+
+Repeating the above analyses, but expanding the scope to include practices 
+on the survey in 2024 and at least 1 other year.
+
+```{r}
+## find tags used in 2023 and at least 1 other year
+tags_2y = long |>
+  filter(usage == 1) |>
+  filter(n_distinct(year) > 2 & 2024 %in% year, .by = var) |>
+  pull(var)
+
+long_2y = long |> filter(var %in% tags_2y)
+
+changes_2y = long_2y |>
+  arrange(school_id, var, year) |>
+  summarize(
+    added = any(diff(usage) == 1),
+    dropped = any(diff(usage) == -1),
+    waffled = added & dropped,
+    modified = added | dropped,
+    .by = c(var, school_id)
+  ) |>
+  filter(added | dropped)
+
+school_changes_2y = changes_2y |>
+  summarize(
+    across(c(added, dropped, waffled, modified), sum),
+    .by = school_id
+  ) |>
+  mutate(net_adds = added - dropped) |>
+  arrange(desc(net_adds), desc(added)) |>
+  left_join(sch, by = "school_id") |>
+  mutate(school_id = fct_inorder(as.character(school_id))) |>
+  select(school_id, school_name, n_years, added, dropped, waffled, modified, net_adds) 
+
+school_changes_2y |>
+  datatable(
+    rownames = FALSE,
+    caption = "Number of practices from 2023 and at least one other year added, dropped, and waffled (both added and dropped) by schools with multiple survey responses.") 
+```
+
+Note that a practice included in only two years couldn't possibly be "waffled",
+so there will be relatively fewer waffles for these 2-year tags, and even 3-year
+tags have less opportunity to waffle.
+
+```{r}
+tag_changes_2y = changes_2y |>
+  summarize(
+    across(c(added, dropped, waffled, modified), sum),
+    .by = var
+  ) |>
+  mutate(net_adds = added - dropped) |>
+  arrange(modified, added) |>
+  mutate(var = fct_inorder(var))
+
+tag_changes_2y |> arrange(desc(net_adds), desc(added)) |> datatable()
+```
+
+```{r, fig.height = 10, fig.width = 10}
+
+tag_changes_2y_with_color = left_join(tag_changes_2y, old_clusters, by = "var") |>
+  mutate(
+    color = cluster_colors[cluster],
+    var = fct_inorder(glue("<i style='color:{color}'>{var}</i>"))
+  )
+
+ggplot(tag_changes_2y_with_color, aes(y = var)) +
+  geom_segment(aes(x = dropped, xend = added, yend = var, color = factor(sign(net_adds)))) +
+  geom_point(aes(x = dropped), color = transcend_cols[3]) +
+  geom_point(aes(x = added), color = transcend_cols[2]) +
+  geom_point(aes(x = modified), color = transcend_cols[1]) +
+  geom_text(
+    aes(x = pmax(added, dropped), label = paste("Δ =", net_adds), color = factor(sign(net_adds))),
+    nudge_x = 1,
+    hjust = 0,
+    show.legend = FALSE
+  ) +
+  scale_color_manual(
+    values = transcend_cols[c(3, 1, 4)],
+    labels = c("Drops", "Net 0", "Adds")
+  ) +
+  #scale_y_discrete(labels = trimws) +
+  guides(col = guide_legend(nrow = 1, title = NULL)) + 
+  bar_x_scale_count +
+  labs(
+    y = "",
+    x = "Number of schools adding/dropping",
+    title = "2+ year tags added and dropped"
+  ) +
+  theme(
+    panel.grid.major.y = element_blank(),
+    legend.position = "bottom",
+    axis.text.y = element_markdown(size = rel(0.6))
+  ) 
+```
+
+The *practices_services_learning* outlier needs some investigation, the table shows 81 adds and 57 drops, including
+30 waffles. 
+
+
+# Little bit of modeling
+
+Here we'll build a model for how volatile/dynamic school's tagging
+practices are.
+
+We'll look **within schools**. For all schools with multiple responses, we'll make 
+a data point out of each consecutive survey response, and for the 
+tags that were used in both of those response years, we will look at
+the **number of practices changed** (number added plus number dropped). We will then model count of practice changes using school
+demography and ecology as predictors.
+
+The time periods are important too, and we know that the pandemic had a 
+large effect on many practices. To try to capture the relevant time
+details without overcomplicating the model, we will classify each time
+transition into one of four cases:
+
+1. `to_covid` for transitions from 2019 to 2020
+2. `from_covid` for transitions from 2020 to a later year
+3. `post_covid` for transitions that start after 2020
+4. `skip_covid` for transitions from 2019 to a post-2020 year
+
+For now, we will not put the number of years in the transition as a numeric
+variable, as that will be mostly dependent on the transition types, though 
+with more years of data we may want to include that (and perhaps keep things
+focused post-pandemic).
+
+```{r tag_volatility_model, message = FALSE, warning = FALSE}
+volatility_data = 
+  wide |>
+  filter(n() > 1, .by = school_id) |>
+  arrange(school_id, year) |>
+  mutate(
+    i_seq = row_number(),
+    transition = case_when(
+      i_seq == 1 ~ NA_character_,
+      lag(year) >= 2022 ~ 'post_covid',
+      year == 2021 ~ 'to_covid',
+      lag(year) == 2021 ~ 'from_covid',
+      year > 2021 & lag(year) == 2019 ~ 'skip_covid',
+      .default = "PROBLEM"
+    ),
+    across(
+      .cols = starts_with("practices"),
+      \(x) c(0, abs(diff(x))) 
+      # ^^^
+      # take absolute difference from prev row
+      # stick 0 on the front for first row
+      # NAs (when tags weren't in use) will stay as NAs
+    ),
+    n_changes = rowSums(across(.cols = starts_with("practices")), na.rm = TRUE),
+    .by = school_id
+  ) |>
+  filter(i_seq > 1) |> 
+  select(!starts_with("practices"))
+
+add_only_volatility = 
+  wide |>
+  filter(n() > 1, .by = school_id) |>
+  arrange(school_id, year) |>
+  mutate(
+    i_seq = row_number(),
+    transition = case_when(
+      i_seq == 1 ~ NA_character_,
+      lag(year) >= 2022 ~ 'post_covid',
+      year == 2021 ~ 'to_covid',
+      lag(year) == 2021 ~ 'from_covid',
+      year > 2021 & lag(year) == 2019 ~ 'skip_covid',
+      .default = "PROBLEM"
+    ),
+    across(
+      .cols = starts_with("practices"),
+      \(x) c(0, pmax(diff(x), 0)) 
+      # ^^^
+      # pmax instead of abs value to count only adds
+      # NAs (when tags weren't in use) will stay as NAs
+    ),
+    n_changes = rowSums(across(.cols = starts_with("practices")), na.rm = TRUE),
+    .by = school_id
+  ) |>
+  filter(i_seq > 1) |> 
+  select(!starts_with("practices"))
+## get demographics
+ xx = read_csv(here("data/longitudinal/combined-dat-ip.csv"))
+xx = xx |>
+  mutate(
+    stu_poc_pct = 1 - self_reported_race_white,
+  ) |>
+  select(
+    school_id,
+    year = panel_year, 
+    total_enroll = self_reported_total_enrollment,
+    stu_poc_pct,
+    locale, 
+    school_descriptor,
+    starts_with("grades")
+  ) |>
+  mutate(
+    enroll_scaled = (total_enroll - mean(total_enroll, na.rm = TRUE)) / 
+      sd(total_enroll, na.rm = TRUE),
+    locale = relevel(factor(locale), ref = "Urban"),
+    school_descriptor = factor(
+      school_descriptor,
+      levels = c(1, 2, 3),
+      labels = c("District", "Charter", "Private")
+    ) 
+  )
+
+mm_vol = left_join(volatility_data, xx, by = c("school_id", "year"))
+mm_add = left_join(add_only_volatility, xx, by = c("school_id", "year"))
+# mm = mm |>
+#   group_by(school_id) |>
+#   fill(everything(), .direction = "downup") |>
+#   ungroup()
+
+mm_vol = mm_vol |>
+  mutate(transition = relevel(factor(transition), ref = "post_covid"))
+mm_add = mm_add |>
+  mutate(transition = relevel(factor(transition), ref = "post_covid"))
+
+
+missing_count =  mm_vol |> 
+  is.na() |> 
+  colSums() |> 
+  sort(decreasing = TRUE) |> 
+  data.frame(n_missing = _)
+
+datatable(missing_count)
+
+vol_mod = lm(
+  n_changes ~ transition + stu_poc_pct + enroll_scaled + locale + school_descriptor +
+     grades_elementary + grades_middle + grades_high,
+  data = mm_vol
+)
+
+vol_coef = broom::tidy(vol_mod) |>
+  arrange(desc(estimate)) |>
+  mutate(term = fct_inorder(term)) 
+
+ggplot(vol_coef, aes(y = term, x = estimate)) +
+  geom_linerange(aes(xmin = estimate - std.error, xmax = estimate + std.error)) +
+  geom_point() +
+  theme(panel.grid.major.y = element_blank()) +
+  labs(
+    x = "Estimated effect on practice changes",
+    y = "",
+    title = "Coefficient estimates for number of tags\nmodified by schools between survey years"
+  )
+
+add_mod = lm(
+  n_changes ~ transition + stu_poc_pct + enroll_scaled + locale + school_descriptor +
+     grades_elementary + grades_middle + grades_high,
+  data = mm_add
+)
+
+add_coef = broom::tidy(add_mod) |>
+  arrange(desc(estimate)) |>
+  mutate(term = fct_inorder(term)) 
+
+ggplot(add_coef, aes(y = term, x = estimate)) +
+  geom_linerange(aes(xmin = estimate - std.error, xmax = estimate + std.error)) +
+  geom_point() +
+  theme(panel.grid.major.y = element_blank()) +
+  labs(
+    x = "Estimated effect on practice changes",
+    y = "",
+    title = "Coefficient estimates for number of tags\nADDED by schools between survey years"
+  )
+
+
+```
+
+
+
+Doesn't really seems like there's a lot *interesting* here. When we switch from "modified" to "added", the `transition_to_covid`
+variable impact shoots up (relatively), so schools added a bunch of practices in COVID. 
+
+Our two outliers from above, Juab and Purdue Polytechnic, could be the reason Rural looks significant. 
+Below, we re-run the models above omitting Juab and Purdue, but the Rural effect is still strong.
+
+```{r}
+waffle_outlier_ids = c(105, 165) ## Purdue Polytechnic High School and Juab High School 
+
+vol_mod_exc = lm(
+  n_changes ~ transition + stu_poc_pct + enroll_scaled + locale + school_descriptor +
+     grades_elementary + grades_middle + grades_high,
+  data = filter(mm_vol, !school_id %in% waffle_outlier_ids)
+)
+
+vol_coef_exc = broom::tidy(vol_mod_exc) |>
+  arrange(desc(estimate)) |>
+  mutate(term = fct_inorder(term)) 
+
+ggplot(vol_coef_exc, aes(y = term, x = estimate)) +
+  geom_linerange(aes(xmin = estimate - std.error, xmax = estimate + std.error)) +
+  geom_point() +
+  theme(panel.grid.major.y = element_blank()) +
+  labs(
+    x = "Estimated effect on practice changes",
+    y = "",
+    title = "Coefficient estimates for number of tags\nmodified by schools between survey years",
+    subtitle = "Juab and Purdue omitted"
+  )
+
+
+add_mod_exc = lm(
+  n_changes ~ transition + stu_poc_pct + enroll_scaled + locale + school_descriptor +
+     grades_elementary + grades_middle + grades_high,
+  data = filter(mm_add, !school_id %in% waffle_outlier_ids)
+)
+
+add_coef_exc = broom::tidy(add_mod_exc) |>
+  arrange(desc(estimate)) |>
+  mutate(term = fct_inorder(term)) 
+
+ggplot(add_coef_exc, aes(y = term, x = estimate)) +
+  geom_linerange(aes(xmin = estimate - std.error, xmax = estimate + std.error)) +
+  geom_point() +
+  theme(panel.grid.major.y = element_blank()) +
+  labs(
+    x = "Estimated effect on practice changes",
+    y = "",
+    title = "Coefficient estimates for number of tags\nADDED by schools between survey years",
+    subtitle = "Juab and Purdue omitted"
+  )
+
+```
+
+
+Next we'll try looking only post-COVID:
+
+```{r}
+fit_and_plot = function(data) {
+  mod = lm(
+  n_changes ~ stu_poc_pct + enroll_scaled + locale + school_descriptor +
+     grades_elementary + grades_middle + grades_high,
+  data = data
+  )
+
+  coef = broom::tidy(mod) |>
+    arrange(desc(estimate)) |>
+    mutate(term = fct_inorder(term)) 
+
+  plot = ggplot(coef, aes(y = term, x = estimate)) +
+    geom_linerange(aes(xmin = estimate - std.error, xmax = estimate + std.error)) +
+    geom_point() +
+    theme(panel.grid.major.y = element_blank()) +
+    labs(
+      x = "Estimated effect on practice changes",
+      y = "",
+      title = "Coefficient estimates for number of tags\nmodified by schools between survey years"
+    )
+  list(model = mod, coef = coef, coef_plot = plot)
+}
+
+vol_post_covid = mm_vol |>
+  filter(transition == "post_covid") |>
+  fit_and_plot()
+
+add_post_covid = mm_add |>
+  filter(transition == "post_covid") |>
+  fit_and_plot()
+
+vol_post_covid[["coef_plot"]] + labs(title = "Post-COVID Volatility")
+add_post_covid[["coef_plot"]] + labs(title = "Post-COVID Additions")
+```
+
+There's not a lot going on here, I think it's time to call it on the volatility modeling.
+
+```{r n_tags_model, include = FALSE, eval=FALSE}
+## old code to model Number of tags each schools chose by year
+## model didn't converge, and probably isn't that useful...
+## get tags by year for the offset
+n_tags_by_year = long |>
+  summarize(n_sch = sum(usage), .by = c(var, year)) |>
+  filter(n_sch > 0) |>
+  summarize(n_tags_available = n(), .by = year)
+
+## response and school ID
+sch_total_tags = long |>
+  summarize(n_tags = sum(usage), .by = c(school_id, year))
+
+## get demographics
+xx = read_csv(here("data/longitudinal/combined-dat-ip.csv"))
+xx = xx |>
+  mutate(
+    stu_poc_pct = 1 - self_reported_race_white,
+  ) |>
+  select(
+    school_id,
+    year = panel_year, 
+    total_enroll = self_reported_total_enrollment,
+    stu_poc_pct,
+    locale, 
+    starts_with("grades")
+  )
+
+mod_dat = sch_total_tags |> left_join(xx, by = c("school_id", "year")) |>
+  left_join(n_tags_by_year) |>
+  mutate(year = factor(year)) |>
+  mutate(total_enroll_std = scale(total_enroll))
+  
+
+mod = glmer(
+  n_tags ~ year + total_enroll_std + stu_poc_pct + locale + 
+    grades_elementary + grades_middle + grades_high + offset(log(n_tags_available)) + (1|school_id),
+  data = mod_dat,
+  family = poisson,
+  )
+```
+
+
