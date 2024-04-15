@@ -1,0 +1,191 @@
+---
+title: "core-practices-over-time"
+author: "Anwesha Guha"
+date: "2024-04-14"
+output: 
+  html_document:
+    toc: true
+    toc_float: true
+    theme: flatly
+    highlight: tango
+    code_folding: hide
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE)
+pacman::p_load(tidyverse, here, rio, DT, ggcorrplot, forcats, ggtext)
+source(here("scripts/branding.R"))
+load(here("data/2024 data/complete_canopy_2024.RData"))
+old_clusters <- import(here("data/clusters_through_2024.csv"))
+
+long_dat <- import(here("data/longitudinal/longitudinal_data.csv"))
+```
+
+## Core Practices
+
+### How frequently are core practices selected in 2024?
+
+```{r}
+core_prac <- tags %>% 
+  select(starts_with("core_")) %>% 
+  summarise(across(where(is.numeric), ~ sum(.x, na.rm = TRUE))) %>% 
+  pivot_longer(everything(),
+               names_to = "core_practice (N = 73)",
+               values_to = "times_selected") %>% 
+  arrange(-times_selected)
+
+# could create into pct, but should specify denom: ex., mutate(Pct = paste0(round(N/251*100, 2), "%"))
+
+datatable(core_prac)
+```
+
+### How long have schools been implementing each core practice?
+
+```{r core time, fig.height=7, fig.width=10}
+implementation_time <- tags %>% 
+  select(starts_with("time_")) %>% 
+  pivot_longer(everything(),
+               names_to = "practice",
+               values_to = "N") %>% 
+  mutate(`Not sure` = case_when(N == "Not sure" ~ 1, 
+                                TRUE ~ 0),
+         `Less than a year` = case_when(N == "Less than a year" ~ 1, 
+                                 TRUE ~ 0),
+         `1-2 years` = case_when(N == "1-2 years" ~ 1, 
+                                 TRUE ~ 0),
+         `3-4 years` = case_when(N == "3-4 years" ~ 1, 
+                                 TRUE ~ 0),
+         `5+ years` = case_when(N == "5+ years" ~ 1, 
+                                TRUE ~ 0),
+         practice = sub("time_", "", practice)) %>%
+  select(!N) %>% 
+  group_by(practice) %>% 
+  summarise(across(where(is.numeric), ~ sum(.x, na.rm = TRUE)))
+
+
+datatable(implementation_time)
+```
+
+```{r}
+# Plot dat setup
+implementation_time_plot <- implementation_time %>% 
+  pivot_longer(cols = c(`Less than a year`, `1-2 years`, `3-4 years`, `5+ years`),
+               names_to = "time",
+               values_to = "N") %>% 
+  mutate(time = factor(time, levels = c(
+    "Less than a year",
+    "1-2 years",
+    "3-4 years",
+    "5+ years"
+  )))
+
+# Practice axes setup
+cluster_colors <- unique(old_clusters$cluster) %>%
+  setNames(object = c(transcend_cols2[c(1, 2, 4, 5)], "#000000"))
+
+old_clusters <- old_clusters %>% 
+  mutate(practice = sub("practices_", "", var)) %>% 
+  select(-var)
+  
+implementation_with_color <- left_join(implementation_time_plot, old_clusters, by = "practice") %>% 
+  mutate(
+    color = cluster_colors[cluster],
+    practice = fct_inorder(glue("<i style='color:{color}'>{practice}</i>"))
+  )
+
+# Plot (referenced Gregor's code)
+ggplot(implementation_with_color, aes(reorder(practice, N), N, fill = time)) +
+  geom_col() +
+  scale_fill_manual(values = transcend_cols) +
+  scale_y_continuous(limits=c(0, 85), expand = c(0,0)) +
+  labs(title = "Core Practices by Time Implemented",
+       x = "",
+       y = "") +
+  scale_x_discrete(labels = label_tags()) +
+  theme(legend.position = "bottom", 
+        legend.direction = "horizontal",
+        text = element_text(size = 7),
+        axis.text.x = element_text(angle = 45, hjust = 1)) + 
+  coord_flip() +
+  theme(
+    panel.grid.major.y = element_blank(),
+    legend.position = "bottom",
+    axis.text.y = element_markdown()
+  ) 
+```
+
+### Which core practices have "legacy" or "established" schools chosen?
+
+```{r}
+repeaters_4 <- long_dat %>% 
+  select(school_id, year) %>% 
+  unique() %>% 
+  mutate(rate = 1) %>% 
+  pivot_wider(names_from = "year",
+              values_from = "rate") %>% 
+  rowwise() %>% 
+  mutate(participate = sum(`2019`, `2021`, `2022`, `2023`, `2024`, na.rm = TRUE)) %>% 
+  filter(participate > 3) %>% 
+  pull(school_id)
+```
+
+```{r}
+implementation_time_repeaters <- tags %>% 
+  filter(school_id %in% repeaters_4) %>% 
+  select(starts_with("time_")) %>% 
+  pivot_longer(everything(),
+               names_to = "practice",
+               values_to = "N") %>% 
+  mutate(`Not sure` = case_when(N == "Not sure" ~ 1, 
+                                TRUE ~ 0),
+         `Less than a year` = case_when(N == "Less than a year" ~ 1, 
+                                 TRUE ~ 0),
+         `1-2 years` = case_when(N == "1-2 years" ~ 1, 
+                                 TRUE ~ 0),
+         `3-4 years` = case_when(N == "3-4 years" ~ 1, 
+                                 TRUE ~ 0),
+         `5+ years` = case_when(N == "5+ years" ~ 1, 
+                                TRUE ~ 0),
+         practice = sub("time_", "", practice)) %>%
+  select(!N) %>% 
+  group_by(practice) %>% 
+  summarise(across(where(is.numeric), ~ sum(.x, na.rm = TRUE))) %>% 
+  pivot_longer(cols = c(`Less than a year`, `1-2 years`, `3-4 years`, `5+ years`),
+               names_to = "time",
+               values_to = "N") %>% 
+  mutate(time = factor(time, levels = c(
+    "Less than a year",
+    "1-2 years",
+    "3-4 years",
+    "5+ years"
+  )))
+
+implementation_repeaters_with_color <- left_join(implementation_time_repeaters, old_clusters, by = "practice") %>% 
+  mutate(
+    color = cluster_colors[cluster],
+    practice = fct_inorder(glue("<i style='color:{color}'>{practice}</i>"))
+  )
+
+# Plot (referenced Gregor's code)
+ggplot(implementation_repeaters_with_color, aes(reorder(practice, N), N, fill = time)) +
+  geom_col() +
+  scale_fill_manual(values = transcend_cols) +
+  scale_y_continuous(limits=c(0, 85), expand = c(0,0)) +
+  labs(title = "Core Practices for Schools with 4+ years data by Time Implemented",
+       x = "",
+       y = "") +
+  scale_x_discrete(labels = label_tags()) +
+  theme(legend.position = "bottom", 
+        legend.direction = "horizontal",
+        text = element_text(size = 7),
+        axis.text.x = element_text(angle = 45, hjust = 1)) + 
+  coord_flip() +
+  theme(
+    panel.grid.major.y = element_blank(),
+    legend.position = "bottom",
+    axis.text.y = element_markdown()
+  ) 
+```
+
