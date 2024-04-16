@@ -14,24 +14,143 @@ editor_options:
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE)
 pacman::p_load(tidyverse, here, rio, DT, ggcorrplot, psych, parameters)
 
-#read in catalyst data
-dat <- import(here("data/longitudinal", "longitudinal_data.csv"))
+#read in data
+long_dat <- import(here("data/longitudinal", "longitudinal_data.csv"))
 
 #load branding
 source(here("scripts/branding.R"))
 ```
 
-## How have grade level offerings changed?
+## How have grade level offerings changed within schools?
 
-Within individual schools
+```{r}
+dat <- long_dat %>% 
+  select(school_id, year, starts_with("grades")) %>% 
+  select(-c(3:6, 21:22)) #not select elem, mid, high, & other columns
+  
+grades_long <- dat %>%
+  pivot_longer(
+    cols = starts_with("grades_"),
+    names_to = "grade_level",
+    values_to = "offered"
+  ) 
 
+grades_wide <- grades_long %>% 
+  pivot_wider(names_from = "year",
+              values_from = "offered") %>% 
+  mutate(yes_report_count = rowSums(select(., `2019`:`2024`), na.rm = TRUE),
+         years_reported = rowSums(!is.na(select(., `2019`:`2024`))))
 
-## How has the total number of enrolled students changed?
+grades_change <- grades_wide %>% 
+  mutate(change_status = case_when(years_reported == 0 ~ "No Data",
+                                   yes_report_count == 0 & years_reported > 0 ~ "Never Offered",
+                                   yes_report_count == years_reported ~ "Always Offered"))
 
-Within individual schools
+library(purrr)
+
+changes_reported <- grades_wide %>%
+  rowwise() %>%
+  mutate(change_status = {
+    # Extract relevant columns and remove NAs
+    values <- na.omit(c_across(3:7))
+    
+    # Check the patterns of change
+    if (length(values) > 1) { # Ensure there is more than one value to compare changes
+      added <- any(diff(values == 1) == 1)   # Checks for a change from 0 to 1
+      dropped <- any(diff(values == 1) == -1) # Checks for a change from 1 to 0
+      
+      if (added && dropped) {
+        "Waffled"
+      } else if (added) {
+        "Added"
+      } else if (dropped) {
+        "Dropped"
+      } else {
+        "Stable" # No change in status
+      }
+    } else {
+      "One or fewer data points" # Not enough data to determine a change
+    }
+  }) %>%
+  ungroup()
+
+changes_reported_by_grade <- changes_reported %>% 
+  group_by(grade_level, change_status) %>% 
+  summarise(count = n()) %>% 
+  mutate(grade_level = sub("grades_", "", grade_level))
+```
+
+```{r}
+changes_reported_by_grade$grade_level <- factor(changes_reported_by_grade$grade_level, levels = c("k", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "past_12"))
+
+changes_reported_by_grade %>% 
+  ggplot() +
+  geom_col(aes(x = grade_level, y = count, fill = change_status), position = "dodge") +
+  coord_flip() +
+  labs(x = "Grade Level",
+       y = "Count",
+       legend = "Change Status",
+       title = "Change Status Within Schools by Grade Level") +
+  scale_fill_manual(values = transcend_cols2)
+```
+
+## How has the total number of enrolled students changed within schools?
+
+```{r}
+dat <- long_dat %>% 
+  select(school_id, year, school_enrollment) %>% 
+  na.omit()
+
+enrollment_wide <- dat %>%
+  pivot_wider(
+    names_from = "year",
+    values_from = "school_enrollment"
+  ) 
+
+enrollment_dat <- dat %>% 
+  group_by(school_id) %>% 
+  filter(n() >1) %>% 
+  ungroup()
+
+enrollment_dat %>%
+  ggplot(aes(x = year, y = school_enrollment, group = school_id)) + 
+  geom_point(color = transcend_cols[1], alpha = 0.6) +
+  geom_line(color = transcend_cols[1], alpha = 0.4) +  
+  labs(title = "School Enrollment by Wave",
+       x = "Wave Number",
+       y = "School Enrollment") 
+```
+
+Note: 239 schools have at least two years of enrollment data. Let's look at schools with more years of data
+
+```{r}
+enrollment_dat %>%
+  group_by(school_id) %>% 
+  filter(n()>2) %>% 
+  ungroup() %>% 
+  ggplot(aes(x = year, y = school_enrollment, group = school_id)) + 
+  geom_point(color = transcend_cols[1], alpha = 0.6) +
+  geom_line(color = transcend_cols[1], alpha = 0.4) +  
+  labs(title = "School Enrollment by Wave with 3+ years of data",
+       x = "Wave Number",
+       y = "School Enrollment") 
+```
+
+```{r}
+enrollment_dat %>%
+  group_by(school_id) %>% 
+  filter(n()>4) %>% 
+  ungroup() %>% 
+  ggplot(aes(x = year, y = school_enrollment, group = school_id)) + 
+  geom_point(color = transcend_cols[1], alpha = 0.6) +
+  geom_line(color = transcend_cols[1], alpha = 0.4) +  
+  labs(title = "School Enrollment by Wave with 5 years of data",
+       x = "Wave Number",
+       y = "School Enrollment") 
+```
 
 ## How have student demographics changed?
 
