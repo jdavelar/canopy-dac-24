@@ -24,7 +24,15 @@ long_dat <- import(here("data/longitudinal", "longitudinal_data.csv"))
 source(here("scripts/branding.R"))
 ```
 
+## Notes for April 19 DAC Meeting
+
+For these analyses, I begun exploring grade level offerings and school enrollment trends over time. I hypothesized that trends will stay relatively stable, and overall, that is what we see in these data. However, in future analysis, we may decide to pull out some of these outlying schools to examine if there are any unusual trends that we see for them in terms of practices selected, catalysts, etc. For modeling purposes, we can also identify if/any outliers are particularly influential.
+
+Demographic analysis to follow, but happy to take suggestions and guidance.
+
 ## How have grade level offerings changed within schools?
+
+I first selected grade level offerings by school by year to conduct a within-schools analysis. Most schools only completed this portion of the survey one or fewer times (grade level count for these is 4,256). These left much fewer schools/grades to examine trends.
 
 ```{r}
 dat <- long_dat %>% 
@@ -83,6 +91,14 @@ changes_reported_by_grade <- changes_reported %>%
   mutate(grade_level = sub("grades_", "", grade_level))
 ```
 
+Specifically, these are the values:
+```{r}
+table(changes_reported$change_status)
+```
+
+
+Below, these values are also visualized.
+
 ```{r}
 changes_reported_by_grade$grade_level <- factor(changes_reported_by_grade$grade_level, levels = c("k", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "past_12"))
 
@@ -98,6 +114,8 @@ changes_reported_by_grade %>%
 ```
 
 ## How has the total number of enrolled students changed within schools?
+
+Similarly, school enrollment within schools have seemed to remain mostly stagnant. The total schools in the survey, followed by schools with 3+ and 5 years of data, are visualized below.
 
 ```{r}
 dat <- long_dat %>% 
@@ -151,6 +169,8 @@ enrollment_dat %>%
        x = "Wave Number",
        y = "School Enrollment") 
 ```
+
+Notably, school_id 234 has reported jumping up to 10,000 students in 2023 from only 298 the year before. This is the Virtual Learning School in Exeter, NH.
 
 ## How have student demographics changed?
 
