@@ -23,9 +23,17 @@ old_clusters <- import(here("data/clusters_through_2024.csv"))
 long_dat <- import(here("data/longitudinal/longitudinal_data.csv"))
 ```
 
+## Notes for April 19 DAC Meeting
+
+For this analysis, I used the 2024 core practices data and the `time_` variable to piece together answers to the following questions below. I didn't see `core_` practices in the longitudinal data, but I would be curious to see how the `time_` variable, if self-reported, aligns (or not) to the actual reported use each year.
+
+Hopefully the tables and graphs below are self-explanatory, but any decision points are still noted below.
+
 ## Core Practices
 
 ### How frequently are core practices selected in 2024?
+
+This is a simple count of times each core practice is selected this year. The top two byfar are **pbl** (n = 65) and **competency_education** (n = 58). These are selected at least 22 times more frequently than any other core practice on the list.
 
 ```{r}
 core_prac <- tags %>% 
@@ -42,6 +50,8 @@ datatable(core_prac)
 ```
 
 ### How long have schools been implementing each core practice?
+
+It looks like **pbl** and **competency_education** as the most popular core practices are being implemented 5+ years. For the 3-4 year mark, **mtss_academics** also makes an appearance.
 
 ```{r core time, fig.height=7, fig.width=10}
 implementation_time <- tags %>% 
@@ -68,7 +78,7 @@ implementation_time <- tags %>%
 datatable(implementation_time)
 ```
 
-```{r}
+```{r fig.width=6, fig.height=16}
 # Plot dat setup
 implementation_time_plot <- implementation_time %>% 
   pivot_longer(cols = c(`Less than a year`, `1-2 years`, `3-4 years`, `5+ years`),
@@ -85,11 +95,11 @@ implementation_time_plot <- implementation_time %>%
 cluster_colors <- unique(old_clusters$cluster) %>%
   setNames(object = c(transcend_cols2[c(1, 2, 4, 5)], "#000000"))
 
-old_clusters <- old_clusters %>% 
+clusters <- old_clusters %>% 
   mutate(practice = sub("practices_", "", var)) %>% 
   select(-var)
   
-implementation_with_color <- left_join(implementation_time_plot, old_clusters, by = "practice") %>% 
+implementation_with_color <- left_join(implementation_time_plot, clusters, by = "practice") %>% 
   mutate(
     color = cluster_colors[cluster],
     practice = fct_inorder(glue("<i style='color:{color}'>{practice}</i>"))
@@ -118,6 +128,8 @@ ggplot(implementation_with_color, aes(reorder(practice, N), N, fill = time)) +
 
 ### Which core practices have "legacy" or "established" schools chosen?
 
+This question arises first from selecting the schools that have participated in the survey for at least 4 years. For these, **pbl** and **competency_education** still take the lead.
+
 ```{r}
 repeaters_4 <- long_dat %>% 
   select(school_id, year) %>% 
@@ -131,7 +143,7 @@ repeaters_4 <- long_dat %>%
   pull(school_id)
 ```
 
-```{r}
+```{r fig.width=6, fig.height=16}
 implementation_time_repeaters <- tags %>% 
   filter(school_id %in% repeaters_4) %>% 
   select(starts_with("time_")) %>% 
@@ -162,7 +174,7 @@ implementation_time_repeaters <- tags %>%
     "5+ years"
   )))
 
-implementation_repeaters_with_color <- left_join(implementation_time_repeaters, old_clusters, by = "practice") %>% 
+implementation_repeaters_with_color <- left_join(implementation_time_repeaters, clusters, by = "practice") %>% 
   mutate(
     color = cluster_colors[cluster],
     practice = fct_inorder(glue("<i style='color:{color}'>{practice}</i>"))
