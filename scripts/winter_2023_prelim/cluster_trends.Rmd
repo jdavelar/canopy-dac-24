@@ -15,7 +15,7 @@ editor_options:
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE, warnings = FALSE, message = FALSE)
-pacman::p_load(tidyverse, here, rio, DT, parameters, ggrepel, plotly)
+pacman::p_load(tidyverse, here, rio, DT, parameters, ggrepel, plotly, broom, lme4, gridExtra)
 #read in data
 dat <- import(here("data/longitudinal", "tags-long.csv"))
 #read in tag labels
@@ -57,24 +57,6 @@ none <- cluster %>%
   pull(var)
 ```
 
-# Deeper Learning Cluster
-
-Tags:  
-- assessments for deeper learning           
-- competency/mastery-based education          
-- competency framework            
-- design thinking process          
-- interdisciplinary            
-- makerspace                  
-- multiple opportunities to demonstrate mastery  
-- project-based learning                  
-- performance based assessment            
-- place-based learning                      
-- student-led conferences                
-- students develop projects  
-
-Guiding question: How have the rates of deeper learning tags changed each year since 2019?
-
 ```{r}
 ### DATA FUNCTIONS ###
 #set up repeating schools - 2+ years
@@ -99,11 +81,33 @@ repeaters_3 <- dat %>%
   mutate(participate = sum(`2019`, `2021`, `2022`, `2023`, `2024`, na.rm = TRUE)) %>% 
   filter(participate > 2) %>% 
   pull(school_id)
+#set up repeating schools - all years
+repeaters_all <- dat %>% 
+  select(school_id, year) %>% 
+  unique() %>% 
+  mutate(rate = 1) %>% 
+  pivot_wider(names_from = "year",
+              values_from = "rate") %>% 
+  rowwise() %>% 
+  mutate(participate = sum(`2019`, `2021`, `2022`, `2023`, `2024`, na.rm = TRUE)) %>% 
+  filter(participate == 5) %>% 
+  pull(school_id)
 #set up totals 
 tots <- dat %>% 
   group_by(year) %>% 
-  summarize(total = n_distinct(school_id)) %>% 
-  unique()
+  summarize(total = n_distinct(school_id))
+tots_2 <- dat %>% 
+  filter(school_id %in% repeaters_2) %>% 
+  group_by(year) %>% 
+  summarize(total = n_distinct(school_id))
+tots_3 <- dat %>% 
+  filter(school_id %in% repeaters_3) %>% 
+  group_by(year) %>% 
+  summarize(total = n_distinct(school_id))
+tots_all <- dat %>% 
+  filter(school_id %in% repeaters_all) %>% 
+  group_by(year) %>% 
+  summarize(total = n_distinct(school_id))
 #set up 3+ year tags
 rep_tags <- dat %>% 
   group_by(var) %>% 
@@ -160,14 +164,14 @@ prep_within <- function(data, cluster){
     return(dat)
 }
 #prep data function overall pct
-prep_overall <- function(data, cluster, group){
+prep_overall <- function(data, cluster, group, total){
   dat <- data %>% 
     filter(var %in% cluster) %>% 
     filter(school_id %in% group) %>% 
     group_by(var, year) %>% 
     summarize(n = sum(usage, na.rm = TRUE)) %>% 
     ungroup() %>% 
-    left_join(tots, by = "year") %>% 
+    left_join(total, by = "year") %>% 
     mutate(pct = n/total) %>% 
     left_join(labels, by = "var") %>% 
     group_by(var) %>% 
@@ -245,25 +249,7 @@ cluster_plot_across <- function(data, x, y, labels) {
   
   return(plot)
 }
-#plot function for within schools
-# cluster_plot_within <- function(data, x, y, labels){
-#   
-#   plot <- ggplot(data, aes_string(x = x, y = y, group = type)) +
-#     geom_point() +
-#     geom_line(aes_string(group = type), color = "gray") +
-#     geom_smooth(method = "lm", formula = y ~ x, se = FALSE, color = "blue", aes(group = 1)) +
-#     theme_bw() +
-#     scale_x_continuous(expand = expansion(mult = c(.025, .3))) +
-#     theme(panel.grid.major.x = element_blank(),
-#           panel.grid.minor.x = element_blank(),
-#           legend.position = "none") +
-#     facet_wrap(~type) +
-#     labs(x = "Year",
-#        y = "Tag selection (N)") +
-#     scale_color_identity()
-#   
-#   return(plot)
-# }
+
 cluster_plot_within <- function(data, facet) { #data, x, y, facet, group
   plot <- ggplot(data, aes_string(x = "year", y = "n")) + #aes_string(x = x, y = y, text = group)
     geom_line(aes(group = label), color = "gray", alpha = 0.5) + #group = group
@@ -290,7 +276,9 @@ net_change_plot <- function(data){
     theme(panel.grid.major.x = element_blank(), panel.grid.minor.x = element_blank(), legend.position = "none") +
     scale_x_continuous(expand = expansion(mult = c(0, 0))) +
     scale_y_continuous(labels = scales::percent_format(accuracy = 1)) +
-    labs(x = "", y = "Normalized net change")
+    labs(x = "", y = "Normalized net change",
+         subtitle = "Values above the dashed line indicate growth. Values below the dashed line indicate decline.") +
+    geom_hline(aes(yintercept = 0), size = .25, linetype = "dashed")
   
   interactive <- ggplotly(plot, tooltip = c("year", "norm_net", "label"))
   
@@ -308,6 +296,23 @@ fancy_across <- function(data){
 }
 ```
 
+# Deeper Learning Cluster
+
+Tags:  
+- assessments for deeper learning           
+- competency/mastery-based education          
+- competency framework            
+- design thinking process          
+- interdisciplinary            
+- makerspace                  
+- multiple opportunities to demonstrate mastery  
+- project-based learning                  
+- performance based assessment            
+- place-based learning                      
+- student-led conferences                
+- students develop projects  
+
+Guiding question: How have the rates of deeper learning tags changed each year since 2019?
 
 ### Across schools
 
@@ -322,7 +327,7 @@ fancy_across(deep)
 Overall rate among repeat schools (2+ years):
 
 ```{r}
-deep <- prep_overall(dat, deeper, repeaters_2)
+deep <- prep_overall(dat, deeper, repeaters_2, tots_2)
 #cluster_plot_across(deep, "year", "pct", "label")
 fancy_across(deep)
 ```
@@ -330,7 +335,14 @@ fancy_across(deep)
 Overall rate among repeat schools (3+ years):
 
 ```{r}
-deep <- prep_overall(dat, deeper, repeaters_3)
+deep <- prep_overall(dat, deeper, repeaters_3, tots_3)
+fancy_across(deep)
+```
+
+Overall rate among repeat schools (5 years):
+
+```{r}
+deep <- prep_overall(dat, deeper, repeaters_all, tots_all)
 fancy_across(deep)
 ```
 
@@ -395,16 +407,24 @@ fancy_across(justice_dat)
 Overall rate among repeat schools (2+ years):
 
 ```{r}
-justice_dat <- prep_overall(dat, ed_justice, repeaters_2)
+justice_dat <- prep_overall(dat, ed_justice, repeaters_2, tots_2)
 fancy_across(justice_dat)
 ```
 
 Overall rate among repeat schools (3+ years):
 
 ```{r}
-justice_dat <- prep_overall(dat, ed_justice, repeaters_3)
+justice_dat <- prep_overall(dat, ed_justice, repeaters_3, tots_3)
 fancy_across(justice_dat)
 ```
+
+Overall rate among repeat schools (all years):
+
+```{r}
+justice_dat <- prep_overall(dat, ed_justice, repeaters_all, tots_all)
+fancy_across(justice_dat)
+```
+
 
 ```{r}
 justice_dat <- prep_within(dat, ed_justice)
@@ -452,16 +472,24 @@ fancy_across(ind_dat)
 Overall rate among repeat schools (2+ years):
 
 ```{r}
-ind_dat <- prep_overall(dat, individualized, repeaters_2)
+ind_dat <- prep_overall(dat, individualized, repeaters_2, tots_2)
 fancy_across(ind_dat)
 ```
 
 Overall rate among repeat schools (3+ years):
 
 ```{r}
-ind_dat <- prep_overall(dat, individualized, repeaters_3)
+ind_dat <- prep_overall(dat, individualized, repeaters_3, tots_3)
 fancy_across(ind_dat)
 ```
+
+Overall rate among repeat schools (all years):
+
+```{r}
+ind_dat <- prep_overall(dat, individualized, repeaters_3, tots_3)
+fancy_across(ind_dat)
+```
+
 
 ```{r}
 ind_dat <- prep_within(dat, individualized)
@@ -508,16 +536,24 @@ fancy_across(post_dat)
 Overall rate among repeat schools (2+ years):
 
 ```{r}
-post_dat <- prep_overall(dat, postsecondary, repeaters_2)
+post_dat <- prep_overall(dat, postsecondary, repeaters_2, tots_2)
 fancy_across(post_dat)
 ```
 
 Overall rate among repeat schools (3+ years):
 
 ```{r}
-post_dat <- prep_overall(dat, postsecondary, repeaters_3)
+post_dat <- prep_overall(dat, postsecondary, repeaters_3, tots_3)
 fancy_across(post_dat)
 ```
+
+Overall rate among repeat schools (all years):
+
+```{r}
+post_dat <- prep_overall(dat, postsecondary, repeaters_all, tots_all)
+fancy_across(post_dat)
+```
+
 
 ```{r}
 post_dat <- prep_within(dat, postsecondary)
@@ -669,16 +705,24 @@ fancy_across(none_dat)
 Overall rate among repeat schools (2+ years):
 
 ```{r}
-none_dat <- prep_overall(dat, none, repeaters_2)
+none_dat <- prep_overall(dat, none, repeaters_2, tots_2)
 fancy_across(none_dat)
 ```
 
 Overall rate among repeat schools (3+ years):
 
 ```{r}
-none_dat <- prep_overall(dat, none, repeaters_3)
+none_dat <- prep_overall(dat, none, repeaters_3, tots_3)
 fancy_across(none_dat)
 ```
+
+Overall rate among repeat schools (all years):
+
+```{r}
+none_dat <- prep_overall(dat, none, repeaters_all, tots_all)
+fancy_across(none_dat)
+```
+
 
 ```{r}
 none_dat <- prep_within(dat, none)
@@ -726,14 +770,21 @@ fancy_across(blend_dat)
 Overall rate among repeat schools (2+ years):
 
 ```{r}
-blend_dat <- prep_overall(dat, blended_tags, repeaters_2)
+blend_dat <- prep_overall(dat, blended_tags, repeaters_2, tots_2)
 fancy_across(blend_dat)
 ```
 
 Overall rate among repeat schools (3+ years):
 
 ```{r}
-blend_dat <- prep_overall(dat, blended_tags, repeaters_3)
+blend_dat <- prep_overall(dat, blended_tags, repeaters_3, tots_3)
+fancy_across(blend_dat)
+```
+
+Overall rate among repeat schools (all years):
+
+```{r}
+blend_dat <- prep_overall(dat, blended_tags, repeaters_all, tots_all)
 fancy_across(blend_dat)
 ```
 
@@ -832,7 +883,7 @@ net_change_plot(all_clust)
 ```
 
 
-# FIRST VERSION GRAPHS
+# First version graphs
 
 ### Across schools
 Graph #1 looks at selection of tags across our whole sample, i.e., the number reflects the percentage of our total sample of schools that selected each tag. (AKA across schools)
@@ -1107,44 +1158,183 @@ dat %>%
 # Models
 
 ```{r}
-#set up model function
-tag_bayes <- function(data, id = "school_id", cov, threshold = NULL) {
-  mod_dat <- data %>%
-    select(id, cov, starts_with("practices")) %>%
-    pivot_longer(cols = starts_with("practices"), names_to = "tag", values_to = "value") %>%
-    na.omit()
+#clean up environment
+rm(cluster, deep, justice_dat, tots, tots_2, tots_3, tots_all)
+#create new cluster DV
+mod_dat <- dat %>% 
+  #add cluster groups
+  mutate(cluster = case_when(
+    var %in% deeper ~ "deeper",
+    var %in% ed_justice ~ "ed_justice",
+    var %in% individualized ~ "individualized",
+    var %in% postsecondary ~ "postsecondary",
+    var %in% none ~ "misc"
+  )) %>% 
+  #note: clusters only outlined for 2024 tags... do we want to modify?
+  #for now, drop missing cluster
+  filter(!is.na(cluster)) %>% 
+  #generate cluster percentage for each school
+  group_by(cluster, year, school_id) %>% 
+  summarize(total = n_distinct(var),
+            n = sum(usage),
+            pct = n/total) %>% 
+  select(school_id, year, cluster, n, pct) %>% 
+  ungroup() %>% 
+  pivot_wider(names_from = cluster,
+              values_from = c(n, pct))
+#read in characteristic vars for modeling and merge
+vars <- import(here("data/longitudinal", "longitudinal_data.csv")) %>% 
+  select(school_id, year, school_type, school_locale, school_enrollment, pct_bipoc, pct_ell, pct_frpl, pct_swd, grades_pk, grades_elementary, grades_middle, grades_high) %>% 
+  mutate(c_enrollment = scale(school_enrollment, center = TRUE, scale = TRUE)[,1],
+         c_bipoc = scale(pct_bipoc, center = TRUE, scale = TRUE)[,1],
+         c_ell = scale(pct_ell, center = TRUE, scale = TRUE)[,1],
+         c_frpl = scale(pct_frpl, center = TRUE, scale = TRUE)[,1],
+         c_swd = scale(pct_swd, center = TRUE, scale = TRUE)[,1]) %>% 
+  select(-c(school_enrollment, starts_with("pct")))
+#merge
+mod_dat <- mod_dat %>% 
+  left_join(vars, by = c("school_id", "year"))
+# set vars of interest
+outcome <- mod_dat %>% select(starts_with("n_")) %>% colnames()
+preds <- mod_dat %>% select(-school_id, -starts_with("pct_"), -starts_with("n_")) %>% colnames()
+```
 
-  if (!is.null(threshold)) {
-    mod_dat <- mod_dat %>% filter(value > threshold)
-  }
+## Poisson
 
-  numeric_covs <- sapply(mod_dat[, cov], is.numeric) %>% names() %>% intersect(cov)
-  mod_dat <- mod_dat %>%
-    group_by(tag) %>%
-    mutate(across(all_of(numeric_covs), scale)) %>%
-    ungroup()
+```{r}
+#run models
+model_list <- list()
 
-  form <- as.formula(paste("value", "~", paste(cov, collapse = "+")))
-
-  bayes_mods <- unique(mod_dat$tag) %>%
-    setNames(nm = .) %>%
-    purrr::map(function(tag) stan_glm(
-      formula = form,
-      data = filter(mod_dat, tag == tag),
-      family = binomial(link = "logit"),
-      prior = student_t(df = 7, location = 0, scale = 2.5),
-      seed = 123
-    ))
-
-  bayes_tidy <- bayes_mods %>%
-    purrr::map_dfr(tidy, .id = "tag") %>%
-    filter(term != "(Intercept)") %>%
-    mutate(
-      nice_tag = label_tags(tag),
-      nice_demog = factor(label_dems(term))
-    )
-
-  return(bayes_tidy)
+for (outcome in outcome) {
+  formula <- as.formula(paste(outcome, "~", paste(preds, collapse = "+")))
+  model <- glm(formula, data = mod_dat, family = "poisson")
+  model_list[[outcome]] <- model
 }
+
+#extract coeffs
+tidy_models <- list()
+
+for (outcome in names(model_list)) {
+  tidy_model <- tidy(model_list[[outcome]])
+  tidy_model$outcome <- outcome
+  tidy_models[[outcome]] <- tidy_model
+}
+
+#combine
+plot_data <- do.call(rbind, tidy_models) %>% 
+  #rename outcome
+  mutate(outcome = case_when(
+    outcome == "n_deeper" ~ "Deeper learning",
+    outcome == "n_ed_justice" ~ "Educational justice",
+    outcome == "n_individualized" ~ "Individualized learning",
+    outcome == "n_postsecondary" ~ "Postsecondary pathways",
+    outcome == "n_misc" ~ "Misc. cluster"
+  ),
+  #rename terms
+  term = str_remove_all(term, "school_type"),
+  term = str_remove_all(term, "grades_"),
+  term = str_remove_all(term, "c_"),
+  term = str_remove_all(term, "school_locale")
+  ) %>% 
+  arrange(desc(estimate)) %>% 
+  mutate(term = fct_inorder(term))
+```
+
+```{r}
+#prep data
+plot_data_list <- list()
+
+for (outcome in names(model_list)) {
+  tidy_model <- tidy(model_list[[outcome]], conf.int = TRUE)
+  tidy_model$outcome <- outcome 
+  plot_data_list[[outcome]] <- tidy_model
+}
+
+#create plot for each outcome
+create_plot_for_outcome <- function(data, outcome) {
+  ggplot(data, aes(y = term, x = estimate)) +
+    geom_linerange(aes(xmin = estimate - std.error, 
+                       xmax = estimate + std.error), 
+                   color = "blue") +
+    geom_point() +
+    theme_minimal() +
+    theme(panel.grid.major.y = element_blank()) +
+    labs(
+      x = "Estimated effect on cluster",
+      y = "",
+      title = sprintf("School characteristics describing %s", outcome)
+    )
+}
+
+plots <- list()
+for (outcome in names(plot_data_list)) {
+  plots[[outcome]] <- create_plot_for_outcome(plot_data_list[[outcome]], outcome)
+}
+plots$n_deeper
+plots$n_ed_justice
+plots$n_individualized
+plots$n_misc
+plots$n_postsecondary
+```
+
+## Binomial logistic regression
+
+```{r}
+#add cluster n's for cbind()
+mod_dat <- mod_dat %>% 
+  mutate(tot_deeper = 12,
+         tot_ed_justice = 19,
+         tot_individualized = 9,
+         tot_misc = 24,
+         tot_postsecondary = 9)
+# outcome_tot <- mod_dat %>% select(starts_with("tot_")) %>% colnames()
+#manual run because loops aren't working
+deep_mod <- glmer(cbind(n_deeper, tot_deeper - n_deeper) ~ year + school_type + school_locale + grades_pk + grades_elementary + grades_high + c_enrollment + c_bipoc + c_ell + c_frpl + c_swd + (1|school_id), 
+                family = binomial,
+                data = mod_dat)
+# plot
+tidy(model, effects = "ran_pars", conf.int = TRUE) %>% 
+ggplot(., aes(y = term, x = estimate)) +
+    geom_linerange(aes(xmin = estimate - std.error, 
+                       xmax = estimate + std.error), 
+                   color = "blue") +
+    geom_point() +
+    theme_minimal() +
+    theme(panel.grid.major.y = element_blank()) +
+    labs(
+      x = "Estimated effect on cluster",
+      y = "",
+      title = sprintf("School characteristics describing %s", outcome)
+    )
+```
+
+```{r, include = FALSE, eval = FALSE}
+#run models
+model_list <- list()
+
+for (i in seq_along(outcome)) {
+    out <- outcome[i]
+    tot <- outcome_tot[i]
+
+    formula_str <- paste("cbind(", out, ",", tot, "-", out, ")", "~", paste(preds, collapse = "+"), "+ (1|school_id)")
+    formula <- as.formula(formula_str)
+    model <- glmer(formula, data = mod_dat, family = binomial)
+    model_list[[outcome]] <- model
+}
+
+#extract coeffs
+tidy_models <- list()
+
+for (outcome in names(model_list)) {
+  tidy_model <- tidy(model_list[[outcome]])
+  tidy_model$outcome <- outcome
+  tidy_models[[outcome]] <- tidy_model
+}
+
+#combine
+plot_data <- do.call(rbind, tidy_models) %>% 
+  arrange(desc(estimate)) %>% 
+  mutate(term = fct_inorder(term))
+```
 ```
 

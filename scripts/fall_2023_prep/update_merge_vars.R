@@ -583,3 +583,12 @@ long_dat <- bind_rows(dat19, dat21, dat22, dat23, dat24) %>%
 write.csv(long_dat, "data/longitudinal/longitudinal_data.csv", row.names = FALSE)
 #still need to close-comb fill and address any remaining NA we're able
 
+#update long_schools.csv
+long_schools <- long_dat %>% 
+  select(year, school_id, school_name) %>% 
+  unique() %>% 
+  group_by(school_name) %>% 
+  mutate(check = n_distinct(school_id))
+  #there's 1 error that needs to be resolved before saving
+  #Farmington High School has 2 associated IDs (in AT as well as school data) - 72 & 73
+  # which is the correct ID? Is this a single school?
