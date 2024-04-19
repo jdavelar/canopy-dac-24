@@ -1,0 +1,149 @@
+---
+title: "Clustering All Years"
+author: "Gregor Thomas"
+date: "2024-03-29"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+library(pacman)
+p_load(here, rio, purrr, tidyverse, ggcorrplot, proxy, plotly, patchwork,
+       psych, GPArotation, parameters, DT, nFactors, ggthemes, glue)
+source(here("scripts/branding.R"))
+wide = import(here("data/longitudinal", "tags-wide.csv"))
+long = import(here("data/longitudinal", "tags-long.csv"))
+old_clusters = import(here("data/clusters_through_2024.csv"))
+
+### attempt at function, not working yet.
+loadings_table = function(
+    fa_mod,
+    loadings = "max",
+    threshold = 0.28,
+    caption_prefix = "",
+    labels = old_clusters
+) {
+  n_clust = fa_mod$factors
+  if("max" %in% loadings) {
+    return(fa_mod |>
+      model_parameters(sort = TRUE, threshold = "max") |>
+      left_join(labels, by = c("Variable" = "var")) |>
+      rename(old_cluster = cluster) |>
+      datatable(
+        caption = glue("{caption_prefix}, {n_clust} groups, Max loadings")
+      ) |>
+      formatRound(digits = 2, columns = seq(n_clust + 2) + 1))
+  }
+  if("threshold" %in% loadings) {
+    return(fa_mod |>
+      model_parameters(sort = TRUE, threshold = threshold) |>
+      left_join(labels, by = c("Variable" = "var")) |>
+      rename(old_cluster = cluster) |>
+      datatable(
+        caption = glue("{caption_prefix}, {n_clust} groups, Threshold loadings")
+      ) |>
+      formatRound(digits = 2, columns = seq(n_clust + 2) + 1))
+  }
+  if("all" %in% loadings) {
+    return(fa_mod |>
+      model_parameters(sort = TRUE) |>
+      left_join(labels, by = c("Variable" = "var")) |>
+      rename(old_cluster = cluster) |>
+      datatable(
+        caption = glue("{caption_prefix}, {n_clust} groups, All loadings")
+      ) |>
+      formatRound(digits = 2, columns = seq(n_clust + 2) + 1))
+      
+  }
+
+}
+
+##loadings_tables(efa_max_3y_4)
+```
+
+## 4-year tags with 4 clusters
+
+```{r}
+tags_4y = long |>
+  filter(usage == 1) |>
+  filter(n_distinct(year) >= 4, .by = var) |>
+  pull(var)
+
+tag_cor = wide |>
+  select(all_of(tags_4y)) |>
+  cor(use = "pairwise.complete.obs")
+
+efa_4 <- fa(tag_cor, nfactors = 4, rotate = "oblimin", fm = "minres")
+# efa_4_test <- fa(tag_cor, nfactors = 4, rotate = "oblimin", n.iter = 10,
+#                  fm = "minres", scores = "tenBerge", n.obs = nrow(wide))
+
+efa_max <- efa_4 %>%
+  model_parameters(sort = TRUE, threshold = "max")
+
+efa_clust = efa_max
+efa_clust |> left_join(old_clusters, by = c("Variable" = "var"))
+efa_max %>%
+  datatable(caption = "Max loadings") %>%
+  formatRound(digits = 2, columns = 2:7) 
+
+
+efa_4 %>%
+  model_parameters(sort = TRUE, threshold = 0.28) %>%
+  datatable(caption = "Threshold loadings") %>%
+  formatRound(digits = 2, columns = 2:7) 
+
+efa_4 %>%
+  model_parameters(sort = TRUE) %>%
+  datatable(caption = "All loadings") %>%
+  formatRound(digits = 2, columns = 2:7)
+```
+
+## 4-year tags with 5 clusters
+
+```{r}
+efa_5 = fa(tag_cor, nfactors = 5, rotate = "oblimin", fm = "minres")
+efa_max_5 <- efa_5 %>%
+  model_parameters(sort = TRUE, threshold = "max")
+
+loadings_table(efa_5, loadings = "max", caption_prefix = "4+Year Tags")
+loadings_table(efa_5, loadings = "threshold", caption_prefix = "4+Year Tags")
+loadings_table(efa_5, loadings = "all", caption_prefix = "4+Year Tags")
+
+
+```
+
+## 3-year tag 4 clusters
+
+```{r}
+tags_3y = long |>
+  filter(usage == 1) |>
+  filter(n_distinct(year) >= 3, .by = var) |>
+  pull(var)
+
+tag_cor_3y = wide |>
+  select(all_of(tags_3y)) |>
+  cor(use = "pairwise.complete.obs")
+
+efa_3y_4 <- fa(tag_cor_3y, nfactors = 4, rotate = "oblimin", fm = "minres")
+
+loadings_table(efa_3y_4, loadings = "max", caption_prefix = "3+Year Tags")
+loadings_table(efa_3y_4, loadings = "threshold", caption_prefix = "3+Year Tags")
+loadings_table(efa_3y_4, loadings = "all", caption_prefix = "3+Year Tags")
+```
+
+## 3-year tags 5 clusters
+
+```{r}
+efa_3y_5 <- fa(tag_cor_3y, nfactors = 5, rotate = "oblimin", fm = "minres")
+
+
+loadings_table(efa_3y_5, loadings = "max", caption_prefix = "3+Year Tags")
+loadings_table(efa_3y_5, loadings = "threshold", caption_prefix = "3+Year Tags")
+loadings_table(efa_3y_5, loadings = "all", caption_prefix = "3+Year Tags")
+```
+
+```{r}
+## 2 year tags have too much missingness in the cor() output
+## can try psych::corFiml
+```
+

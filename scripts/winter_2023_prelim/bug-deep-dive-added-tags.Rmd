@@ -1,0 +1,133 @@
+---
+title: "Added Tags Bug Deep Dive"
+author: "Gregor Thomas"
+date: "2024-04-19"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+pacman::p_load(tidyverse, here, rio, DT, ggcorrplot, forcats, ggtext)
+source(here("scripts/branding.R"))
+#read in data
+```
+
+## Gregor
+
+```{r}
+long = import(here("data/longitudinal", "tags-long.csv"))
+wide = import(here("data/longitudinal", "tags-wide.csv"))
+
+tags_2y = long |>
+  filter(usage == 1) |>
+  filter(n_distinct(year) >= 2 & 2024 %in% year
+         , .by = var) |>
+  pull(var) |>
+  unique()
+
+long_2y = long |> filter(var %in% tags_2y)
+
+
+changes_2y = long_2y |>
+  arrange(school_id, var, year) |>
+  summarize(
+    added = any(diff(usage) == 1),
+    dropped = any(diff(usage) == -1),
+    waffled = added & dropped,
+    modified = added | dropped,
+    .by = c(var, school_id)
+  ) |>
+  filter(added | dropped)
+
+pom = changes_2y |>
+  filter(var == "practices_opportunities_mastery")
+pom |>
+  datatable(
+    options = list(autoWidth = TRUE, iDisplayLength = 5),
+    caption = "G - changes_2y"
+  )
+
+pom_long = long |>
+  filter(
+    school_id %in% pom$school_id,
+    var == "practices_opportunities_mastery"
+  ) |>
+  arrange(school_id, year)
+pom_long |>
+  datatable(
+    options = list(autoWidth = TRUE, iDisplayLength = 5),
+    caption = "G - relevant raw data"
+  )
+
+```
+
+## Janette
+
+```{r}
+dat <- import(here("data/longitudinal", "tags-long.csv"))
+#read in tag labels
+labels <- import(here("data", "tag_labels.csv"))
+
+n_dat <- dat %>% 
+  mutate(n_year_tag = n_distinct(year), .by = var) %>% 
+  mutate(n_year_schl = n_distinct(year), .by = school_id)
+
+# 2 year tags
+#overall view table
+overall_2yr <-
+n_dat %>% 
+  filter(n_year_tag == 2) %>% 
+  # mutate(n = sum(usage), .by = c(year, var)) %>% 
+  filter(n_year_schl > 2) %>% 
+  select(-n_year_tag, -n_year_schl) %>% 
+  # group_by(year, var) %>% 
+  # summarize(n = sum(usage, na.rm = TRUE)) %>% 
+  #make cols for each year to determine change
+  pivot_wider(names_from = year,
+              values_from = usage) %>% 
+  #calculate change
+  group_by(school_id, var) %>% 
+  mutate(change_2021 = `2021` - `2019`,
+         change_2022 = `2022` - `2021`,
+         change_2023 = `2023` - `2022`,
+         change_2024 = `2024` - `2023`,
+         added_2021 = ifelse(change_2021 == 1, 1, 0),
+         added_2022 = ifelse(change_2022 == 1, 1, 0),
+         added_2023 = ifelse(change_2023 == 1, 1, 0),
+         added_2024 = ifelse(change_2024 == 1, 1, 0),
+         drop_2021 = ifelse(change_2021 == -1, 1, 0),
+         drop_2022 = ifelse(change_2022 == -1, 1, 0),
+         drop_2023 = ifelse(change_2023 == -1, 1, 0),
+         drop_2024 = ifelse(change_2024 == -1, 1, 0)) %>% 
+  ungroup() %>% 
+  group_by(var) %>% 
+  summarize(`2019` = sum(`2019`, na.rm = TRUE),
+            `2021` = sum(change_2021, na.rm = TRUE),
+            `2022` = sum(change_2022, na.rm = TRUE),
+            `2023` = sum(change_2023, na.rm = TRUE),
+            `2024` = sum(change_2024, na.rm = TRUE),
+            `2021 adds` = sum(added_2021, na.rm = TRUE),
+            `2022 adds` = sum(added_2022, na.rm = TRUE),
+            `2023 adds` = sum(added_2023, na.rm = TRUE),
+            `2024 adds` = sum(added_2024, na.rm = TRUE),
+            `2021 drops` = sum(drop_2021, na.rm = TRUE),
+            `2022 drops` = sum(drop_2022, na.rm = TRUE),
+            `2023 drops` = sum(drop_2023, na.rm = TRUE),
+            `2024 drops` = sum(drop_2024, na.rm = TRUE)) %>% 
+  mutate(across(`2019`:`2024 drops`, ~na_if(., 0))) %>% 
+  #bring in labels
+  left_join(labels, by = "var")
+
+#overview table
+overall_2yr %>% 
+  select(Tag = label, `2019`, `2021`, `2022`, `2023`, `2024`) %>% 
+  #table
+  datatable() %>%
+  #style
+  formatStyle(columns = c("2021", "2022", "2023", "2024"), 
+              color = styleInterval(cuts = 0, values = c("red", "green")),
+              textAlign = "center")
+
+```
+

@@ -12,8 +12,20 @@ source(here("scripts/branding.R"))
 #read in data
 long = import(here("data/longitudinal", "tags-long.csv"))
 wide = import(here("data/longitudinal", "tags-wide.csv"))
+
+## this one doesn't have 2024 yet...
 sch = import(here("data/long_school.csv")) |>
   summarize(n_years = n_distinct(year), .by = c(school_id, school_name))
+
+## temp fix
+sch = long |>
+  summarize(
+    n_years = n_distinct(year),
+    .by = school_id
+  ) |>
+  left_join(
+    select(sch, school_id, school_name)
+  )
 
 old_clusters = import(here("data/clusters_through_2024.csv"))
 #read in tag labels
@@ -66,7 +78,8 @@ increase over time.
 tags_4y = long |>
   filter(usage == 1) |>
   filter(n_distinct(year) >= 4, .by = var) |>
-  pull(var)
+  pull(var) |>
+  unique()
 
 long_4y = long |> filter(var %in% tags_4y)
 
@@ -176,7 +189,7 @@ waffle_detail = long_4y |>
     .by = c(var, school_id)
   ) |>
   pivot_wider(names_from = year, values_from = usage) |>
-  left_join(schools, by = "school_id") |>
+  left_join(sch, by = "school_id") |>
   select(school_id, school_name, tag = var, `2019`:`2024`, added, dropped, waffled) |>
   arrange(school_id, desc(waffled))
 
@@ -194,9 +207,66 @@ practices that Juab indicated in all survey years *except* 2021.
 ```{r}
 waffle_detail |>
   mutate(binary_summary = paste(`2019`, `2021`, `2022`, `2023`, `2024`, sep = ",")) |>
-  count(school_name, binary_summary) |>
+  count(school_id, school_name, binary_summary) |>
   arrange(desc(n)) |>
   datatable(rownames = FALSE, options = list(autoWidth = TRUE, iDisplayLength = 25))
+```
+
+
+### Repeating the Above for All 4+Year Schools
+
+```{r}
+waffle_all = long_4y |>
+  #filter(school_id %in% wafflers) |>
+  filter(
+    all(0:1 %in% usage),    ## added and dropped 
+    n() > 2,                ## at least 3 survey respones
+    .by = c(var, school_id)
+  ) |> 
+  mutate(
+    added = any(diff(usage) == 1),
+    dropped = any(diff(usage) == -1),
+    waffled = added & dropped,
+    .by = c(var, school_id)
+  ) |>
+  pivot_wider(names_from = year, values_from = usage) |>
+  left_join(sch, by = "school_id") |>
+  select(school_id, school_name, tag = var, `2019`:`2024`, added, dropped, waffled) |>
+  arrange(school_id, desc(waffled)) |>
+  mutate(
+    binary_summary = paste(`2019`, `2021`, `2022`, `2023`, `2024`, sep = ","),
+    covid_bump = 1 %in% `2021` & waffled,
+    covid_dip =  0 %in% `2021` & waffled
+  ) 
+
+waffle_all |>
+  count(binary_summary, waffled, covid_bump, covid_dip) |>
+  arrange(desc(n)) |>
+  datatable(
+    rownames = FALSE,
+    options = list(autoWidth = TRUE, iDisplayLength = 25),
+    caption = "Pattern binary summaries"
+  )
+
+waffle_all |>
+  count(tag, binary_summary, waffled, covid_bump, covid_dip) |>
+  arrange(desc(n), tag) |>
+  datatable(
+    rownames = FALSE,
+    options = list(autoWidth = TRUE, iDisplayLength = 25),
+    caption = "Tag binary summaries"
+  )
+
+waffle_all |>
+  count(school_id, school_name, binary_summary, waffled, covid_bump, covid_dip) |>
+  arrange(desc(n), school_name) |>
+  datatable(
+    rownames = FALSE,
+    options = list(autoWidth = TRUE, iDisplayLength = 25),
+    caption = "School binary summaries"
+  )
+
+
 ```
 
 
@@ -214,7 +284,7 @@ tag_changes = changes |>
     .by = var
   ) |>
   mutate(net_adds = added - dropped) |>
-  arrange(modified, net_adds, added) |>
+  arrange(net_adds, added, modified) |>
   mutate(var = fct_inorder(var))
 
 tag_changes |> arrange(desc(net_adds), desc(added)) |> datatable()
@@ -232,7 +302,7 @@ we jump to conclusions. I can imagine a COVID-effect or an error in combining th
 data.
 
 
-```{r, fig.height = 8, fig.width = 10}
+```{r, fig.height = 12, fig.width = 10}
 cluster_colors = unique(old_clusters$cluster) |> setNames(object = c(transcend_cols2[c(1, 2, 4, 5)], "#000000"))
   
 tag_changes_with_color = left_join(tag_changes, old_clusters, by = "var") |>
@@ -256,7 +326,6 @@ ggplot(tag_changes_with_color, aes(y = var)) +
     values = transcend_cols[c(3, 1, 4)],
     labels = c("Drops", "Net 0", "Adds")
   ) +
-  #scale_y_discrete(labels = trimws) +
   guides(col = guide_legend(nrow = 1, title = NULL)) + 
   bar_x_scale_count +
   labs(
@@ -264,6 +333,7 @@ ggplot(tag_changes_with_color, aes(y = var)) +
     x = "Number of schools adding/dropping",
     title = "4+-year tags added and dropped"
   ) +
+  facet_grid(rows = vars(cluster), scales = "free_y", space = "free_y") +
   theme(
     panel.grid.major.y = element_blank(),
     legend.position = "bottom",
@@ -277,11 +347,13 @@ Repeating the above analyses, but expanding the scope to include practices
 on the survey in 2024 and at least 1 other year.
 
 ```{r}
-## find tags used in 2023 and at least 1 other year
+## find tags used in 2024 and at least 1 other year
 tags_2y = long |>
   filter(usage == 1) |>
-  filter(n_distinct(year) > 2 & 2024 %in% year, .by = var) |>
-  pull(var)
+  filter(n_distinct(year) >= 2 & 2024 %in% year
+         , .by = var) |>
+  pull(var) |>
+  unique()
 
 long_2y = long |> filter(var %in% tags_2y)
 
@@ -295,6 +367,21 @@ changes_2y = long_2y |>
     .by = c(var, school_id)
   ) |>
   filter(added | dropped)
+
+changes_2y |>
+  filter(var == "practices_opportunities_mastery") #|>
+  arrange(school_id, var, year) |>
+  summarize(
+    added = any(diff(usage) == 1),
+    dropped = any(diff(usage) == -1),
+    waffled = added & dropped,
+    modified = added | dropped,
+    n = n(),
+    .by = c(var, school_id)
+  ) |>
+  arrange(desc(n))
+#  filter(added | dropped)
+
 
 school_changes_2y = changes_2y |>
   summarize(
@@ -310,7 +397,7 @@ school_changes_2y = changes_2y |>
 school_changes_2y |>
   datatable(
     rownames = FALSE,
-    caption = "Number of practices from 2023 and at least one other year added, dropped, and waffled (both added and dropped) by schools with multiple survey responses.") 
+    caption = "Number of practices from 2024 and at least one other year added, dropped, and waffled (both added and dropped) by schools with multiple survey responses.") 
 ```
 
 Note that a practice included in only two years couldn't possibly be "waffled",
@@ -324,13 +411,13 @@ tag_changes_2y = changes_2y |>
     .by = var
   ) |>
   mutate(net_adds = added - dropped) |>
-  arrange(modified, added) |>
+  arrange(net_adds, modified, added) |>
   mutate(var = fct_inorder(var))
 
 tag_changes_2y |> arrange(desc(net_adds), desc(added)) |> datatable()
 ```
 
-```{r, fig.height = 10, fig.width = 10}
+```{r, fig.height = 14, fig.width = 10}
 
 tag_changes_2y_with_color = left_join(tag_changes_2y, old_clusters, by = "var") |>
   mutate(
@@ -361,6 +448,7 @@ ggplot(tag_changes_2y_with_color, aes(y = var)) +
     x = "Number of schools adding/dropping",
     title = "2+ year tags added and dropped"
   ) +
+    facet_grid(rows = vars(cluster), scales = "free_y", space = "free_y") +
   theme(
     panel.grid.major.y = element_blank(),
     legend.position = "bottom",
