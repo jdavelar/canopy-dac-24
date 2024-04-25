@@ -810,7 +810,7 @@ net_change_plot(blend_dat)
 
 # All Clusters
 
-### Overall change among repeat schools (2+ years)
+### Overall rate change among repeat schools (2+ years)
 
 ```{r}
 merge_deep <- prep_overall(dat, deeper, repeaters_2, tots_2) %>% 
@@ -840,7 +840,7 @@ all_clust %>%
 rm(merge_deep, merge_ed_justice, merge_individualized, merge_postsecondary, merge_none, merge_blended)
 ```
 
-### Overall change among repeat schools (2+ years) using stable tags (3+ years)
+### Overall rate change among repeat schools (2+ years) using stable tags (3+ years)
 
 ```{r}
 all_clust %>% 
@@ -855,6 +855,37 @@ all_clust %>%
   theme(panel.grid.major.x = element_blank(), panel.grid.minor.x = element_blank(), legend.position = "none") +
   facet_wrap(~cluster) +
   labs(x = "", y = "Rate of selection")
+```
+
+### Overall growth rate among repeat schools (2+ years) using stable tags (3+ years)
+
+```{r}
+merge_deep <- deep %>% 
+  mutate(cluster = "Deeper learning")
+merge_ed_justice <- justice_dat %>% 
+  mutate(cluster = "Educational justice")
+merge_individualized <- ind_dat %>% 
+  mutate(cluster = ("Individualized learning"))
+merge_postsecondary <- post_dat %>% 
+  mutate(cluster = "Postsecondary pathways")
+merge_none <- none_dat %>% 
+  mutate(cluster = "No cluster")
+merge_blended <- blend_dat %>% 
+  mutate(cluster = "Blended learning (alternate)")
+all_clust <- bind_rows(merge_deep, merge_ed_justice, merge_individualized, merge_postsecondary, merge_none, merge_blended) %>% 
+  filter(var %in% rep_tags)
+all_clust %>% 
+  ggplot(., aes(year, norm_net)) +
+  geom_line(aes(group = label), color = "gray", alpha = 0.5) + 
+  geom_point(aes(group = label), color = "gray", alpha = 0.5, size = 1) + 
+  geom_smooth(se = FALSE, method = "lm", color = "cornflowerblue", aes(group = 1)) + 
+  geom_hline(aes(yintercept = 0), size = .25, linetype = "dashed") +
+  theme_bw() +
+  scale_x_continuous(breaks = unique(all_clust$year)) +
+  scale_y_continuous(labels = scales::percent_format(accuracy = 1)) +
+  theme(panel.grid.major.x = element_blank(), panel.grid.minor.x = element_blank(), legend.position = "none") +
+  facet_wrap(~cluster) +
+  labs(x = "", y = "Growth rate")
 ```
 
 
