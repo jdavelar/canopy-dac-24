@@ -810,6 +810,54 @@ net_change_plot(blend_dat)
 
 # All Clusters
 
+### Overall change among repeat schools (2+ years)
+
+```{r}
+merge_deep <- prep_overall(dat, deeper, repeaters_2, tots_2) %>% 
+  mutate(cluster = "Deeper learning")
+merge_ed_justice <- prep_overall(dat, ed_justice, repeaters_2, tots_2) %>% 
+  mutate(cluster = "Educational justice")
+merge_individualized <- prep_overall(dat, individualized, repeaters_2, tots_2) %>% 
+  mutate(cluster = ("Individualized learning"))
+merge_postsecondary <- prep_overall(dat, postsecondary, repeaters_2, tots_2) %>% 
+  mutate(cluster = "Postsecondary pathways")
+merge_none <- prep_overall(dat, none, repeaters_2, tots_2) %>% 
+  mutate(cluster = "No cluster")
+merge_blended <- prep_overall(dat, blended_tags, repeaters_2, tots_2) %>% 
+  mutate(cluster = "Blended learning (alternate)")
+all_clust <- bind_rows(merge_deep, merge_ed_justice, merge_individualized, merge_postsecondary, merge_none, merge_blended)
+all_clust %>% 
+  ggplot(., aes(year, pct)) +
+  geom_line(aes(group = label), color = "gray", alpha = 0.5) + 
+  geom_point(aes(group = label), color = "gray", alpha = 0.5, size = 1) + 
+  geom_smooth(se = FALSE, method = "lm", color = "cornflowerblue", aes(group = 1)) + 
+  theme_bw() +
+  scale_x_continuous(breaks = unique(all_clust$year)) +
+  scale_y_continuous(labels = scales::percent_format(accuracy = 1)) +
+  theme(panel.grid.major.x = element_blank(), panel.grid.minor.x = element_blank(), legend.position = "none") +
+  facet_wrap(~cluster) +
+  labs(x = "", y = "Rate of selection")
+rm(merge_deep, merge_ed_justice, merge_individualized, merge_postsecondary, merge_none, merge_blended)
+```
+
+### Overall change among repeat schools (2+ years) using stable tags (3+ years)
+
+```{r}
+all_clust %>% 
+  filter(var %in% rep_tags) %>% 
+  ggplot(., aes(year, pct)) +
+  geom_line(aes(group = label), color = "gray", alpha = 0.5) + 
+  geom_point(aes(group = label), color = "gray", alpha = 0.5, size = 1) + 
+  geom_smooth(se = FALSE, method = "lm", color = "cornflowerblue", aes(group = 1)) + 
+  theme_bw() +
+  scale_x_continuous(breaks = unique(all_clust$year)) +
+  scale_y_continuous(labels = scales::percent_format(accuracy = 1)) +
+  theme(panel.grid.major.x = element_blank(), panel.grid.minor.x = element_blank(), legend.position = "none") +
+  facet_wrap(~cluster) +
+  labs(x = "", y = "Rate of selection")
+```
+
+
 ### Net change
 
 ```{r}
@@ -880,6 +928,48 @@ all_clust <- all_clust %>%
          TRUE ~ "Average net change"),
          type = factor(type, levels = c("Largest net change over time", "Smallest net change over time", "Average net change")))
 net_change_plot(all_clust)
+```
+
+### Net change (static version with labels)
+
+```{r}
+palette <- c("#6cac8c", "#ff6f69","#d3d3d3")
+static <- all_clust %>% 
+  filter(var != "Blended learning (alternate)") %>% 
+  ungroup() %>% 
+  mutate(max_cum = max(cum_norm_net),
+         min_cum = min(cum_norm_net),
+         label = case_when(
+           year != 2024 ~ NA,
+           TRUE ~ as.character(label)
+         )) %>% 
+  group_by(var) %>% 
+  mutate(type = case_when(
+         max_cum == cum_norm_net ~ "Largest net change over time",
+         min_cum == cum_norm_net ~ "Smallest net change over time",
+         TRUE ~ "Average net change"),
+         type = factor(type, levels = c("Largest net change over time", "Smallest net change over time", "Average net change")),
+         x_coord = 2024.5,
+         y_coord = norm_net[which.max(year)]) %>% 
+  ungroup()
+ggplot(static, aes(year, norm_net, color = type, group = var, text = label)) +
+  geom_line(alpha = 0.8) +
+  geom_point(alpha = 0.5, size = 1) +
+  scale_color_manual(values = palette) +
+  theme_bw() +
+  theme(panel.grid.major.x = element_blank(), panel.grid.minor.x = element_blank(), legend.position = "none") +
+  scale_x_continuous(expand = expansion(mult = c(0, .25))) +
+  scale_y_continuous(labels = scales::percent_format(accuracy = 1)) +
+  labs(x = "", y = "Normalized net change",
+       subtitle = "Values above the dashed line indicate growth. Values below the dashed line indicate decline.") +
+  geom_hline(aes(yintercept = 0), size = .25, linetype = "dashed") +
+  geom_text_repel(data = static,
+                  aes(label = label, x = 2024, y = y_coord),
+                  nudge_x = 0.05,
+                  direction = "y",
+                  hjust = 0,
+                  size = 4,
+                  point.padding = 1)
 ```
 
 
@@ -1169,7 +1259,8 @@ mod_dat <- dat %>%
     var %in% individualized ~ "individualized",
     var %in% postsecondary ~ "postsecondary",
     var %in% none ~ "misc"
-  )) %>% 
+  ),
+  year = factor(year)) %>% 
   #note: clusters only outlined for 2024 tags... do we want to modify?
   #for now, drop missing cluster
   filter(!is.na(cluster)) %>% 
@@ -1189,13 +1280,14 @@ vars <- import(here("data/longitudinal", "longitudinal_data.csv")) %>%
          c_bipoc = scale(pct_bipoc, center = TRUE, scale = TRUE)[,1],
          c_ell = scale(pct_ell, center = TRUE, scale = TRUE)[,1],
          c_frpl = scale(pct_frpl, center = TRUE, scale = TRUE)[,1],
-         c_swd = scale(pct_swd, center = TRUE, scale = TRUE)[,1]) %>% 
+         c_swd = scale(pct_swd, center = TRUE, scale = TRUE)[,1],
+         year = factor(year)) %>% 
   select(-c(school_enrollment, starts_with("pct")))
 #merge
 mod_dat <- mod_dat %>% 
   left_join(vars, by = c("school_id", "year"))
 # set vars of interest
-outcome <- mod_dat %>% select(starts_with("n_")) %>% colnames()
+dv <- mod_dat %>% select(starts_with("n_")) %>% colnames()
 preds <- mod_dat %>% select(-school_id, -starts_with("pct_"), -starts_with("n_")) %>% colnames()
 ```
 
@@ -1205,8 +1297,8 @@ preds <- mod_dat %>% select(-school_id, -starts_with("pct_"), -starts_with("n_")
 #run models
 model_list <- list()
 
-for (outcome in outcome) {
-  formula <- as.formula(paste(outcome, "~", paste(preds, collapse = "+")))
+for (outcome in dv) {
+  formula <- as.formula(paste(dv, "~", paste(preds, collapse = "+")))
   model <- glm(formula, data = mod_dat, family = "poisson")
   model_list[[outcome]] <- model
 }
@@ -1252,7 +1344,10 @@ for (outcome in names(model_list)) {
 
 #create plot for each outcome
 create_plot_for_outcome <- function(data, outcome) {
-  ggplot(data, aes(y = term, x = estimate)) +
+  data <- data %>% 
+    filter(term != "(Intercept)")
+  
+  ggplot(data, aes(y = fct_reorder(term, estimate), x = estimate)) +
     geom_linerange(aes(xmin = estimate - std.error, 
                        xmax = estimate + std.error), 
                    color = "blue") +
@@ -1279,62 +1374,195 @@ plots$n_postsecondary
 
 ## Binomial logistic regression
 
+This approach seems to make more sense for the structure of our data and given that the max number of practices in a cluster changes over time for educational justice, postsecondary, and misc. clusters (thanks for the insight, Gregor!). As in previous years, I've adjusted our estimates so we can read them as likelihood--values above 1 indicate a characteristic that made a school more likely to select a tag and vice versa. For interpretation of time, I made the year following COVID our reference year so we can see whether the likelihood of selection changed on either side of this time point. For interpretation of school type, I've made district schools our reference point. For locale, I've made urban schools our reference point.  
+
+
 ```{r}
+#check that upper limit for each cluster corresponds to total
 #add cluster n's for cbind()
-mod_dat <- mod_dat %>% 
-  mutate(tot_deeper = 12,
-         tot_ed_justice = 19,
-         tot_individualized = 9,
-         tot_misc = 24,
-         tot_postsecondary = 9)
-# outcome_tot <- mod_dat %>% select(starts_with("tot_")) %>% colnames()
-#manual run because loops aren't working
-deep_mod <- glmer(cbind(n_deeper, tot_deeper - n_deeper) ~ year + school_type + school_locale + grades_pk + grades_elementary + grades_high + c_enrollment + c_bipoc + c_ell + c_frpl + c_swd + (1|school_id), 
+log_dat <- mod_dat %>% 
+  mutate(tot_deeper = 12, #consistent every year; total = 12
+         tot_ed_justice = 19, # 10 in 2019; 15 in 2021 & 2022; 19 in 2023 & 2024
+         tot_individualized = 9, #consistent every year; total = 9
+         tot_misc = 24, #14 in 2019; 18 in 2021; 21 in 2022; 23 in 2023; 24 in 2024
+         tot_postsecondary = 9, #5 in 2019; 7 in 2021 & 2022; 9 in 2023 & 2024
+         max_deeper = 12,
+         max_ed_justice = case_when(
+           year == 2019 ~ 10,
+           year == 2021 | year == 2022 ~ 15,
+           year == 2023 | year == 2024 ~ 19
+         ),
+         max_individualized = 9,
+         max_misc = case_when(
+           year == 2019 ~ 14,
+           year == 2021 ~ 18,
+           year == 2022 ~ 21,
+           year == 2023 ~ 23,
+           year == 2024 ~ 24
+         ),
+         max_postsecondary = case_when(
+           year == 2019 ~ 5,
+           year == 2021 | year == 2022 ~ 7,
+           year == 2023 | year == 2024 ~ 9
+         )) %>% 
+  pivot_longer(cols = c(starts_with("n_"), starts_with("pct_"), starts_with("tot_"), starts_with("max_")),
+               names_to = c(".value", "cluster"),
+               names_pattern = "^([^_]+)_(.*)$") %>% 
+  rowwise() %>% 
+  mutate(success = n,
+         failure = max - n,
+         year = factor(year, levels = c(2021, 2019, 2022, 2023, 2024)),
+         school_type = factor(school_type, levels = c("Public district school", "Public charter school", "Independent (private) school")),
+         school_locale = factor(school_locale, levels = c("Urban", "Suburban", "Rual", "Multiple")))
+```
+
+### Deeper learning
+
+Schools were more likely to select deeper learning tags in years following COVID. Private schools, high schools, and schools with above average proportions of students with disabilities were more likely to select deeper learning tags.    
+
+```{r}
+#manual run because loops aren't working - deeper learning
+deep <- log_dat %>% 
+  filter(cluster == "deeper") %>% 
+  filter(!if_any(all_of(preds), is.na))
+deep_mod <- glm(cbind(success, failure) ~ year + school_type + school_locale + grades_pk + grades_elementary + grades_high + c_enrollment + c_bipoc + c_ell + c_frpl + c_swd,
                 family = binomial,
-                data = mod_dat)
+                data = deep)
 # plot
-tidy(model, effects = "ran_pars", conf.int = TRUE) %>% 
-ggplot(., aes(y = term, x = estimate)) +
-    geom_linerange(aes(xmin = estimate - std.error, 
-                       xmax = estimate + std.error), 
+tidy(deep_mod, effects = "ran_pars", conf.int = TRUE) %>%
+  filter(term != "(Intercept)") %>%
+  mutate(estimate = exp(estimate)) %>% 
+ggplot(., aes(y = fct_reorder(term, estimate), x = estimate)) +
+  geom_linerange(aes(xmin = estimate - std.error,
+                     xmax = estimate + std.error),
+                 color = "blue") +
+  geom_point() +
+  geom_vline(xintercept = 1) +
+  theme_minimal() +
+  theme(panel.grid.major.y = element_blank()) +
+  labs(
+    x = "Likelihood",
+    y = "",
+    title = "School characteristics predicting deeper learning")
+```
+
+### Educational justice
+
+Charter schools, private schools, and schools with above average proportions of BIPOC students and students with disabilities were more likely to select tags in the educational justice cluster. Schools were also more likely to select these practices in 2022, immediately following COVID, but less likely to select these practices in more recent years. Rural schools were less likely to select these practices.  
+
+```{r}
+#manual run because loops aren't working - educational justice
+ed_justice <- log_dat %>% 
+  filter(cluster == "ed_justice") %>% 
+  filter(!if_any(all_of(preds), is.na))
+ed_justice_mod <- glm(cbind(success, failure) ~ year + school_type + school_locale + grades_pk + grades_elementary + grades_high + c_enrollment + c_bipoc + c_ell + c_frpl + c_swd + offset(log(max)),
+                family = binomial,
+                data = ed_justice)
+# plot
+tidy(ed_justice_mod, effects = "ran_pars", conf.int = TRUE) %>%
+  filter(term != "(Intercept)") %>%
+  mutate(estimate = exp(estimate)) %>% 
+  ggplot(., aes(y = fct_reorder(term, estimate), x = estimate)) +
+  geom_linerange(aes(xmin = estimate - std.error,
+                     xmax = estimate + std.error),
+                 color = "blue") +
+  geom_point() +
+  geom_vline(xintercept = 1) +
+  theme_minimal() +
+  theme(panel.grid.major.y = element_blank()) +
+  labs(
+    x = "Estimated effect on cluster",
+    y = "",
+    title = "School characteristics describing educational justice")
+```
+
+### Individualized learning
+
+Private schools and schools serving suburban or multiple geographic areas are more likely to select individualized learning tags. It appears these tags were most likely to be selected in the 2021 COVID year, as every year since shows decreased likelihood relative to that year. 
+
+```{r}
+#manual run because loops aren't working - individualized learning
+individualized <- log_dat %>% 
+  filter(cluster == "individualized") %>% 
+  filter(!if_any(all_of(preds), is.na))
+individualized_mod <- glm(cbind(success, failure) ~ year + school_type + school_locale + grades_pk + grades_elementary + grades_high + c_enrollment + c_bipoc + c_ell + c_frpl + c_swd,
+                family = binomial,
+                data = individualized)
+# plot
+tidy(individualized_mod, effects = "ran_pars", conf.int = TRUE) %>%
+  filter(term != "(Intercept)") %>%
+  mutate(estimate = exp(estimate)) %>% 
+ggplot(., aes(y = fct_reorder(term, estimate), x = estimate)) +
+    geom_linerange(aes(xmin = estimate - std.error,
+                       xmax = estimate + std.error),
                    color = "blue") +
     geom_point() +
+    theme_minimal() +
+  geom_vline(xintercept = 1) +
+    theme(panel.grid.major.y = element_blank()) +
+    labs(
+      x = "Estimated effect on cluster",
+      y = "",
+      title = "School characteristics describing individualized learning")
+```
+
+### Postsecondary pathways
+
+Whether or not a school is a high school was, by far, the most important characteristic that explained their selection of postsecondary pathway tags. High schools were 4x as likely to select postsecondary pathway tags.  
+
+```{r}
+#manual run because loops aren't working - postsecondary
+postsecondary <- log_dat %>% 
+  filter(cluster == "postsecondary") %>% 
+  filter(!if_any(all_of(preds), is.na))
+postsecondary_mod <- glm(cbind(success, failure) ~ year + school_type + school_locale + grades_pk + grades_elementary + grades_high + c_enrollment + c_bipoc + c_ell + c_frpl + c_swd + offset(log(max)),
+                family = binomial,
+                data = postsecondary)
+# plot
+tidy(postsecondary_mod, effects = "ran_pars", conf.int = TRUE) %>%
+  filter(term != "(Intercept)") %>%
+  mutate(estimate = exp(estimate)) %>% 
+ggplot(., aes(y = fct_reorder(term, estimate), x = estimate)) +
+    geom_linerange(aes(xmin = estimate - std.error,
+                       xmax = estimate + std.error),
+                   color = "blue") +
+    geom_point() +
+  geom_vline(xintercept = 1) +
     theme_minimal() +
     theme(panel.grid.major.y = element_blank()) +
     labs(
       x = "Estimated effect on cluster",
       y = "",
-      title = sprintf("School characteristics describing %s", outcome)
-    )
+      title = "School characteristics describing postsecondary pathways")
 ```
 
-```{r, include = FALSE, eval = FALSE}
-#run models
-model_list <- list()
+### Misc.
 
-for (i in seq_along(outcome)) {
-    out <- outcome[i]
-    tot <- outcome_tot[i]
+I ran this one just to see if there were certain types of schools that characterized our miscellaneous cluster. It seems to be mostly private/charter high schools. Not sure if there's much to say about it since it was out "catch-all" cluster.  
 
-    formula_str <- paste("cbind(", out, ",", tot, "-", out, ")", "~", paste(preds, collapse = "+"), "+ (1|school_id)")
-    formula <- as.formula(formula_str)
-    model <- glmer(formula, data = mod_dat, family = binomial)
-    model_list[[outcome]] <- model
-}
-
-#extract coeffs
-tidy_models <- list()
-
-for (outcome in names(model_list)) {
-  tidy_model <- tidy(model_list[[outcome]])
-  tidy_model$outcome <- outcome
-  tidy_models[[outcome]] <- tidy_model
-}
-
-#combine
-plot_data <- do.call(rbind, tidy_models) %>% 
-  arrange(desc(estimate)) %>% 
-  mutate(term = fct_inorder(term))
-```
+```{r}
+#manual run because loops aren't working - misc
+misc <- log_dat %>% 
+  filter(cluster == "misc") %>% 
+  filter(!if_any(all_of(preds), is.na))
+misc_mod <- glm(cbind(success, failure) ~ year + school_type + school_locale + grades_pk + grades_elementary + grades_high + c_enrollment + c_bipoc + c_ell + c_frpl + c_swd + offset(log(max)),
+                family = binomial,
+                data = misc)
+# plot
+tidy(misc_mod, effects = "ran_pars", conf.int = TRUE) %>%
+  filter(term != "(Intercept)") %>%
+  mutate(estimate = exp(estimate)) %>% 
+ggplot(., aes(y = fct_reorder(term, estimate), x = estimate)) +
+    geom_linerange(aes(xmin = estimate - std.error,
+                       xmax = estimate + std.error),
+                   color = "blue") +
+    geom_point() +
+  geom_vline(xintercept = 1) +
+    theme_minimal() +
+    theme(panel.grid.major.y = element_blank()) +
+    labs(
+      x = "Estimated effect on cluster",
+      y = "",
+      title = "School characteristics describing tags without a cluster")
 ```
 
