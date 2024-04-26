@@ -470,7 +470,7 @@ cat_combinations <- catalyst_dat_2024 %>%
   slice(-3) #missing values, just hard coding bc NA wasn't working for some reason
 ```
 
-```{r}
+```{r fig.height=7, fig.width=15}
 ggplot(cat_combinations[1:5, ], aes(x = reorder(combination, n), y = n, fill = combination)) +
   geom_col() +
   labs(title = "Top Catalyst Combinations in 2024", 
@@ -478,7 +478,8 @@ ggplot(cat_combinations[1:5, ], aes(x = reorder(combination, n), y = n, fill = c
        y = "Frequency") +
   coord_flip() +
   scale_fill_manual(values = transcend_cols2) +
-  theme(legend.position = "none")
+  theme(legend.position = "none",
+        axis.text = element_text(size = 15))
 ```
 
 Compare to 2021:
@@ -493,7 +494,7 @@ cat_combinations <- catalyst_dat_2021 %>%
   slice(-7) #missing values, just hard coding bc NA wasn't working for some reason
 ```
 
-```{r}
+```{r fig.height=7, fig.width=15}
 ggplot(cat_combinations[1:5, ], aes(x = reorder(combination, n), y = n, fill = combination)) +
   geom_col() +
   labs(title = "Top Catalyst Combinations in 2021", 
@@ -501,7 +502,8 @@ ggplot(cat_combinations[1:5, ], aes(x = reorder(combination, n), y = n, fill = c
        y = "Frequency") +
   coord_flip() +
   scale_fill_manual(values = transcend_cols2) +
-  theme(legend.position = "none")
+  theme(legend.position = "none",
+        axis.text = element_text(size = 15))
 ```
 
 
