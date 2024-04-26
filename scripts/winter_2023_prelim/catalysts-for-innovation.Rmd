@@ -307,6 +307,39 @@ catalyst_status_dat %>%  datatable()
 ```
 
 
+```{r}
+repeat_cat_viz <- repeat_sch_catalyst_long %>% 
+  count(catalyst, status)
+
+repeat_cat_viz %>% 
+  ggplot(aes(x = catalyst, y = n, fill = status)) +
+  geom_col(position = "dodge") +
+  coord_flip() +
+  scale_fill_manual(values = transcend_cols) +
+  labs(title = "Catalyst Selection for Schools with Both Years of Data",
+       x = "Catalyst",
+       y = "Count",
+       legend = "Status")
+```
+
+```{r}
+repeat_cat_viz <- repeat_sch_catalyst_long %>% 
+  count(catalyst, status) %>% 
+  filter(status != "never selected")
+
+repeat_cat_viz %>% 
+  ggplot(aes(x = catalyst, y = n, fill = status)) +
+  geom_col(position = "dodge") +
+  coord_flip() +
+  scale_fill_manual(values = transcend_cols) +
+  labs(title = "Catalyst Selection for Schools with Both Years of Data",
+       x = "Catalyst",
+       y = "Count",
+       legend = "Status")
+```
+
+Cutting edge was byfar the most selected catalyst for schools with two years of data.
+
 For catalyst_key:
 ```{r}
 repeat_sch_catalyst_key <- catalyst_key_dat_long[duplicated(catalyst_key_dat_long$school_id) | duplicated(catalyst_key_dat_long$school_id, fromLast = TRUE),]
@@ -336,4 +369,35 @@ catalyst_key_status_dat <- repeat_sch_catalyst_key_long %>%
               values_from = "n")
 
 catalyst_key_status_dat %>%  datatable()
+```
+
+```{r}
+repeat_catkey_viz <- repeat_sch_catalyst_key_long %>% 
+  count(catalyst_key, status)
+
+repeat_catkey_viz %>% 
+  ggplot(aes(x = catalyst_key, y = n, fill = status)) +
+  geom_col(position = "dodge") +
+  coord_flip() +
+  scale_fill_manual(values = transcend_cols) +
+  labs(title = "Catalyst Key Selection for Schools with Both Years of Data",
+       x = "Catalyst",
+       y = "Count",
+       legend = "Status")
+```
+
+```{r}
+repeat_catkey_viz <- repeat_sch_catalyst_key_long %>% 
+  count(catalyst_key, status) %>% 
+  filter(status != "never selected")
+
+repeat_catkey_viz %>% 
+  ggplot(aes(x = catalyst_key, y = n, fill = status)) +
+  geom_col(position = "dodge") +
+  coord_flip() +
+  scale_fill_manual(values = transcend_cols) +
+  labs(title = "Catalyst Key Selection for Schools with Both Years of Data",
+       x = "Catalyst",
+       y = "Count",
+       legend = "Status")
 ```
