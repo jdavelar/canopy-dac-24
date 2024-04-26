@@ -175,6 +175,15 @@ results_catalyst_key_only_2024 %>%
   datatable()
 ```
 
+### Catalyst Correlations (with each other)
+
+```{r}
+catalyst_cor <- cor(catalyst_dat_2024[2:10], use = "pairwise.complete.obs")  # exclude other columns, like id, key, & other
+
+corrplot::corrplot(catalyst_cor, method = "circle")
+```
+
+
 ## Changes over Time
 
 ```{r}
@@ -387,9 +396,6 @@ single_use_cat_dat_all %>%
 
 Interestingly, basically no schools only selected one catalyst both years. There was only one school, school **24**, that was the anomaly, and they switched from *inequities* to *demographics*.
 
-#### Cutting edge
-
-
 For catalyst_key:
 ```{r}
 repeat_sch_catalyst_key <- catalyst_key_dat_long[duplicated(catalyst_key_dat_long$school_id) | duplicated(catalyst_key_dat_long$school_id, fromLast = TRUE),]
@@ -451,3 +457,51 @@ repeat_catkey_viz %>%
        y = "Count",
        legend = "Status")
 ```
+
+## Catalyst Groups
+
+```{r}
+cat_combinations <- catalyst_dat_2024 %>%
+  select(1:10) %>%   #just selecting catalyst vars
+  rowwise() %>%
+  mutate(combination = toString(names(.)[which(unlist(c_across(where(is.numeric))) == 1)])) %>%
+  ungroup() %>% 
+  count(combination, sort = TRUE) %>% 
+  slice(-3) #missing values, just hard coding bc NA wasn't working for some reason
+```
+
+```{r}
+ggplot(cat_combinations[1:5, ], aes(x = reorder(combination, n), y = n, fill = combination)) +
+  geom_col() +
+  labs(title = "Top Catalyst Combinations in 2024", 
+       x = "Combination", 
+       y = "Frequency") +
+  coord_flip() +
+  scale_fill_manual(values = transcend_cols2) +
+  theme(legend.position = "none")
+```
+
+Compare to 2021:
+
+```{r}
+cat_combinations <- catalyst_dat_2021 %>%
+  select(1:10) %>%   #just selecting catalyst vars
+  rowwise() %>%
+  mutate(combination = toString(names(.)[which(unlist(c_across(where(is.numeric))) == 1)])) %>%
+  ungroup() %>% 
+  count(combination, sort = TRUE) %>% 
+  slice(-7) #missing values, just hard coding bc NA wasn't working for some reason
+```
+
+```{r}
+ggplot(cat_combinations[1:5, ], aes(x = reorder(combination, n), y = n, fill = combination)) +
+  geom_col() +
+  labs(title = "Top Catalyst Combinations in 2021", 
+       x = "Combination", 
+       y = "Frequency") +
+  coord_flip() +
+  scale_fill_manual(values = transcend_cols2) +
+  theme(legend.position = "none")
+```
+
+
