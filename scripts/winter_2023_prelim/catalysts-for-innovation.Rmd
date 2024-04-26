@@ -340,6 +340,56 @@ repeat_cat_viz %>%
 
 Cutting edge was byfar the most selected catalyst for schools with two years of data.
 
+#### Just one catalyst selected
+
+```{r}
+single_use_cat_dat <- catalyst_dat %>% 
+  filter(usage == 1 & year == 2024) %>% 
+  group_by(school_id) %>% 
+  filter(n() == 1) %>% 
+  ungroup()
+
+single_use_cat_dat$catalyst <- factor(single_use_cat_dat$catalyst, levels = names(sort(table(single_use_cat_dat$catalyst), decreasing = TRUE))) #sort decreasing
+
+single_use_cat_dat %>% 
+  ggplot(aes(x = catalyst)) +
+  geom_bar(aes(fill = catalyst)) +
+  coord_flip() +
+  scale_fill_manual(values = transcend_cols2) +
+  labs(title = "Schools that Selected Only One Catalyst in 2024",
+       x = "Catalyst",
+       y = "Count") +
+  theme(legend.position = "none")
+```
+
+
+```{r}
+single_use_cat_dat2 <- catalyst_dat %>% 
+  filter(usage == 1 & year == 2021) %>% 
+  group_by(school_id) %>% 
+  filter(n() == 1) %>% 
+  ungroup()
+
+single_use_cat_dat_all <- bind_rows(single_use_cat_dat, single_use_cat_dat2)
+
+single_use_cat_dat_all$catalyst <- factor(single_use_cat_dat_all$catalyst, levels = names(sort(table(single_use_cat_dat_all$catalyst), decreasing = TRUE))) #sort decreasing
+
+single_use_cat_dat_all %>% 
+  ggplot(aes(x = catalyst)) +
+  geom_bar(aes(fill = catalyst)) +
+  coord_flip() +
+#  scale_fill_manual(values = transcend_cols) +
+  labs(title = "Schools that Selected Only One Catalyst across Years",
+       x = "Catalyst",
+       y = "Count") +
+  theme(legend.position = "none")
+```
+
+Interestingly, basically no schools only selected one catalyst both years. There was only one school, school **24**, that was the anomaly, and they switched from *inequities* to *demographics*.
+
+#### Cutting edge
+
+
 For catalyst_key:
 ```{r}
 repeat_sch_catalyst_key <- catalyst_key_dat_long[duplicated(catalyst_key_dat_long$school_id) | duplicated(catalyst_key_dat_long$school_id, fromLast = TRUE),]
