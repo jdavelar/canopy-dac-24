@@ -180,7 +180,28 @@ results_catalyst_key_only_2024 %>%
 ```{r}
 catalyst_cor <- cor(catalyst_dat_2024[2:10], use = "pairwise.complete.obs")  # exclude other columns, like id, key, & other
 
-corrplot::corrplot(catalyst_cor, method = "circle")
+corrplot::corrplot(catalyst_cor, method = "shade", type = "lower")
+```
+
+### Catalysts by Clusters
+
+For 2024:
+```{r}
+old_clusters <- import(here("data/clusters_through_2024.csv"))
+cluster_dat <- left_join(tag_dat_2024, old_clusters)
+
+dat_only_2024 <- full_join(catalyst_dat_only_2024, cluster_dat)
+
+results_catalyst_only_2024 <- dat_only_2024 %>%
+  select(starts_with("catalyst_"), usage, cluster, -catalyst_other_text, -starts_with("catalyst_key")) %>%
+  group_by(cluster) %>%
+  summarise(across(starts_with("catalyst_"), ~round(cor(.x, usage, use="complete.obs"), 2))) %>% 
+  pivot_longer(!cluster, names_to = "catalyst", values_to = "correlation") %>% 
+  pivot_wider(names_from = cluster,
+              values_from = correlation)
+
+results_catalyst_only_2024 %>% 
+  datatable()
 ```
 
 
