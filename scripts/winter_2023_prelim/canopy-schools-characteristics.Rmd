@@ -259,7 +259,7 @@ enrollment_viz <- enrollment_dat %>%
   geom_point(color = transcend_cols[1], alpha = 0.6) +
   geom_line(color = transcend_cols[1], alpha = 0.4) +  
   annotate(
-    "text", label = "Note: The Virtual Learning School in Exeter, NH \nhas reported jumping up to 10,000 students \nin 2023 from 298 enrolled the year before.",
+    "text", label = "Note: The Virtual Learning Academy in Exeter, NH \nhas reported jumping up to 10,000 students \nin 2023 from 298 enrolled the year before.",
     x = 2021, y = 7350, size = 4.5, colour = "red"
   ) +
   labs(title = "School Enrollment by Wave with 4+ years of data",
@@ -278,7 +278,7 @@ enrollment_sans_out_viz <- enrollment_dat %>%
   geom_point(color = transcend_cols[1], alpha = 0.6) +
   geom_line(color = transcend_cols[1], alpha = 0.4) +  
   labs(title = "School Enrollment by Wave with 4+ years of data",
-       subtitle = "School ID 234 (outlier Virtual Learning school) was removed.",
+       subtitle = "School ID 234 (outlier Virtual Learning Academy) was removed.",
        x = "Wave Number",
        y = "School Enrollment") 
 enrollment_sans_out_viz
@@ -292,6 +292,105 @@ enrollment_viz + enrollment_sans_out_viz + ncol(2)
 
 ## How have student demographics changed?
 
-### Across schools
+```{r}
+dat <- long_dat %>% 
+  select(school_id, year, starts_with("pct")) %>% 
+  na.omit()
+```
 
-### Within schools
+### English Language Learners 
+
+```{r fig.width=7, fig.height=7}
+dat %>%
+  group_by(school_id) %>% 
+  filter(n()>3) %>% 
+  ungroup() %>% 
+  ggplot(aes(x = year, y = pct_ell)) + 
+  geom_smooth(alpha = 0.3, color = "darkgray") +
+  geom_point(aes(group = school_id), color = transcend_cols2[1], alpha = 0.6) +
+  geom_line(aes(group = school_id), color = transcend_cols2[1], alpha = 0.4) + 
+  scale_y_continuous(labels = scales::percent_format(scale = 100)) + 
+  labs(title = "Pct. English Language Learner \nClassification by Wave",
+       subtitle = "Restricted to Schools with 4+ years of data",
+       x = "Wave Number",
+       y = "Pct. ELL") 
+```
+
+### Students with Disabilities
+
+```{r fig.width=7, fig.height=7}
+dat %>%
+  group_by(school_id) %>% 
+  filter(n()>3) %>% 
+  ungroup() %>% 
+  ggplot(aes(x = year, y = pct_swd)) + 
+  geom_smooth(alpha = 0.3, color = "darkgray") +
+  geom_point(aes(group = school_id), color = transcend_cols[2], alpha = 0.6) +
+  geom_line(aes(group = school_id), color = transcend_cols[2], alpha = 0.4) + 
+  scale_y_continuous(labels = scales::percent_format(scale = 100)) + 
+  labs(title = "Pct. Students with Disabilities \nClassification by Wave",
+       subtitle = "Restricted to Schools with 4+ years of data",       
+       x = "Wave Number",
+       y = "Pct. SWD") 
+```
+
+
+### Free or Reduced Price Lunch
+
+**Note:** We know that the measurement of FRPL is an increasingly unreliable metric, with more schools automatically enrolled and fewer requiring individual enrollment and student-level self-disclosure of FRPL status. While I include the chart below, I do not interpret these analyses due to high measurement error. 
+
+Source: [Click here for more information.](https://www.urban.org/data-tools/measuring-student-poverty-dishing-alternatives-free-and-reduced-price-lunch?s)
+
+```{r fig.width=7, fig.height=7}
+dat %>%
+  group_by(school_id) %>% 
+  filter(n()>3) %>% 
+  ungroup() %>% 
+  ggplot(aes(x = year, y = pct_frpl)) + 
+  geom_smooth(alpha = 0.3, color = "darkgray") +
+  geom_point(aes(group = school_id), color = transcend_cols[1], alpha = 0.6) +
+  geom_line(aes(group = school_id), color = transcend_cols[1], alpha = 0.4) + 
+  scale_y_continuous(labels = scales::percent_format(scale = 100)) + 
+  labs(title = "Pct. Free or Reduced-Price Lunch \nClassification by Wave",
+       subtitle = "Restricted to Schools with 4+ years of data",       
+       x = "Wave Number",
+       y = "Pct. FRPL") 
+```
+
+### Race
+
+```{r fig.width=7, fig.height=7}
+dat %>%
+  group_by(school_id) %>% 
+  filter(n()>3) %>% 
+  ungroup() %>% 
+  ggplot(aes(x = year, y = pct_bipoc)) + 
+  geom_smooth(alpha = 0.3, color = "darkgray") +
+  geom_point(aes(group = school_id), color = transcend_cols[3], alpha = 0.6) +
+  geom_line(aes(group = school_id), color = transcend_cols[3], alpha = 0.4) + 
+  scale_y_continuous(labels = scales::percent_format(scale = 100)) + 
+  labs(title = "Pct. Black, Indigenous, and People of Color \nClassification by Wave",
+       subtitle = "Restricted to Schools with 4+ years of data",       
+       x = "Wave Number",
+       y = "Pct. BIPOC") 
+```
+
+Looks like school ID 105 is doing this weird jump where it goes from less than 1% BIPOC to 100% BIPOC. This is Juab High School in Nephi, Utah. Upon looking at the race breakdown, this looks like a coding error. I will just omit from the analysis for now.
+
+```{r fig.width=7, fig.height=7}
+dat %>%
+  group_by(school_id) %>% 
+  filter(n()>3) %>% 
+  ungroup() %>% 
+  filter(school_id != 105) %>% 
+  ggplot(aes(x = year, y = pct_bipoc)) + 
+  geom_smooth(alpha = 0.3, color = "darkgray") +
+  geom_point(aes(group = school_id), color = transcend_cols[3], alpha = 0.6) +
+  geom_line(aes(group = school_id), color = transcend_cols[3], alpha = 0.4) + 
+  scale_y_continuous(labels = scales::percent_format(scale = 100)) + 
+  labs(title = "Pct. Black, Indigenous, and People of Color \nClassification by Wave",
+       subtitle = "Restricted to Schools with 4+ years of data",       
+       x = "Wave Number",
+       y = "Pct. BIPOC") 
+```
+
