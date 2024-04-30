@@ -113,6 +113,82 @@ changes_reported_by_grade %>%
   scale_fill_manual(values = transcend_cols2)
 ```
 
+*4/30 Modification:* Looks like you structured these by each point given to a grade (correct me if that’s wrong), but curious about remaking the graph tallying schools rather than observation–i.e., show us how many schools expanded or limited grade offerings and which grades were expanded/offered in those cases
+
+```{r fig.width=6, fig.height=8}
+# Introduce counts at the school level
+changes_reported_by_school <- changes_reported %>%
+  group_by(school_id, grade_level, change_status) %>%
+  summarise(count = n(), .groups = "drop") %>%
+  distinct(school_id, grade_level, change_status) %>%
+  count(grade_level, change_status) %>% 
+  mutate(grade_level = sub("grades_", "", grade_level))
+
+# Update grade levels to be factors with the specific order
+changes_reported_by_school$grade_level <- factor(
+  changes_reported_by_school$grade_level, 
+  levels = c("k", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "past_12")
+)
+
+# Visualization: Plotting the number of schools by grade level and change status
+ggplot(changes_reported_by_school, aes(x = grade_level, y = n, fill = change_status)) +
+  geom_col(position = "dodge", width = .7) +
+  coord_flip() +
+  labs(
+    x = "Grade Level",
+    y = "Number of Schools",
+    title = "Changes in Grade Offerings by Schools",
+    subtitle = "Count of schools by change status in grade offerings",
+    fill = "Change Status"
+  ) +
+  scale_fill_manual(values = transcend_cols2) +
+  theme(legend.position = "top",
+        legend.title = element_text(size = 10),
+        legend.text = element_text(size = 8)) +
+  guides(fill = guide_legend(ncol = 5))
+```
+
+We can see that the majority of schools (300+) had only one or fewer data points. I'll remove them for the viz below.
+
+```{r fig.width=6, fig.height=8}
+changes_reported_by_school %>% 
+  filter(change_status != "One or fewer data points") %>% 
+  ggplot(aes(x = grade_level, y = n, fill = change_status)) +
+  geom_col(position = "dodge") +
+  coord_flip() +
+  labs(
+    x = "Grade Level",
+    y = "Number of Schools",
+    title = "Changes in Grade Offerings by Schools",
+    subtitle = "Count of schools by change status in grade offerings",
+    fill = "Change Status"
+  ) +
+  scale_fill_manual(values = transcend_cols) +
+  theme(legend.position = "right")
+```
+
+```{r fig.width=6, fig.height=8}
+changes_reported_by_school %>% 
+  filter(change_status != "One or fewer data points") %>% 
+  filter(change_status != "Stable") %>% 
+  ggplot(aes(x = grade_level, y = n, fill = change_status)) +
+  geom_col(position = "dodge", width = .7) +
+  coord_flip() +
+  labs(
+    x = "Grade Level",
+    y = "Number of Schools",
+    title = "Changes in Grade Offerings by Schools",
+    subtitle = "Count of schools by change status in grade offerings",
+    fill = "Change Status"
+  ) +
+  scale_fill_manual(values = transcend_cols) +
+  theme(legend.position = "top",
+        legend.title = element_text(size = 10),
+        legend.text = element_text(size = 8)) +
+  guides(fill = guide_legend(ncol = 3))
+```
+
+
 ## How has the total number of enrolled students changed within schools?
 
 Similarly, school enrollment within schools have seemed to remain mostly stagnant. The total schools in the survey, followed by schools with 3+ and 5 years of data, are visualized below.
@@ -171,6 +247,48 @@ enrollment_dat %>%
 ```
 
 Notably, school_id 234 has reported jumping up to 10,000 students in 2023 from only 298 the year before. This is the Virtual Learning School in Exeter, NH.
+
+*4/30 modification:* I like these plots–wondering if we can add an annotation in the plot for that outlier to name the school. && The graphs are a little hard to see any trends because one of the schools is such an outlier for enrollment growth. Could you a) omit the outlier to see if the graphs yield more interesting takeaways, and b) explore a way to characterize enrollment change over time in a different way - e.g., on average schools' enrollment grew or shrank by X?
+
+```{r fig.width=7, fig.height=7}
+enrollment_viz <- enrollment_dat %>%
+  group_by(school_id) %>% 
+  filter(n()>3) %>% 
+  ungroup() %>% 
+  ggplot(aes(x = year, y = school_enrollment, group = school_id)) + 
+  geom_point(color = transcend_cols[1], alpha = 0.6) +
+  geom_line(color = transcend_cols[1], alpha = 0.4) +  
+  annotate(
+    "text", label = "Note: The Virtual Learning School in Exeter, NH \nhas reported jumping up to 10,000 students \nin 2023 from 298 enrolled the year before.",
+    x = 2021, y = 7350, size = 4.5, colour = "red"
+  ) +
+  labs(title = "School Enrollment by Wave with 4+ years of data",
+       x = "Wave Number",
+       y = "School Enrollment") 
+enrollment_viz
+```
+
+```{r fig.width=7, fig.height=7}
+enrollment_sans_out_viz <- enrollment_dat %>%
+  group_by(school_id) %>% 
+  filter(n()>3) %>% 
+  filter(school_id != 234) %>% 
+  ungroup() %>% 
+  ggplot(aes(x = year, y = school_enrollment, group = school_id)) + 
+  geom_point(color = transcend_cols[1], alpha = 0.6) +
+  geom_line(color = transcend_cols[1], alpha = 0.4) +  
+  labs(title = "School Enrollment by Wave with 4+ years of data",
+       subtitle = "School ID 234 (outlier Virtual Learning school) was removed.",
+       x = "Wave Number",
+       y = "School Enrollment") 
+enrollment_sans_out_viz
+```
+
+```{r}
+library(patchwork)
+enrollment_viz + enrollment_sans_out_viz + ncol(2)
+```
+
 
 ## How have student demographics changed?
 
