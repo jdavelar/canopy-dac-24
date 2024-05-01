@@ -37,7 +37,7 @@ I first selected grade level offerings by school by year to conduct a within-sch
 ```{r}
 dat <- long_dat %>% 
   select(school_id, year, starts_with("grades")) %>% 
-  select(-c(3:6, 21:22)) #not select elem, mid, high, & other columns
+  select(-c(4:6, 21:22)) #not select elem, mid, high, & other columns
   
 grades_long <- dat %>%
   pivot_longer(
@@ -100,7 +100,7 @@ table(changes_reported$change_status)
 Below, these values are also visualized.
 
 ```{r}
-changes_reported_by_grade$grade_level <- factor(changes_reported_by_grade$grade_level, levels = c("k", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "past_12"))
+changes_reported_by_grade$grade_level <- factor(changes_reported_by_grade$grade_level, levels = c("pk","k", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "past_12"))
 
 changes_reported_by_grade %>% 
   ggplot() +
@@ -127,7 +127,7 @@ changes_reported_by_school <- changes_reported %>%
 # Update grade levels to be factors with the specific order
 changes_reported_by_school$grade_level <- factor(
   changes_reported_by_school$grade_level, 
-  levels = c("k", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "past_12")
+  levels = c("pk","k", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "past_12")
 )
 
 # Visualization: Plotting the number of schools by grade level and change status
