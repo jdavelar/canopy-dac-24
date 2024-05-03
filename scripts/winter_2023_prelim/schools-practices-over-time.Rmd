@@ -2,7 +2,10 @@
 title: "Preliminary Look at Schools over Time"
 author: "Gregor Thomas"
 date: "2023-12-30"
-output: html_document
+output:
+  html_document:
+    toc: yes
+    toc_float: yes
 ---
 
 ```{r setup, include=FALSE}
@@ -33,6 +36,8 @@ old_clusters = import(here("data/clusters_through_2024.csv"))
 ```
 
 > The object of inquiry here is the school - how has each school's number of reported practices changed?
+
+## Number of practices selected over time
 
 We'll begin by including schools that participated in 2, 3, and 4 surveys, and 
 looking at how many practices they selected each year in total. (The blue line
@@ -120,7 +125,8 @@ overall_summary_4p |>
   datatable(
     rownames = FALSE,
     caption = "Average number of practices selected in each survey year, by the number of years the school responded to the survey (blue lines in the graph above). (Restricted to practices present on at least 4 surveys.)",
-    options = list(autoWidth = TRUE, iDisplayLength = 25)
+    options = list( iDisplayLength = 25, autowidth = TRUE),
+    class = "compact"
   ) |>
   formatRound("avg_tags", digits = 1) |>
   formatStyle(
@@ -128,6 +134,8 @@ overall_summary_4p |>
     backgroundColor = styleEqual(levels = c(2, 3, 4, 5), values = transcend_cols[1:4])
   )
 ```
+
+## Adds and Drops
 
 Which schools are adding and dropping practices? The table below shows, for
 each school responding to multiple surveys, how many practices they added,
@@ -172,7 +180,7 @@ school_changes |>
     caption = "Number of 4+-survey-year practices added, dropped, and waffled (both added and dropped) by schools with multiple survey responses.") 
 ```
 
-## Focus on the Wafflers
+### Focus on the Wafflers
 
 Purdue Polytechnic and Juab HS waffled a lot. Here's the raw data, including all
 practices that they selected in at least 1 year.
@@ -220,50 +228,70 @@ waffle_all = long_4y |>
   #filter(school_id %in% wafflers) |>
   filter(
     all(0:1 %in% usage),    ## added and dropped 
-    n() > 2,                ## at least 3 survey respones
+    n() > 2,                ## at least 3 survey responses
     .by = c(var, school_id)
   ) |> 
   mutate(
     added = any(diff(usage) == 1),
     dropped = any(diff(usage) == -1),
     waffled = added & dropped,
+    waffle_bump = waffled & last(usage, na_rm = TRUE) == 0,
+    waffle_dip = waffled & last(usage, na_rm = TRUE) == 1,
     .by = c(var, school_id)
   ) |>
   pivot_wider(names_from = year, values_from = usage) |>
   left_join(sch, by = "school_id") |>
-  select(school_id, school_name, tag = var, `2019`:`2024`, added, dropped, waffled) |>
+  select(school_id, school_name, tag = var, `2019`:`2024`, added, dropped, starts_with("waffle")) |>
   arrange(school_id, desc(waffled)) |>
   mutate(
     binary_summary = paste(`2019`, `2021`, `2022`, `2023`, `2024`, sep = ","),
-    covid_bump = 1 %in% `2021` & waffled,
-    covid_dip =  0 %in% `2021` & waffled
+    waffle_type = case_when(
+      `2021` == 1 & `2019` == 0 & waffled ~ "COVID bump",
+      `2021` == 0 & `2019` == 1 & waffled ~ "COVID dip",
+      waffle_bump ~ "non-COVID bump",
+      waffle_dip ~ "non-COVID dip"
+    )
   ) 
 
 waffle_all |>
-  count(binary_summary, waffled, covid_bump, covid_dip) |>
+  filter(waffled) |>
+  count(waffle_type) |>
   arrange(desc(n)) |>
   datatable(
     rownames = FALSE,
-    options = list(autoWidth = TRUE, iDisplayLength = 25),
-    caption = "Pattern binary summaries"
+    options = list(autoWidth = TRUE, iDisplayLength = 5),
+    caption = "COVID vs non-COVID wafflers"
+  )
+
+
+waffle_all |>
+  filter(waffled) |>
+  count(binary_summary, waffle_type) |>
+  arrange(desc(n)) |>
+  datatable(
+    rownames = FALSE,
+    options = list(autoWidth = TRUE, iDisplayLength = 20),
+    caption = "Aggregate wafflers binary summaries"
   )
 
 waffle_all |>
-  count(tag, binary_summary, waffled, covid_bump, covid_dip) |>
+  filter(waffled) |>
+  count(tag, binary_summary, waffle_type) |>
   arrange(desc(n), tag) |>
   datatable(
     rownames = FALSE,
-    options = list(autoWidth = TRUE, iDisplayLength = 25),
-    caption = "Tag binary summaries"
+    options = list(autoWidth = TRUE, iDisplayLength = 10),
+    caption = "Tag wafflers binary summaries"
   )
 
 waffle_all |>
-  count(school_id, school_name, binary_summary, waffled, covid_bump, covid_dip) |>
+  filter(waffled) |>
+  count(school_id, school_name, binary_summary, waffle_type) |>
   arrange(desc(n), school_name) |>
   datatable(
     rownames = FALSE,
-    options = list(autoWidth = TRUE, iDisplayLength = 25),
-    caption = "School binary summaries"
+    options = list(autoWidth = TRUE, iDisplayLength = 10),
+    caption = "School wafflers binary summaries"
   )
 
 
@@ -331,7 +359,7 @@ ggplot(tag_changes_with_color, aes(y = var)) +
   labs(
     y = "",
     x = "Number of schools adding/dropping",
-    title = "4+-year tags added and dropped"
+    title = "4+year tags added and dropped"
   ) +
   facet_grid(rows = vars(cluster), scales = "free_y", space = "free_y") +
   theme(
@@ -368,18 +396,18 @@ changes_2y = long_2y |>
   ) |>
   filter(added | dropped)
 
-changes_2y |>
-  filter(var == "practices_opportunities_mastery") #|>
-  arrange(school_id, var, year) |>
-  summarize(
-    added = any(diff(usage) == 1),
-    dropped = any(diff(usage) == -1),
-    waffled = added & dropped,
-    modified = added | dropped,
-    n = n(),
-    .by = c(var, school_id)
-  ) |>
-  arrange(desc(n))
+# changes_2y |>
+#   filter(var == "practices_opportunities_mastery") #|>
+#   arrange(school_id, var, year) |>
+#   summarize(
+#     added = any(diff(usage) == 1),
+#     dropped = any(diff(usage) == -1),
+#     waffled = added & dropped,
+#     modified = added | dropped,
+#     n = n(),
+#     .by = c(var, school_id)
+#   ) |>
+#   arrange(desc(n))
 #  filter(added | dropped)
 
 
@@ -416,6 +444,8 @@ tag_changes_2y = changes_2y |>
 
 tag_changes_2y |> arrange(desc(net_adds), desc(added)) |> datatable()
 ```
+
+## Tag change plots
 
 ```{r, fig.height = 14, fig.width = 10}
 
@@ -460,7 +490,7 @@ The *practices_services_learning* outlier needs some investigation, the table sh
 30 waffles. 
 
 
-# Little bit of modeling
+## Little bit of modeling
 
 Here we'll build a model for how volatile/dynamic school's tagging
 practices are.
@@ -727,6 +757,73 @@ add_post_covid[["coef_plot"]] + labs(title = "Post-COVID Additions")
 ```
 
 There's not a lot going on here, I think it's time to call it on the volatility modeling.
+
+## Consistency and Carrying On
+
+When a school completes a survey for the 2nd time (or more), let's look at the overlap
+in tag selections the make. For each 2nd+ survey response, we'll calculate
+a consistency fraction - among the tags present in both survey years, how many 
+changes did the school make (adds or drops) divided by the number of tags selected in the first year.
+
+
+```{r}
+changes_by_year = long |>
+  filter(n_distinct(year) > 1, .by = school_id) |>
+  arrange(school_id, var, year) |>
+  mutate(
+    prev = lag(usage, default = NA), 
+      ## this should be NA if the tag was not used previously
+    diff = usage - lag(usage, default = NA),
+    .by = c(var, school_id)
+  ) |>
+  slice(-1, .by = c(school_id, var)) |> ## drop first responses by school and tag
+  summarize(
+    n_adds = sum(diff == 1, na.rm = TRUE),
+    n_drops = sum(diff == -1, na.rm = TRUE),
+    n_changes = sum(diff != 0, na.rm = TRUE),
+    n_same = sum(diff == 0, na.rm = TRUE),
+    n_kept_1 = sum(diff == 0 & usage == 1, na.rm = TRUE),
+    n_kept_0 = sum(diff == 0 & usage == 0, na.rm = TRUE),
+    n_prev_1 = sum(prev == 1, na.rm = TRUE),
+    n_prev_0 = sum(prev == 0, na.rm = TRUE),
+    n_prev_all = sum(!is.na(prev), na.rm = TRUE),
+    .by = c(school_id, year)
+  ) |>
+  mutate(
+    prop_changed = n_changes / n_prev_all,
+    prop_same = n_same / n_prev_all
+  )
+
+changes_by_year |>
+datatable(
+  rownames = FALSE,
+  caption = "Change summaries by schools in consecutive survey responses.)",
+    options = list(autoWidth = TRUE, iDisplayLength = 10)
+  ) |>
+  formatRound(c("prop_changed", "prop_same"), digits = 3)
+```
+
+```{r fig.height = 12, fig.width = 5}
+ggplot(changes_by_year, aes(x = prop_same)) +
+  geom_histogram(
+    bins = 30,
+    boundary = 1, closed = "right",
+  ) +
+  facet_wrap(vars(year), ncol = 1) +
+  scale_x_continuous(
+    limits = c(0, 1),
+    labels = scales::percent_format(accuracy = 1),
+    expand = expansion(mult = c(0, 0))
+  ) +
+  #expand_limits(x = 0) +
+  labs(
+    y = "Count of responding schools",
+    x = "Percent of practice responses\nunchanged from previous response",
+    title = "consistency of practice"
+  ) +
+  theme(axis.text.x = element_text(angle = -45, size = rel(0.8), vjust = 0.1, hjust = ifelse(-45 < 0, 0, 0.5)))
+```
+
 
 ```{r n_tags_model, include = FALSE, eval=FALSE}
 ## old code to model Number of tags each schools chose by year
