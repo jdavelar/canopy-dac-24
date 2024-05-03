@@ -108,12 +108,12 @@ ggplot(school_summary_4p, aes(x = year, y = n_tags)) +
   geom_line(data = overall_summary_4p, aes(y = avg_tags), color = transcend_cols[1], linewidth = 1.2) +
   facet_wrap(vars(paste(n_years, "years participation"))) +
   labs(
-    title = "# of practices selected by schools (4+-year practices only)"
+    title = "# of practices selected by schools (4+year practices only)"
   ) +
   angle_text_x()
 ```
 
-The table below shows the blue-line averages of the above graph (with 4+-year practices).
+The table below shows the blue-line averages of the above graph (with 4+year practices).
 There we can see that while the average number of selected practices by about 6-7
 practices over the entire 2019-2024 period (focusing mostly on the schools responding 
 in 3 or more years).
@@ -177,7 +177,7 @@ school_changes = changes |>
 school_changes |>
   datatable(
     rownames = FALSE,
-    caption = "Number of 4+-survey-year practices added, dropped, and waffled (both added and dropped) by schools with multiple survey responses.") 
+    caption = "Number of 4+survey-year practices added, dropped, and waffled (both added and dropped) by schools with multiple survey responses.") 
 ```
 
 ### Focus on the Wafflers
@@ -221,9 +221,22 @@ waffle_detail |>
 ```
 
 
-### Repeating the Above for All 4+Year Schools
+### COVID Dips and Bumps
 
 ```{r}
+potential_wafflers = long_4y |>
+  distinct(school_id, year) |>
+  filter(n_distinct(year) >= 3, .by = school_id) |>
+  summarize(
+    years = toString(year),
+    could_covid_waffle = 2021 %in% year & 2019 %in% year,
+    could_regular_waffle = (! (2021 %in% year & 2019 %in% year)) | (n_distinct(year) >= 4),
+    .by = school_id
+  )
+
+waffle_denom = potential_wafflers |>
+  summarize(across(starts_with("could"), sum))
+
 waffle_all = long_4y |>
   #filter(school_id %in% wafflers) |>
   filter(
@@ -256,16 +269,55 @@ waffle_all = long_4y |>
 waffle_all |>
   filter(waffled) |>
   count(waffle_type) |>
-  arrange(desc(n)) |>
+  separate_wider_delim(waffle_type, delim = " ", names = c("pandemic", "type")) |>
+  pivot_wider(names_from = type, values_from = n) |>
+  arrange(pandemic) |> ### COVID on top
+  mutate(
+    all_waffles = bump + dip,
+    n_schools_that_could_waffle = c(waffle_denom$could_covid_waffle, waffle_denom$could_regular_waffle),
+    waffles_per_school = all_waffles / n_schools_that_could_waffle
+  ) |>
   datatable(
     rownames = FALSE,
     options = list(autoWidth = TRUE, iDisplayLength = 5),
     caption = "COVID vs non-COVID wafflers"
-  )
+  ) |>
+  formatRound("waffles_per_school", digits = 1)
+```
 
+### Most and least waffled tags
 
+```{r}
 waffle_all |>
-  filter(waffled) |>
+  summarize(
+    n_waffle_all = sum(waffled),
+    n_no_waffle = sum(!waffled),
+    n_waffle_bump = sum(waffle_bump),
+    n_waffle_dip = sum(waffle_dip),
+    n_covid_bump = sum(waffle_type == "COVID bump", na.rm = TRUE),
+    n_covid_dip = sum(waffle_type == "COVID dip", na.rm = TRUE),
+    n_covid_all = n_covid_bump + n_covid_dip,
+    n_reg_bump = sum(waffle_type == "non-COVID bump", na.rm = TRUE),
+    n_reg_dip = sum(waffle_type == "non-COVID dip", na.rm = TRUE),
+    prop_waffles = n_waffle_all / (n_waffle_all + n_no_waffle),
+    prop_waffles_in_covid_weighted = (n_covid_all + 1) / (n_waffle_all + 2),
+    prop_bump_weighted = (n_waffle_bump + 1) / (n_waffle_all + 2),
+    .by = tag
+  ) |>
+   datatable(
+    rownames = FALSE,
+    options = list(autoWidth = TRUE, iDisplayLength = 10),
+    caption = "The Big Table of Waffling Tags"
+  ) |>
+  formatPercentage(c("prop_waffles", "prop_waffles_in_covid_weighted", "prop_bump_weighted"), digits = 1)
+```
+
+
+### Waffles with binary summaries
+
+```{r}
+waffle_all |>
+  #filter(waffled) |>
   count(binary_summary, waffle_type) |>
   arrange(desc(n)) |>
   datatable(
@@ -275,7 +327,7 @@ waffle_all |>
   )
 
 waffle_all |>
-  filter(waffled) |>
+  #filter(waffled) |>
   count(tag, binary_summary, waffle_type) |>
   arrange(desc(n), tag) |>
   datatable(
@@ -285,7 +337,7 @@ waffle_all |>
   )
 
 waffle_all |>
-  filter(waffled) |>
+  #filter(waffled) |>
   count(school_id, school_name, binary_summary, waffle_type) |>
   arrange(desc(n), school_name) |>
   datatable(
@@ -822,6 +874,40 @@ ggplot(changes_by_year, aes(x = prop_same)) +
     title = "consistency of practice"
   ) +
   theme(axis.text.x = element_text(angle = -45, size = rel(0.8), vjust = 0.1, hjust = ifelse(-45 < 0, 0, 0.5)))
+```
+
+```{r}
+unchanged_summary = changes_by_year |>
+  summarize(
+    mean_unchanged = mean(prop_same),
+    sd_unchanged = sd(prop_same),
+    q1_unchanged = quantile(prop_same, 0.25),
+    q3_unchanged = quantile(prop_same, 0.75),
+    n_year = n(),
+    .by = year
+  )
+ggplot(unchanged_summary, aes(x = mean_unchanged, y = year)) +
+  geom_pointrange(
+    aes(xmin = q1_unchanged, xmax = q3_unchanged),
+    color = transcend_cols[1]
+  ) +
+  scale_x_continuous(
+    labels = scales::label_percent(),
+    limits = c(0.6, 1),
+    expand = expansion(0, 0)
+  ) +
+  scale_y_continuous(
+    labels = \(x) paste(x - 1, x, sep = "-")
+  ) +
+  labs(
+    title = "Consistency of practice",
+    subtitle = "Percent of practices unchanged\ncompared to each school's previous response",
+    y = "Survey year",
+    x = "Percent of practices with the same response\n(Points show the average, ranges extend from 1st to 3rd quartile)"
+  ) +
+  theme(
+    panel.grid.major.y = element_blank()
+  )
 ```
 
 
