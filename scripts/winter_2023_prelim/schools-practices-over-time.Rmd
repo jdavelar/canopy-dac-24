@@ -287,29 +287,33 @@ waffle_all |>
 
 ### Most and least waffled tags
 
-```{r}
+```{r, echo = TRUE}
 waffle_all |>
   summarize(
     n_waffle_all = sum(waffled),
     n_no_waffle = sum(!waffled),
+    n_present_never_dropped = sum((1 %in% `2019` | 1 %in% `2021` |1 %in% `2022` |1 %in% `2023`) & ! dropped),
     n_waffle_bump = sum(waffle_bump),
     n_waffle_dip = sum(waffle_dip),
     n_covid_bump = sum(waffle_type == "COVID bump", na.rm = TRUE),
     n_covid_dip = sum(waffle_type == "COVID dip", na.rm = TRUE),
-    n_covid_all = n_covid_bump + n_covid_dip,
+    n_covid_waffle = n_covid_bump + n_covid_dip,
     n_reg_bump = sum(waffle_type == "non-COVID bump", na.rm = TRUE),
     n_reg_dip = sum(waffle_type == "non-COVID dip", na.rm = TRUE),
+    n_reg_waffle = n_reg_bump + n_reg_dip,
     prop_waffles = n_waffle_all / (n_waffle_all + n_no_waffle),
-    prop_waffles_in_covid_weighted = (n_covid_all + 1) / (n_waffle_all + 2),
-    prop_bump_weighted = (n_waffle_bump + 1) / (n_waffle_all + 2),
+    prop_covid_waffles_wtd = (n_covid_waffle + 1) / (n_waffle_all + 2),
+    prop_reg_waffles_wtd = (n_reg_waffle + 1) / (n_waffle_all + 2),
+    #prop_bump_weighted = (n_waffle_bump + 1) / (n_waffle_all + 2),
     .by = tag
   ) |>
+  select(tag, n_waffle_all, n_reg_waffle, n_covid_waffle, everything()) |>
    datatable(
     rownames = FALSE,
     options = list(autoWidth = TRUE, iDisplayLength = 10),
     caption = "The Big Table of Waffling Tags"
   ) |>
-  formatPercentage(c("prop_waffles", "prop_waffles_in_covid_weighted", "prop_bump_weighted"), digits = 1)
+  formatPercentage(c("prop_waffles", "prop_covid_waffles_wtd", "prop_reg_waffles_wtd"), digits = 1)
 ```
 
 
