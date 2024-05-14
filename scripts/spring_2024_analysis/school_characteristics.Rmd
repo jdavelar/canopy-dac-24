@@ -1,0 +1,128 @@
+---
+title: "2024 School Characteristics"
+author: "Janette Avelar"
+date: '2024-04-30'
+output: 
+  html_document:
+    toc: true
+    toc_float: true
+    theme: flatly
+    highlight: tango
+    code_folding: hide
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, warnings = FALSE, message = FALSE)
+pacman::p_load(tidyverse, here, rio, DT, ggthemes) #plotly, parameters, ggrepel, 
+#read in data
+load("data/2024 data/complete_canopy_2024.RData")
+```
+
+```{r}
+#manual branding - file won't load
+transcend_cols = c("#1A4C81","#59C3B4","#EF464B","#ADE0EE")
+transcend_cols2 = c("#BC2582","#FFA630","#FFDE42","#99C24D","#218380","#D3B7D7")
+transcend_grays = c("#4D4D4F","#9D9FA2","#D1D3D4")
+transcend_na = transcend_grays[2]
+theme_transcend = theme_gdocs(base_size = 14, base_family = "Open Sans") +
+  theme(
+    plot.title = element_text(family = "Bebas Neue", color = "black"),
+    plot.background = element_blank(),
+    axis.text = element_text(colour = "black"),
+    axis.title = element_text(colour = "black"),
+    panel.border = element_rect(colour = "#4D4D4F"),
+    strip.text = element_text(size = rel(0.8)),
+    plot.margin = margin(10, 24, 10, 10, "pt")
+  )
+theme_set(theme_transcend)
+```
+
+```{r}
+#barplot function
+barplot <- function(x, metric, title = "Some title"){
+  # Ensure metric is a character string
+  if (!is.character(metric) || length(metric) != 1) {
+    stop("Metric must be a single character string indicating 'n' or 'pct'.")
+  }
+  
+  data <- variables %>% 
+    mutate(rate = 1) %>% 
+    group_by({{x}}) %>% 
+    summarize(n = sum(rate)) %>% 
+    ungroup() %>% 
+    mutate(total = sum(n),
+           pct = n/total) %>% 
+    filter(!is.na({{x}}))
+  
+  y_var <- ifelse(metric == "n", "n", "pct")
+  y_lab <- ifelse(metric == "n", "Number of schools", "Percentage of schools")
+
+  # Setup plot
+  plot <- ggplot(data, aes(x = {{x}}, y = .data[[y_var]], fill = {{x}})) +
+    geom_col() +
+    scale_fill_manual(values = transcend_cols) +
+    theme(legend.position = "none", panel.grid.major.x = element_blank()) +
+    labs(title = title, x = "", y = y_lab)
+  
+  # Configure y-axis and labels based on metric
+  if (metric == "n") {
+    max_y <- max(data[[y_var]], na.rm = TRUE)
+    limit_upper <- max_y * 1.1
+    plot <- plot + scale_y_continuous(expand = c(0, 0), limits = c(0, limit_upper))
+    plot <- plot + geom_text(aes(label = n), nudge_y = 0.5, vjust = 0, color = transcend_na, fontface = "bold", size = 5.5, family = "sans")
+  } else if (metric == "pct") {
+    plot <- plot + scale_y_continuous(expand = c(0, 0), limits = c(0, 1), labels = scales::percent_format())
+    plot <- plot + geom_text(aes(label = scales::label_percent(accuracy = 1)(pct)), nudge_y = 0.01, vjust = 0, color = transcend_na, fontface = "bold", size = 5.5, family = "sans")
+  }
+  
+  return(plot)
+}
+```
+
+
+## Locale  
+
+Guiding question: **What's the breakdown of schools in the data by locale (urban, suburban, rural)?**
+
+```{r}
+barplot(school_locale, 'n', "Canopy schools by geographic region")
+barplot(school_locale, 'pct', "Canopy schools by geographic region")
+```
+
+
+## Level  
+
+Guiding question: **What's the breakdown of schools in the data by level (elementary, middle, high)?**
+
+```{r}
+
+```
+
+
+## Type  
+
+Guiding question: **What's the breakdown of schools in the data by school type (charter, district, independent)?**
+
+```{r}
+barplot(school_type, 'n', "Canopy schools by type")
+barplot(school_type, 'pct', "Canopy schools by type")
+```
+
+
+## Descriptor  
+
+Guiding question: **What's the breakdown of schools by descriptor?**
+
+## Demographics  
+
+### Students  
+
+### Leadership  
+
+Guiding question: **What's the racial/ethnic breakdown of Canopy school leadership teams?**
+
+### Region  
+
+Guiding question: **Which states are represented or not?**

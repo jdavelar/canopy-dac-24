@@ -15,7 +15,7 @@ editor_options:
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE, warnings = FALSE, message = FALSE)
-pacman::p_load(tidyverse, here, rio, DT, parameters, ggrepel, plotly, broom, lme4, gridExtra)
+pacman::p_load(tidyverse, here, rio, DT, parameters, ggrepel, plotly, broom, lme4, gridExtra, ggthemes)
 #read in data
 dat <- import(here("data/longitudinal", "tags-long.csv"))
 #read in tag labels
@@ -217,6 +217,19 @@ prep_net_3 <- function(data){
 
 ```{r}
 ### PLOT FUNCTIONS ###
+#theme function - could not load branding file
+transcend_cols = c("#1A4C81","#59C3B4","#EF464B","#ADE0EE")
+theme_transcend = theme_gdocs(base_size = 14, base_family = "Open Sans") +
+  theme(
+    plot.title = element_text(family = "Bebas Neue", color = "black"),
+    #plot.subtitle = element_text(family = "Open Sans", size = rel(0.8)),
+    plot.background = element_blank(),
+    axis.text = element_text(colour = "black"),
+    axis.title = element_text(colour = "black"),
+    panel.border = element_rect(colour = "#4D4D4F"),
+    strip.text = element_text(size = rel(0.8)),
+    plot.margin = margin(10, 24, 10, 10, "pt")
+  )
 #plot function for across schools
 cluster_plot_across <- function(data, x, y, labels) {
   #palette <- c("#BC2582", "#FFA630", "#FFDE42", "#99C24D", "#218380", "#D3B7D7")
@@ -245,7 +258,8 @@ cluster_plot_across <- function(data, x, y, labels) {
                     size = 3,
                     box.padding = 0.3,
                     point.padding = 2
-                    )
+                    ) +
+    theme_transcend
   
   return(plot)
 }
@@ -260,8 +274,9 @@ cluster_plot_within <- function(data, facet) { #data, x, y, facet, group
     theme_bw() +
     scale_x_continuous(name = "Year", expand = expansion(mult = c(.025, .3))) +
     theme(panel.grid.major.x = element_blank(), panel.grid.minor.x = element_blank(), legend.position = "none") +
-    facet_wrap(as.formula(paste0("~", facet))) #+  #, scales = "free_y"
+    facet_wrap(as.formula(paste0("~", facet))) +  #, scales = "free_y"
     #labs(x = x, y = y)
+    theme_transcend
 
   return(plot)
 }
@@ -278,7 +293,8 @@ net_change_plot <- function(data){
     scale_y_continuous(labels = scales::percent_format(accuracy = 1)) +
     labs(x = "", y = "Normalized net change",
          subtitle = "Values above the dashed line indicate growth. Values below the dashed line indicate decline.") +
-    geom_hline(aes(yintercept = 0), size = .25, linetype = "dashed")
+    geom_hline(aes(yintercept = 0), size = .25, linetype = "dashed") +
+    theme_transcend
   
   interactive <- ggplotly(plot, tooltip = c("year", "norm_net", "label"))
   
@@ -828,12 +844,13 @@ merge_blended <- prep_overall(dat, blended_tags, repeaters_2, tots_2) %>%
 all_clust <- bind_rows(merge_deep, merge_ed_justice, merge_individualized, merge_postsecondary, merge_none, merge_blended)
 all_clust %>% 
   ggplot(., aes(year, pct)) +
-  geom_line(aes(group = label), color = "gray", alpha = 0.5) + 
-  geom_point(aes(group = label), color = "gray", alpha = 0.5, size = 1) + 
-  geom_smooth(se = FALSE, method = "lm", color = "cornflowerblue", aes(group = 1)) + 
+  #geom_line(aes(group = label), color = "gray", alpha = 0.5) + 
+  #geom_point(aes(group = label), color = "gray", alpha = 0.5, size = 1) + 
+  geom_smooth(se = FALSE, method = "loess", color = "cornflowerblue", aes(group = 1)) + 
   theme_bw() +
   scale_x_continuous(breaks = unique(all_clust$year)) +
-  scale_y_continuous(labels = scales::percent_format(accuracy = 1)) +
+  scale_y_continuous(labels = scales::percent_format(accuracy = 1),
+                     limits = c(0, 1)) +
   theme(panel.grid.major.x = element_blank(), panel.grid.minor.x = element_blank(), legend.position = "none") +
   facet_wrap(~cluster) +
   labs(x = "", y = "Rate of selection")
@@ -845,16 +862,23 @@ rm(merge_deep, merge_ed_justice, merge_individualized, merge_postsecondary, merg
 ```{r}
 all_clust %>% 
   filter(var %in% rep_tags) %>% 
-  ggplot(., aes(year, pct)) +
-  geom_line(aes(group = label), color = "gray", alpha = 0.5) + 
-  geom_point(aes(group = label), color = "gray", alpha = 0.5, size = 1) + 
-  geom_smooth(se = FALSE, method = "lm", color = "cornflowerblue", aes(group = 1)) + 
+  filter(cluster != "Blended learning (alternate)", cluster != "No cluster") %>% 
+  ggplot(., aes(year, pct, color = cluster)) +
+  #geom_line(aes(group = label), color = "gray", alpha = 0.5) + 
+  #geom_point(aes(group = label), color = "gray", alpha = 0.5, size = 1) + 
+  geom_smooth(se = FALSE, method = "lm", aes(group = cluster)) + #color = "cornflowerblue", aes(group = 1)
+  scale_color_manual(values = transcend_cols) +
   theme_bw() +
-  scale_x_continuous(breaks = unique(all_clust$year)) +
-  scale_y_continuous(labels = scales::percent_format(accuracy = 1)) +
-  theme(panel.grid.major.x = element_blank(), panel.grid.minor.x = element_blank(), legend.position = "none") +
-  facet_wrap(~cluster) +
-  labs(x = "", y = "Rate of selection")
+  scale_x_continuous(breaks = unique(all_clust$year),
+                     expand = c(0,0)) +
+  scale_y_continuous(labels = scales::percent_format(accuracy = 1),
+                     limits = c(0, 1),
+                     expand = c(0,0)) +
+  #facet_wrap(~cluster) +
+  labs(x = "", y = "Rate of selection", color = "Cluster") +
+  theme_transcend +
+  theme(legend.position = "bottom", legend.direction = "horizontal") + #panel.grid.major.x = element_blank(), panel.grid.minor.x = element_blank(), 
+  guides(color = guide_legend(ncol = 2))
 ```
 
 ### Overall growth rate among repeat schools (2+ years) using stable tags (3+ years)
@@ -964,9 +988,8 @@ net_change_plot(all_clust)
 ### Net change (static version with labels)
 
 ```{r}
-palette <- c("#6cac8c", "#ff6f69","#d3d3d3")
 static <- all_clust %>% 
-  filter(var != "Blended learning (alternate)") %>% 
+  filter(var != "Blended learning (alternate)", var != "No cluster") %>% 
   ungroup() %>% 
   mutate(max_cum = max(cum_norm_net),
          min_cum = min(cum_norm_net),
@@ -983,11 +1006,11 @@ static <- all_clust %>%
          x_coord = 2024.5,
          y_coord = norm_net[which.max(year)]) %>% 
   ungroup()
-ggplot(static, aes(year, norm_net, color = type, group = var, text = label)) +
-  geom_line(alpha = 0.8) +
+ggplot(static, aes(year, norm_net, color = var, group = var, text = label)) +
+  geom_line() +
   geom_point(alpha = 0.5, size = 1) +
-  scale_color_manual(values = palette) +
-  theme_bw() +
+  scale_color_manual(values = transcend_cols) +
+  theme_transcend +
   theme(panel.grid.major.x = element_blank(), panel.grid.minor.x = element_blank(), legend.position = "none") +
   scale_x_continuous(expand = expansion(mult = c(0, .25))) +
   scale_y_continuous(labels = scales::percent_format(accuracy = 1)) +
@@ -1442,9 +1465,9 @@ log_dat <- mod_dat %>%
   rowwise() %>% 
   mutate(success = n,
          failure = max - n,
-         year = factor(year, levels = c(2021, 2019, 2022, 2023, 2024)),
+         year = factor(year, levels = c(2019, 2021, 2022, 2023, 2024)),
          school_type = factor(school_type, levels = c("Public district school", "Public charter school", "Independent (private) school")),
-         school_locale = factor(school_locale, levels = c("Urban", "Suburban", "Rual", "Multiple")))
+         school_locale = factor(school_locale, levels = c("Urban", "Suburban", "Rural", "Multiple")))
 ```
 
 ### Deeper learning
@@ -1469,7 +1492,7 @@ ggplot(., aes(y = fct_reorder(term, estimate), x = estimate)) +
                  color = "blue") +
   geom_point() +
   geom_vline(xintercept = 1) +
-  theme_minimal() +
+  theme_transcend +
   theme(panel.grid.major.y = element_blank()) +
   labs(
     x = "Likelihood",
@@ -1499,7 +1522,7 @@ tidy(ed_justice_mod, effects = "ran_pars", conf.int = TRUE) %>%
                  color = "blue") +
   geom_point() +
   geom_vline(xintercept = 1) +
-  theme_minimal() +
+  theme_transcend +
   theme(panel.grid.major.y = element_blank()) +
   labs(
     x = "Estimated effect on cluster",
@@ -1523,18 +1546,17 @@ individualized_mod <- glm(cbind(success, failure) ~ year + school_type + school_
 tidy(individualized_mod, effects = "ran_pars", conf.int = TRUE) %>%
   filter(term != "(Intercept)") %>%
   mutate(estimate = exp(estimate)) %>% 
-ggplot(., aes(y = fct_reorder(term, estimate), x = estimate)) +
-    geom_linerange(aes(xmin = estimate - std.error,
+  ggplot(., aes(y = fct_reorder(term, estimate), x = estimate)) +
+  geom_linerange(aes(xmin = estimate - std.error,
                        xmax = estimate + std.error),
                    color = "blue") +
-    geom_point() +
-    theme_minimal() +
+  geom_point() +
+  theme_transcend +
   geom_vline(xintercept = 1) +
-    theme(panel.grid.major.y = element_blank()) +
-    labs(
-      x = "Estimated effect on cluster",
-      y = "",
-      title = "School characteristics describing individualized learning")
+  theme(panel.grid.major.y = element_blank()) +
+  labs(x = "Estimated effect on cluster",
+       y = "",
+       title = "School characteristics describing individualized learning")
 ```
 
 ### Postsecondary pathways
@@ -1553,18 +1575,17 @@ postsecondary_mod <- glm(cbind(success, failure) ~ year + school_type + school_l
 tidy(postsecondary_mod, effects = "ran_pars", conf.int = TRUE) %>%
   filter(term != "(Intercept)") %>%
   mutate(estimate = exp(estimate)) %>% 
-ggplot(., aes(y = fct_reorder(term, estimate), x = estimate)) +
-    geom_linerange(aes(xmin = estimate - std.error,
+  ggplot(., aes(y = fct_reorder(term, estimate), x = estimate)) +
+  geom_linerange(aes(xmin = estimate - std.error,
                        xmax = estimate + std.error),
                    color = "blue") +
-    geom_point() +
+  geom_point() +
   geom_vline(xintercept = 1) +
-    theme_minimal() +
-    theme(panel.grid.major.y = element_blank()) +
-    labs(
-      x = "Estimated effect on cluster",
-      y = "",
-      title = "School characteristics describing postsecondary pathways")
+  theme_transcend +
+  theme(panel.grid.major.y = element_blank()) +
+  labs(x = "Estimated effect on cluster",
+       y = "",
+       title = "School characteristics describing postsecondary pathways")
 ```
 
 ### Misc.
@@ -1583,17 +1604,16 @@ misc_mod <- glm(cbind(success, failure) ~ year + school_type + school_locale + g
 tidy(misc_mod, effects = "ran_pars", conf.int = TRUE) %>%
   filter(term != "(Intercept)") %>%
   mutate(estimate = exp(estimate)) %>% 
-ggplot(., aes(y = fct_reorder(term, estimate), x = estimate)) +
-    geom_linerange(aes(xmin = estimate - std.error,
-                       xmax = estimate + std.error),
-                   color = "blue") +
-    geom_point() +
+  ggplot(., aes(y = fct_reorder(term, estimate), x = estimate)) +
+  geom_linerange(aes(xmin = estimate - std.error,
+                     xmax = estimate + std.error),
+                     color = "blue") +
+  geom_point() +
   geom_vline(xintercept = 1) +
-    theme_minimal() +
-    theme(panel.grid.major.y = element_blank()) +
-    labs(
-      x = "Estimated effect on cluster",
-      y = "",
-      title = "School characteristics describing tags without a cluster")
+  theme_transcend +
+  theme(panel.grid.major.y = element_blank()) +
+  labs(x = "Estimated effect on cluster",
+       y = "",
+       title = "School characteristics describing tags without a cluster")
 ```
 

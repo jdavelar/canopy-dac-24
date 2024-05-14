@@ -1,0 +1,46 @@
+"school_id","school_name","added","dropped","waffled","modified","type","school_city","school_state","school_type","school_locale","school_enrollment","school_level","last_participated","n_years"
+69,"EPiC Elementary",5,0,0,5,"adds","Liberty","Missouri","Public district school","Suburban",293,"Elementary",2022,3
+174,"Salem High School (VA)",5,0,0,5,"adds","Salem","Virginia","Public district school","Suburban",1278,"High",2021,2
+183,"Shawnee High School",5,0,0,5,"adds","Shawnee","Oklahoma","Public district school","Rural",1282,"High",2021,2
+205,"The NET Charter High School: Gentilly",5,0,0,5,"adds","New Orleans","Louisiana","Public charter school","Urban",135,"High",2024,2
+32,"Charlotte Lab School",4,2,1,5,"adds","Charlotte","North Carolina","Public charter school","Urban",950,"K-12",2024,3
+49,"Crosstown High",4,0,0,4,"adds","Memphis","Tennessee","Public district school",NA,NA,NA,2021,2
+130,"Minnesota New Country School",4,0,0,4,"adds","Henderson","Minnesota","Public charter school","Rural",129,"Jr/Sr High",2021,2
+134,"Native American Community Academy",4,0,0,4,"adds","Albuquerque","New Mexico","Public charter school","Urban",462,"K-12",2021,2
+189,"Social Justice Humanitas Academy",4,2,2,4,"adds","San Fernando","California","Public district school","Suburban",445,"High",2023,4
+209,"Two Rivers Public Charter School: 4th Street Campus",4,2,2,4,"adds","Washington","District of Columbia","Public charter school","Urban",399,"Elementary",2023,4
+229,"Winterboro High School",4,0,0,4,"adds","Alpine","Alabama","Public district school","Rural",NA,NA,2021,2
+452,"Nokomis Regional High",4,2,2,4,"adds","Newport","Maine","Public district school","Rural",617,"High",2024,4
+502,"Liberty Academy",4,0,0,4,"adds","Liberty","Missouri","Public district school","Suburban",1115,"High",2024,3
+24,"Boston Day and Evening Academy",3,1,1,3,"adds","Boston","Massachusetts","Public charter school","Urban",310,"High",2024,5
+67,"Empower Community High School",3,2,2,3,"adds","Aurora","Colorado","Public charter school","Urban",120,NA,2022,3
+48,"Conservatory Lab Charter School",1,5,1,5,"drops","Boston","Massachusetts","Public charter school","Urban",450,"K-8",2024,3
+124,"Meadows Valley School PK-12",0,5,0,5,"drops","New Meadows","Idaho","Public district school","Rural",161,"K-12",2021,2
+302,"Lincoln Middle School (AR)",1,5,1,5,"drops","Lincoln","Arkansas","Public district school","Rural",402,"K-8",2024,4
+81,"Future Public School",1,4,1,4,"drops","Boise","Idaho","Public charter school","Suburban",410,"Elementary",2024,5
+91,"Mott Haven Academy",2,4,2,4,"drops","New York","New York","Public charter school","Urban",502,"K-8",2024,4
+208,"TRIO Wolf Creek Distance Learning Charter School",2,4,2,4,"drops","Chisago City","Minnesota","Public charter school","Rural",220,"High",2024,4
+348,"Science Leadership Academy",2,4,1,5,"drops","Philadelphia","Pennsylvania","Public district school","Urban",499,"High",2024,4
+353,"South Bronx Community Charter High School",2,4,2,4,"drops","New York City","New York","Public charter school","Urban",375,"High",2024,4
+400,"Legacy Prep",0,4,0,4,"drops","Birmingham","Alabama","Public charter school","Urban",381,"Elementary",2023,2
+35,"CICS West Belden",2,3,2,3,"drops","Chicago","Illinois","Public charter school","Urban",531,"K-8",2024,3
+63,"East College Prep",0,3,0,3,"drops","Los Angeles","California","Public charter school","Urban",351,"High",2023,3
+66,"Ember Charter School for Mindful Education; Innovation; and Transformation",0,3,0,3,"drops","Brooklyn","New York","Public charter school","Urban",415,"K-12",2024,2
+94,"Highline Big Picture",2,3,2,3,"drops","Burien, WA","Washington","Public district school","Suburban",205,"Jr/Sr High",2022,3
+119,"Madison Palmer High School",1,3,0,4,"drops","Marks","Mississippi","Public district school","Rural",266,"High",2022,2
+167,"Red Bank Elementary",0,3,0,3,"drops","Lexington","South Carolina","Public district school","Suburban",570,"Elementary",2023,2
+150,"One Stone",5,6,5,6,"waffles","Boise","Idaho","Independent (private) school","Multiple",92,"High",2024,5
+165,"Purdue Polytechnic High School - Englewood",5,5,5,5,"waffles","Indianapolis","Indiana","Public charter school","Urban",543,"High",2023,4
+85,"Girls Athletic Leadership Middle School",4,4,4,4,"waffles","Denver","Colorado","Public charter school","Urban",197,"Middle",2024,5
+105,"Juab High School",6,4,4,6,"waffles","Nephi","Utah","Public district school","Rural",874,"High",2024,5
+247,"Blue Valley Center for Advanced Professional Studies (CAPS)",5,4,4,5,"waffles","Blue Valley","Kansas","Public district school","Suburban",900,"High",2024,4
+15,"Avalon School",3,4,3,4,"waffles","St. Paul","Minnesota","Public charter school","Urban",265,"Jr/Sr High",2024,4
+38,"City Garden Montessori School",4,3,3,4,"waffles","St. Louis","Missouri","Public charter school","Urban",492,"K-8",2023,3
+52,"DB EXCEL (Kingsport)",3,5,3,5,"waffles","Kingsport","Tennessee","Public district school","Suburban",250,"High",2024,5
+70,"Evergreen Community Charter School",3,3,3,3,"waffles","Asheville","North Carolina","Public charter school","Multiple",444,"K-8",2023,4
+71,"Fannie Lou Hamer Freedom High School",4,3,3,4,"waffles","New York","New York","Public district school","Urban",460,"High",2024,5
+76,"Flushing International High School",3,3,3,3,"waffles","New York","New York","Public district school","Urban",423,"High",2024,4
+98,"Howard Middle School for Math and Science",3,4,3,4,"waffles","Washington","District of Columbia","Public charter school","Urban",288,"Middle",2024,5
+140,"Noble High School",5,3,3,5,"waffles","North Berwick","Maine","Public district school","Rural",1197,"High",2024,4
+144,"Northside Elementary School",3,3,3,3,"waffles","Rogers","Arkansas","Public district school","Urban",440,"Elementary",2023,4
+8,"Anastasis Academy",2,2,2,2,"waffles","Centennial","Colorado","Independent (private) school","Suburban",54,"K-8",2024,5
