@@ -370,6 +370,42 @@ repeat_cat_viz %>%
 
 Cutting edge was byfar the most selected catalyst for schools with two years of data.
 
+### May 13 modification -- Create version within school using percentage
+
+```{r}
+within_selection_catalyst <- repeat_sch_catalyst_long %>% 
+  group_by(catalyst) %>% 
+  summarise(selected_2021 = sum(`2021`),
+            selected_2024 = sum(`2024`)) %>% 
+  mutate(pct_2021 = selected_2021/sum(selected_2021),
+         pct_2024 = selected_2024/sum(selected_2024)) %>% 
+  select(-c(selected_2021, selected_2024)) %>% 
+  pivot_longer(cols = starts_with("pct"),
+               names_to = "year",
+               values_to = "percent",
+               names_prefix = "pct_") %>% 
+  mutate(year = as.integer(year))
+```
+
+```{r}
+label_positions <- within_selection_catalyst %>% 
+  group_by(catalyst) %>% 
+  summarize(year = 2021, percent = first(percent))
+
+within_selection_catalyst %>% 
+  ggplot(aes(x = year, y = percent, color = catalyst)) +
+  geom_line() +
+  geom_text_repel(data = label_positions, aes(label = catalyst)) +
+  scale_x_continuous(breaks = c(2021, 2024)) +
+  scale_y_continuous(labels = percent_format()) +
+  labs(x = "Year",
+       y = "Percentage of Schools Selecting each Catalyst",
+       title = "Catalyst Selection by Year") +
+  theme(legend.position = "none")
+```
+
+
+
 #### Just one catalyst selected
 
 ```{r}

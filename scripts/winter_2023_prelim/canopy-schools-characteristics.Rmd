@@ -132,7 +132,7 @@ changes_reported_by_school$grade_level <- factor(
 
 # Visualization: Plotting the number of schools by grade level and change status
 ggplot(changes_reported_by_school, aes(x = grade_level, y = n, fill = change_status)) +
-  geom_col(position = "dodge", width = .7) +
+  geom_col(position = position_dodge(preserve = "single"), width = .7) +
   coord_flip() +
   labs(
     x = "Grade Level",
@@ -154,7 +154,7 @@ We can see that the majority of schools (300+) had only one or fewer data points
 changes_reported_by_school %>% 
   filter(change_status != "One or fewer data points") %>% 
   ggplot(aes(x = grade_level, y = n, fill = change_status)) +
-  geom_col(position = "dodge") +
+  geom_col(position = position_dodge(preserve = "single")) +
   coord_flip() +
   labs(
     x = "Grade Level",
@@ -172,7 +172,7 @@ changes_reported_by_school %>%
   filter(change_status != "One or fewer data points") %>% 
   filter(change_status != "Stable") %>% 
   ggplot(aes(x = grade_level, y = n, fill = change_status)) +
-  geom_col(position = "dodge", width = .7) +
+  geom_col(width = .7, position = position_dodge(preserve = "single")) +
   coord_flip() +
   labs(
     x = "Grade Level",
@@ -306,7 +306,7 @@ dat %>%
   filter(n()>3) %>% 
   ungroup() %>% 
   ggplot(aes(x = year, y = pct_ell)) + 
-  geom_smooth(alpha = 0.3, color = "darkgray") +
+  geom_smooth(alpha = 0.3, color = "darkgray", se = FALSE) +
   geom_point(aes(group = school_id), color = transcend_cols2[1], alpha = 0.6) +
   geom_line(aes(group = school_id), color = transcend_cols2[1], alpha = 0.4) + 
   scale_y_continuous(labels = scales::percent_format(scale = 100)) + 
@@ -324,7 +324,7 @@ dat %>%
   filter(n()>3) %>% 
   ungroup() %>% 
   ggplot(aes(x = year, y = pct_swd)) + 
-  geom_smooth(alpha = 0.3, color = "darkgray") +
+  geom_smooth(alpha = 0.3, color = "darkgray", se = FALSE) +
   geom_point(aes(group = school_id), color = transcend_cols[2], alpha = 0.6) +
   geom_line(aes(group = school_id), color = transcend_cols[2], alpha = 0.4) + 
   scale_y_continuous(labels = scales::percent_format(scale = 100)) + 
@@ -347,7 +347,7 @@ dat %>%
   filter(n()>3) %>% 
   ungroup() %>% 
   ggplot(aes(x = year, y = pct_frpl)) + 
-  geom_smooth(alpha = 0.3, color = "darkgray") +
+  geom_smooth(alpha = 0.3, color = "darkgray", se = FALSE) +
   geom_point(aes(group = school_id), color = transcend_cols[1], alpha = 0.6) +
   geom_line(aes(group = school_id), color = transcend_cols[1], alpha = 0.4) + 
   scale_y_continuous(labels = scales::percent_format(scale = 100)) + 
@@ -365,7 +365,7 @@ dat %>%
   filter(n()>3) %>% 
   ungroup() %>% 
   ggplot(aes(x = year, y = pct_bipoc)) + 
-  geom_smooth(alpha = 0.3, color = "darkgray") +
+  geom_smooth(alpha = 0.3, color = "darkgray", se = FALSE) +
   geom_point(aes(group = school_id), color = transcend_cols[3], alpha = 0.6) +
   geom_line(aes(group = school_id), color = transcend_cols[3], alpha = 0.4) + 
   scale_y_continuous(labels = scales::percent_format(scale = 100)) + 
@@ -384,7 +384,7 @@ dat %>%
   ungroup() %>% 
   filter(school_id != 105) %>% 
   ggplot(aes(x = year, y = pct_bipoc)) + 
-  geom_smooth(alpha = 0.3, color = "darkgray") +
+  geom_smooth(alpha = 0.3, color = "darkgray", se = FALSE) +
   geom_point(aes(group = school_id), color = transcend_cols[3], alpha = 0.6) +
   geom_line(aes(group = school_id), color = transcend_cols[3], alpha = 0.4) + 
   scale_y_continuous(labels = scales::percent_format(scale = 100)) + 
