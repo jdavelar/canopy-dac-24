@@ -17,21 +17,116 @@ editor_options:
 knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE)
 pacman::p_load(tidyverse, here, rio, DT, ggcorrplot, psych, parameters)
 
-#read in catalyst data
-dat <- import(here("data/longitudinal", "longitudinal_data.csv"))
-
-#read in tag data
-tag_dat <- import(here("data/longitudinal", "tags-long.csv"))
-
-#import tag labels
-labels <- import(here("data/longitudinal", "tag-labels.csv"))
+load(here("data/2024 data", "complete_canopy_2024.RData"))
+source(here("scripts/branding.R"))
 ```
 
-# Cycle 2
+# Cycle 2 - 2024 Only Tag Analysis
 
 ## How long have schools been implementing each core practice?
 
+```{r}
+time_vars <- tags %>% 
+  select(starts_with("time")) %>% 
+  pivot_longer(cols = everything(),
+               names_to = "practice",
+               values_to = "frequency",
+               names_prefix = "time_") %>% 
+  group_by(practice, frequency) %>% 
+  summarise(count_tag = n()) %>% 
+  mutate(frequency = case_when(frequency == 0 ~ "Not a core practice",
+                               frequency == 1 ~ "Less than a year",
+                               frequency == 2 ~ "1-2 years",
+                               frequency == 3 ~ "3-4 years",
+                               frequency == 4 ~ "5+ years",
+                               frequency == 5 ~ "Not sure"))
+
+# time_vars$frequency <- ifelse(is.na(time_vars$frequency), "Missing/Not Sure", time_vars$frequency)
+
+time_vars <- time_vars %>% 
+  pivot_wider(names_from = frequency,
+              values_from = count_tag) %>% 
+  # mutate(`Not sure`= ifelse(is.na(`Not sure`), 0, `Not sure`),
+  #        `Missing/Not Sure` = `Missing/Not Sure` + `Not sure`) %>% 
+  select(-`Not sure`) %>% 
+  select(c(1, 4, 3, 5, 6, 2))
+```
+
+```{r}
+time_vars %>% datatable()
+```
+
+```{r}
+time_vars %>% 
+  arrange(-`5+ years`) %>% 
+  head() %>% 
+  ggplot(aes(x = reorder(practice, `5+ years`), y = `5+ years`)) +
+  geom_col(aes(fill = practice)) +
+  coord_flip() +
+  theme_bw() +
+  theme(legend.position = "none") +
+  labs(x = "Top Practices",
+       title = "Practices Used Longest and Most Often")
+```
+
+
 ## What are the top tags selected when disaggregated? (By locale, level, type, leadership team, etc.)
+
+```{r}
+dis_agg <- full %>% 
+  select(school_id, contains("locale_"), starts_with("grades_"), school_descriptor) %>% 
+  select(-c(2, 3))
+```
+
+```{r}
+disag_tags <- tags %>% 
+  select(school_id, starts_with("time")) %>% 
+  pivot_longer(cols = starts_with("time"),
+               names_to = "practice",
+               values_to = "frequency",
+               names_prefix = "time_")%>% 
+  left_join(., dis_agg) %>% 
+  mutate(frequency = case_when(frequency == 0 ~ "Not a core practice",
+                               frequency == 1 ~ "Less than a year",
+                               frequency == 2 ~ "1-2 years",
+                               frequency == 3 ~ "3-4 years",
+                               frequency == 4 ~ "5+ years",
+                               frequency == 5 ~ "Not sure"))
+```
+
+### School Descriptor
+
+```{r}
+disag_tags <- disag_tags %>% 
+  mutate(school_descriptor = case_when(school_descriptor == 1 ~ "Public district school",
+                                       school_descriptor == 2 ~ "Public charter school",
+                                       school_descriptor == 3 ~ "Independent (private) school"))
+```
+
+```{r}
+school_type_tags <- disag_tags %>% 
+  group_by(school_descriptor, practice, frequency) %>% 
+  summarise(n = n())
+```
+
+```{r}
+school_type_tags %>% 
+  filter(frequency != "Not a core practice") %>% 
+  arrange(desc(n)) %>% 
+  ggplot(aes(x = practice, y = n, group = frequency)) +
+  geom_col(aes(fill = frequency), position = "dodge") +
+  coord_flip() +
+  theme_bw() +
+  theme(legend.position = "none") +
+  labs(x = "Top Practices",
+       title = "Practices Used Longest and Most Often") +
+  facet_wrap(~school_descriptor)
+```
+
+```{r}
+op
+```
+
 
 ## What are the top core tags selected when disaggregated? (By locale, level, type, leadership team, etc.)
 
