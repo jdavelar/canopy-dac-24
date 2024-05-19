@@ -1,0 +1,198 @@
+---
+title: 'Looking Forward: The Next 5 Years'
+author: "Janette Avelar"
+date: '2024-05-19'
+output: 
+  html_document:
+    toc: true
+    toc_float: true
+    theme: flatly
+    highlight: tango
+    code_folding: hide
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE, fig.width = 8, fig.height = 6)
+pacman::p_load(tidyverse, here, rio, DT, ggthemes, scales)
+#read in data
+load(here("data", "2024 data/complete_canopy_2024.RData"))
+```
+
+```{r}
+#manual branding - file won't load
+transcend_cols = c("#1A4C81","#59C3B4","#EF464B","#ADE0EE")
+transcend_cols2 = c("#BC2582","#FFA630","#FFDE42","#99C24D","#218380","#D3B7D7")
+transcend_grays = c("#4D4D4F","#9D9FA2","#D1D3D4")
+transcend_na = transcend_grays[2]
+theme_transcend = theme_gdocs(base_size = 14, base_family = "Open Sans") +
+  theme(
+    plot.title = element_text(family = "Bebas Neue", color = "black"),
+    plot.background = element_blank(),
+    axis.text = element_text(colour = "black"),
+    axis.title = element_text(colour = "black"),
+    panel.border = element_rect(colour = "#4D4D4F"),
+    strip.text = element_text(size = rel(0.8)),
+    plot.margin = margin(10, 24, 10, 10, "pt")
+  )
+theme_set(theme_transcend)
+```
+
+# Future resources
+
+Guiding question: **How concerned are school leaders about sustainability over the next 5 years?**  
+
+The majority (61%) of Canopy school leaders reported feeling concerned about sustainability over the next 5 years. By contrast, only around 20% of school leaders indicated they were not concerned about sustainability.  
+
+```{r}
+variables %>% 
+  select(school_id, future_resources) %>% 
+  mutate(rate = 1) %>% 
+  group_by(future_resources) %>% 
+  summarize(n = sum(rate),
+            pct = n/189) %>% 
+  filter(!is.na(future_resources)) %>% 
+  mutate(group = case_when(
+    future_resources == "Yes, extremely" | future_resources == "Yes, somewhat" ~ "Concerned",
+    future_resources == "No, not at all" | future_resources == "No, not very" ~ "Not concerned",
+    TRUE ~ "Neutral"
+  ),
+  future_resources = factor(future_resources,
+                            levels = c("Yes, extremely", "Yes, somewhat", "Neutral", "No, not very", "No, not at all"))) %>% 
+  ggplot(., aes(future_resources, pct, fill = group)) +
+  geom_col() +
+  scale_fill_manual(values = c(transcend_cols[3], transcend_grays[1], transcend_cols[1])) +
+  scale_y_continuous(expand = c(0, 0), limits = c(0, 1), labels = scales::percent_format()) +
+  theme(legend.position = "none", panel.grid.major.x = element_blank()) +
+  labs(x = "", y = "Percent of schools", title = "School leader concern with future sustainability") +
+  geom_text(aes(label = scales::label_percent(accuracy = 1)(pct)), nudge_y = 0.01, vjust = 0, color = transcend_na, fontface = "bold", size = 5.5, family = "sans") +
+  scale_x_discrete(labels = wrap_format(10))
+```
+
+Guiding question: **Are certain types of schools more/less likely to be concerned about resources?**  
+
+Suburban schools were least concerned about future sustainability while schools serving rural or multiple geographic regions held the highest levels of concern.  
+
+```{r}
+variables %>% 
+  select(school_id, future_resources, school_locale) %>% 
+  mutate(concern = case_when(
+    future_resources == "Yes, extremely" | future_resources == "Yes, somewhat" ~ "Concerned",
+    future_resources == "No, not at all" | future_resources == "No, not very" ~ "Not concerned",
+    TRUE ~ "Neutral"
+  )) %>% 
+  mutate(rate = 1) %>% 
+  group_by(concern, school_locale) %>% 
+  summarize(n = sum(rate)) %>% 
+  ungroup() %>% 
+  group_by(school_locale) %>% 
+  mutate(sum = sum(n),
+         pct = n/sum) %>% 
+  ungroup() %>% 
+  filter(!is.na(school_locale)) %>% 
+  ggplot(., aes(school_locale, pct, fill = concern)) +
+  geom_col() +
+  scale_fill_manual(values = c(transcend_cols[3], transcend_na, transcend_cols[1])) +
+  scale_y_continuous(expand = c(0, 0), limits = c(0, 1), labels = scales::percent_format()) +
+  theme(legend.position = "bottom", legend.direction = "horizontal", panel.grid.major.y = element_blank()) +
+  labs(x = "", y = "Percent of schools", title = "School leader concern with future sustainability", fill = "Level of concern") +
+  coord_flip()
+```
+
+Independent schools had the least concern about future sustainability, while public charter schools had the most concern.  
+
+```{r}
+variables %>% 
+  select(school_id, future_resources, school_type) %>% 
+  mutate(concern = case_when(
+    future_resources == "Yes, extremely" | future_resources == "Yes, somewhat" ~ "Concerned",
+    future_resources == "No, not at all" | future_resources == "No, not very" ~ "Not concerned",
+    TRUE ~ "Neutral"
+  )) %>% 
+  mutate(rate = 1) %>% 
+  group_by(concern, school_type) %>% 
+  summarize(n = sum(rate)) %>% 
+  ungroup() %>% 
+  group_by(school_type) %>% 
+  mutate(sum = sum(n),
+         pct = n/sum) %>% 
+  ungroup() %>% 
+  filter(!is.na(school_type)) %>% 
+  ggplot(., aes(school_type, pct, fill = concern)) +
+  geom_col() +
+  scale_fill_manual(values = c(transcend_cols[3], transcend_na, transcend_cols[1])) +
+  scale_y_continuous(expand = c(0, 0), limits = c(0, 1), labels = scales::percent_format()) +
+  theme(legend.position = "bottom", legend.direction = "horizontal", panel.grid.major.y = element_blank()) +
+  labs(x = "", y = "Percent of schools", title = "School leader concern with future sustainability", fill = "Level of concern") +
+  scale_x_discrete(labels = wrap_format(10)) +
+  coord_flip()
+```
+
+Schools leaders across grade bands reported similar levels of concern with future sustainability.  
+
+```{r}
+variables %>% 
+  select(school_id, future_resources, grades_pk, grades_elementary, grades_middle, grades_high) %>% 
+  group_by(future_resources) %>% 
+  summarize(PK = sum(grades_pk),
+            Elementary = sum(grades_elementary),
+            Middle = sum(grades_middle),
+            High = sum(grades_high)) %>% 
+  ungroup() %>% 
+  pivot_longer(cols = c(PK, Elementary, Middle, High),
+               names_to = "school_level",
+               values_to = "n") %>% 
+  group_by(school_level) %>% 
+  mutate(sum = sum(n),
+         pct = n/sum,
+         concern = case_when(
+    future_resources == "Yes, extremely" | future_resources == "Yes, somewhat" ~ "Concerned",
+    future_resources == "No, not at all" | future_resources == "No, not very" ~ "Not concerned",
+    TRUE ~ "Neutral"
+  )) %>% 
+  ungroup() %>% 
+  ggplot(., aes(school_level, pct, fill = concern)) +
+  geom_col() +
+  scale_fill_manual(values = c(transcend_cols[3], transcend_na, transcend_cols[1])) +
+  scale_y_continuous(expand = c(0, 0), limits = c(0, 1), labels = scales::percent_format()) +
+  theme(legend.position = "bottom", legend.direction = "horizontal", panel.grid.major.y = element_blank()) +
+  labs(x = "", y = "Percent of schools", title = "School leader concern with future sustainability", fill = "Level of concern") +
+  coord_flip()
+```
+
+Schools reporting additional school descriptors had higher levels of concern about future sustainability, particularly hybrid schools, virtual schools, and homeschooling cooperatives. However, the number of schools that fall into each of these categories is much less stable than for other categories. For instance, homeschooling cooperatives only describe 3 schools in our sample, thus, the proportion of concern is accurate, but we should be careful about the amount of emphasis we place on this finding as it only represents a tiny fraction of our sample.  
+
+```{r}
+variables %>% 
+  select(school_id, future_resources, starts_with("school_desc"), -school_desc_other_text) %>% 
+  group_by(future_resources) %>% 
+  summarize(`Homeschooling cooperative` = sum(school_desc_homeschool),
+            `Hybrid school` = sum(school_desc_hybrid),
+            Microschool = sum(school_desc_micro),
+            `Part time school` = sum(school_desc_part_time),
+            `School within school` = sum(school_desc_sws),
+            `Virtual school` = sum(school_desc_virtual),
+            Other = sum(school_desc_other)) %>% 
+  ungroup() %>% 
+  pivot_longer(cols = !future_resources,
+               names_to = "school_desc",
+               values_to = "n") %>% 
+  group_by(school_desc) %>% 
+  mutate(sum = sum(n),
+         pct = n/sum,
+         concern = case_when(
+    future_resources == "Yes, extremely" | future_resources == "Yes, somewhat" ~ "Concerned",
+    future_resources == "No, not at all" | future_resources == "No, not very" ~ "Not concerned",
+    TRUE ~ "Neutral"
+  )) %>% 
+  ungroup() %>% 
+  ggplot(., aes(school_desc, pct, fill = concern)) +
+  geom_col() +
+  scale_fill_manual(values = c(transcend_cols[3], transcend_na, transcend_cols[1])) +
+  scale_y_continuous(expand = c(0, 0), limits = c(0, 1), labels = scales::percent_format()) +
+  theme(legend.position = "bottom", legend.direction = "horizontal", panel.grid.major.y = element_blank()) +
+  labs(x = "", y = "Percent of schools", title = "School leader concern with future sustainability", fill = "Level of concern") +
+  scale_x_discrete(labels = wrap_format(10)) +
+  coord_flip()
+```

@@ -15,9 +15,9 @@ editor_options:
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE, warnings = FALSE, message = FALSE)
-pacman::p_load(tidyverse, here, rio, DT, ggthemes) #plotly, parameters, ggrepel, 
+pacman::p_load(tidyverse, here, rio, DT, ggthemes, scales, statebins) #plotly, parameters, ggrepel, 
 #read in data
-load("data/2024 data/complete_canopy_2024.RData")
+load(here("data", "2024 data/complete_canopy_2024.RData"))
 ```
 
 ```{r}
@@ -41,13 +41,13 @@ theme_set(theme_transcend)
 
 ```{r}
 #barplot function
-barplot <- function(x, metric, title = "Some title"){
+barplot <- function(x, data, metric, palette = transcend_cols, title = "Some title"){
   # Ensure metric is a character string
   if (!is.character(metric) || length(metric) != 1) {
     stop("Metric must be a single character string indicating 'n' or 'pct'.")
   }
   
-  data <- variables %>% 
+  data <- data %>% 
     mutate(rate = 1) %>% 
     group_by({{x}}) %>% 
     summarize(n = sum(rate)) %>% 
@@ -62,7 +62,7 @@ barplot <- function(x, metric, title = "Some title"){
   # Setup plot
   plot <- ggplot(data, aes(x = {{x}}, y = .data[[y_var]], fill = {{x}})) +
     geom_col() +
-    scale_fill_manual(values = transcend_cols) +
+    scale_fill_manual(values = palette) +
     theme(legend.position = "none", panel.grid.major.x = element_blank()) +
     labs(title = title, x = "", y = y_lab)
   
@@ -84,36 +84,96 @@ barplot <- function(x, metric, title = "Some title"){
 
 ## Locale  
 
-Guiding question: **What's the breakdown of schools in the data by locale (urban, suburban, rural)?**
+Guiding question: **What's the breakdown of schools in the data by locale (urban, suburban, rural)?**  
+
+As in prior years, the majority of our schools serve students in urban geographic regions (52%). Roughly 1 in 5 schools serve rural regions and mixed regions. Suburban schools just shy of 10% constitute the smallest group, a notable drop from previous years. It's possible this could indicate our new labels "multiple" for mixed regions better describes their student populations than "suburban" alone.  
 
 ```{r}
-barplot(school_locale, 'n', "Canopy schools by geographic region")
-barplot(school_locale, 'pct', "Canopy schools by geographic region")
+barplot(school_locale, variables, 'n', transcend_cols, "Canopy schools by geographic region")
+barplot(school_locale, variables, 'pct', transcend_cols, "Canopy schools by geographic region")
 ```
 
 
 ## Level  
 
-Guiding question: **What's the breakdown of schools in the data by level (elementary, middle, high)?**
+Guiding question: **What's the breakdown of schools in the data by level (elementary, middle, high)?**  
+
+*Note*: We allow schools to fall into more than one category (PK, elementary, middle, high), thus the proportions do not add up to 100%.  
+
+The majority of Canopy schools are high schools (68%). Nearly half of Canopy schools are an elementary (43%) or middle school (47%). PreK continues to be underrepresented, though 1 in 5 schools offer prekindergarten either as a standalone early childhood education school or as part of their K+ programming.  
 
 ```{r}
-
+full %>% 
+  pivot_longer(cols = c("grades_pk", "grades_elementary", "grades_middle", "grades_high"),
+               names_to = "school_level",
+               values_to = "school_level_value",
+               names_prefix = "grades_") %>% 
+  filter(school_level_value == 1) %>% 
+  group_by(school_level) %>% 
+  summarize(n = sum(school_level_value),
+            pct = n/189) %>% 
+  mutate(school_level = factor(school_level, levels = c("pk", "elementary", "middle", "high"), labels = c("PreK", "Elementary", "Middle", "High"))) %>% 
+  ggplot(., aes(school_level, y = pct, fill = school_level)) +
+    geom_col() +
+    scale_fill_manual(values = transcend_cols) +
+    theme(legend.position = "none", panel.grid.major.x = element_blank()) +
+    labs(title = "Canopy schools by level", x = "", y = "Percentage of schools") +
+    scale_y_continuous(expand = c(0, 0), limits = c(0, 1), labels = scales::percent_format()) + 
+    geom_text(aes(label = scales::label_percent(accuracy = 1)(pct)), nudge_y = 0.01, vjust = 0, color = transcend_na, fontface = "bold", size = 5.5, family = "sans")
 ```
 
 
 ## Type  
 
-Guiding question: **What's the breakdown of schools in the data by school type (charter, district, independent)?**
+Guiding question: **What's the breakdown of schools in the data by school type (charter, district, independent)?**  
+As in prior years, district and charter schools make up the majority of Canopy schools. They each comprise roughly 40% of all 2024 schools. The remaining fifth are independent, or private, schools.  
+
 
 ```{r}
-barplot(school_type, 'n', "Canopy schools by type")
-barplot(school_type, 'pct', "Canopy schools by type")
+barplot(school_type, variables, 'n', transcend_cols, "Canopy schools by type") +
+  scale_x_discrete(labels = wrap_format(20))
+barplot(school_type, variables, 'pct', transcend_cols, "Canopy schools by type") +
+  scale_x_discrete(labels = wrap_format(20))
 ```
 
 
 ## Descriptor  
 
-Guiding question: **What's the breakdown of schools by descriptor?**
+Guiding question: **What's the breakdown of schools by descriptor?**  
+
+Along with reporting grades offered, geographic regions served, and governance model, we ask Canopy schools to provide any additional descriptors that describe their work. A fifth of Canopy schools identified as microschools or school-within-schools. Only 2% identified as homeschools.  
+
+*Note:* These percentages only reflect the number of Canopy schools that fall into a single category. Schools were able to select as many descriptors as they wanted, thus they may fall into multiple categories at one time.  
+
+```{r}
+variables %>% 
+  pivot_longer(cols = starts_with("school_desc") & !matches("school_desc_other_text"),
+               names_to = "school_descriptor",
+               values_to = "school_descriptor_value",
+               names_prefix = "school_desc_") %>% 
+  filter(school_descriptor_value == 1) %>% 
+  group_by(school_descriptor) %>% 
+  summarize(n = sum(school_descriptor_value),
+            pct = n/189) %>% 
+  filter(school_descriptor != "other") %>% 
+  mutate(school_descriptor = case_when(
+    school_descriptor == "homeschool" ~ "Homeschooling cooperative",
+    school_descriptor == "part_time" ~ "Part time school",
+    school_descriptor == "virtual" ~ "Virtual school",
+    school_descriptor == "hybrid" ~ "Hybrid school",
+    school_descriptor == "sws" ~ "School within school",
+    school_descriptor == "micro" ~ "Microschool"
+  )) %>% 
+  ggplot(., aes(reorder(school_descriptor, pct), y = pct, fill = school_descriptor)) +
+    geom_col() +
+    scale_fill_manual(values = transcend_cols2) +
+    theme(legend.position = "none", panel.grid.major.x = element_blank()) +
+    labs(title = "Canopy school by additional descriptors", x = "", y = "Percentage of schools") +
+    scale_y_continuous(expand = c(0, 0), limits = c(0, 1), labels = scales::percent_format()) + 
+    geom_text(aes(label = scales::label_percent(accuracy = 1)(pct)), nudge_y = 0.01, vjust = 0, color = transcend_na, fontface = "bold", size = 5.5, family = "sans") + 
+  scale_x_discrete(labels = wrap_format(12))
+```
+
 
 ## Demographics  
 
@@ -121,8 +181,112 @@ Guiding question: **What's the breakdown of schools by descriptor?**
 
 ### Leadership  
 
-Guiding question: **What's the racial/ethnic breakdown of Canopy school leadership teams?**
+Guiding question: **What's the racial/ethnic breakdown of Canopy school leadership teams?**  
+
+Nearly half of Canopy schools have a majority-BIPOC leadership team with 50% or more of leaders identifying as people of color. 40% of schools have a majority-White leadership team with less than 24% of leaders identifying as a person of color.  
+
+```{r}
+barplot(leadership_diversity, variables, 'n', c(transcend_cols, transcend_grays[2]), "Canopy school leadership by racial diversity") +
+  scale_x_discrete(labels = wrap_format(15))
+barplot(leadership_diversity, variables, 'pct', c(transcend_cols, transcend_grays[2]), "Canopy school leadership by racial diversity") +
+  scale_x_discrete(labels = wrap_format(15))
+```
+
 
 ### Region  
 
-Guiding question: **Which states are represented or not?**
+Guiding question: **Which states are represented or not?**  
+
+There are 40 states (including D.C.) represented in our 2024 sample, with the top 5 states representing California (N = 19), Massachusetts (N = 12), Arizona (N = 10), Colorado (N = 10), and New York (N = 10). The table and figure below display the distribution of schools across states.
+
+The states not represented are:  
+- Alaska  
+- Delaware  
+- Kentucky  
+- Maryland  
+- Mississippi  
+- Montana  
+- Nevada  
+- New Jersey  
+- Oklahoma  
+- West Virginia  
+- Wyoming  
+
+```{r}
+#table
+states <- variables %>% 
+  select(school_id, school_state) %>% 
+  mutate(rate = 1) %>% 
+  select(!school_id) %>% 
+  group_by(school_state) %>% 
+  summarize(N = sum(rate)) %>% 
+  mutate(school_state = case_when(school_state == "" ~ "Unknown",
+                                TRUE ~ as.character(school_state))) %>% 
+  rename(`State` = school_state)
+datatable(states)
+#viz
+states %>% 
+  filter(!is.na(State)) %>% 
+ggplot(., aes(reorder(State, -N), N)) +
+  geom_col(fill = transcend_cols[1]) +
+  scale_y_continuous(limits=c(0, 25), expand = c(0,0)) +
+  coord_flip() +
+  labs(title = "Canopy Learning Environments by State",
+       x = "",
+       y = "") +
+  geom_text(aes(label = signif(N)), 
+            nudge_y = .5, 
+            color = transcend_cols[3],
+            fontface = "bold",
+            size = 3.5,
+            family = "sans")
+```
+
+```{r state bins}
+#abbreviations list
+st_crosswalk <- tibble(state = state.name) %>%
+   bind_cols(tibble(abb = state.abb)) %>% 
+   bind_rows(tibble(state = "District of Columbia", abb = "DC")) %>% 
+  rename(State = state)
+#missing state list
+na_state <- data.frame("State" = c("Alaska","Delaware","Kentucky","Maryland","Mississipp","Montana","Nevada","New Jersey","Oklahoma","West Virginia","Wyoming"),
+                          "N" = rep(NA, 11)) %>% 
+  #merge missing state with data
+  bind_rows(states) %>% 
+  mutate(color = case_when(
+    is.na(N) ~ paste0(transcend_cols[3]),
+    TRUE ~ paste0(transcend_cols[1])
+  )) %>% #ignore color col for now
+  left_join(st_crosswalk, by = "State") %>% 
+  group_by(State) %>% 
+  mutate(label = paste0({abb},"\nN=",{N}),
+         label = case_when(
+           is.na(N) ~ paste0({abb},"\nN=0"),
+           TRUE ~ as.character(label)
+         ))
+#build plot
+state_bins <-
+statebins(state_data = na_state,
+          font_size = 4,
+          state_border_col = "black",
+          state_border_size = 1,
+          state_col = "State",
+          value_col = "N",
+          labels = "label",
+          round = TRUE,
+          light_label = "white",
+          dark_label = "white") +
+  theme_transcend +
+  scale_fill_gradient(low = transcend_cols[4],
+                       high = transcend_cols[1]) +
+  labs(title = "2023-24 Canopy Learning Environments in the U.S.",
+       subtitle = "Darker color indicates more schools are found in that state.\nGray indicates no schools are found in that state") +
+  theme(legend.position = "none",
+        axis.title = element_blank(),
+        axis.text  = element_blank(),
+        axis.ticks = element_blank(),
+        panel.grid.major = element_blank())
+sb = ggplot_build(state_bins)
+sb$data[[2]]$label = na_state$label[match(sb$data[[2]]$label, na_state$abb)]
+sb = ggplot_gtable(sb)
+plot(sb)
