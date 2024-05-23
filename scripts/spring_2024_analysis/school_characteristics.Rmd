@@ -14,7 +14,7 @@ editor_options:
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE, warnings = FALSE, message = FALSE)
+knitr::opts_chunk$set(echo = TRUE, warnings = FALSE, message = FALSE, fig.width = 8, fig.height = 6)
 pacman::p_load(tidyverse, here, rio, DT, ggthemes, scales, statebins) #plotly, parameters, ggrepel, 
 #read in data
 load(here("data", "2024 data/complete_canopy_2024.RData"))
@@ -174,6 +174,33 @@ variables %>%
   scale_x_discrete(labels = wrap_format(12))
 ```
 
+Guiding question: **What's the average number of enrolled students in these schools?**
+
+```{r}
+variables %>% 
+  pivot_longer(cols = starts_with("school_desc") & !matches("school_desc_other_text"),
+               names_to = "school_descriptor",
+               values_to = "school_descriptor_value",
+               names_prefix = "school_desc_") %>% 
+  filter(school_descriptor_value == 1) %>% 
+  filter(school_descriptor != "other") %>% 
+  mutate(school_descriptor = case_when(
+    school_descriptor == "homeschool" ~ "Homeschooling cooperative",
+    school_descriptor == "part_time" ~ "Part time school",
+    school_descriptor == "virtual" ~ "Virtual school",
+    school_descriptor == "hybrid" ~ "Hybrid school",
+    school_descriptor == "sws" ~ "School within school",
+    school_descriptor == "micro" ~ "Microschool"
+  )) %>% 
+  ggplot(., aes(reorder(school_descriptor, school_enrollment), school_enrollment, fill = school_descriptor)) +
+    geom_boxplot() +
+    scale_fill_manual(values = transcend_cols2) +
+    theme(legend.position = "none", panel.grid.major.x = element_blank()) +
+    labs(title = "Enrollment in Canopy schools with alternative models", x = "", y = "Number of students attending") +
+  scale_x_discrete(labels = wrap_format(12)) +
+  coord_flip()
+```
+
 
 ## Demographics  
 
@@ -193,7 +220,7 @@ barplot(leadership_diversity, variables, 'pct', c(transcend_cols, transcend_gray
 ```
 
 
-### Region  
+## Region  
 
 Guiding question: **Which states are represented or not?**  
 
@@ -212,7 +239,7 @@ The states not represented are:
 - West Virginia  
 - Wyoming  
 
-```{r}
+```{r fig.width = 6, fig.height = 9}
 #table
 states <- variables %>% 
   select(school_id, school_state) %>% 
@@ -249,7 +276,7 @@ st_crosswalk <- tibble(state = state.name) %>%
    bind_rows(tibble(state = "District of Columbia", abb = "DC")) %>% 
   rename(State = state)
 #missing state list
-na_state <- data.frame("State" = c("Alaska","Delaware","Kentucky","Maryland","Mississipp","Montana","Nevada","New Jersey","Oklahoma","West Virginia","Wyoming"),
+na_state <- data.frame("State" = c("Alaska","Delaware","Kentucky","Maryland","Mississippi","Montana","Nevada","New Jersey","Oklahoma","West Virginia","Wyoming"),
                           "N" = rep(NA, 11)) %>% 
   #merge missing state with data
   bind_rows(states) %>% 
@@ -259,9 +286,9 @@ na_state <- data.frame("State" = c("Alaska","Delaware","Kentucky","Maryland","Mi
   )) %>% #ignore color col for now
   left_join(st_crosswalk, by = "State") %>% 
   group_by(State) %>% 
-  mutate(label = paste0({abb},"\nN=",{N}),
+  mutate(label = paste0({abb},"\n",{N}),
          label = case_when(
-           is.na(N) ~ paste0({abb},"\nN=0"),
+           is.na(N) ~ paste0({abb},"\n0"),
            TRUE ~ as.character(label)
          ))
 #build plot
@@ -274,8 +301,8 @@ statebins(state_data = na_state,
           value_col = "N",
           labels = "label",
           round = TRUE,
-          light_label = "white",
-          dark_label = "white") +
+          light_label = "black",
+          dark_label = "black") +
   theme_transcend +
   scale_fill_gradient(low = transcend_cols[4],
                        high = transcend_cols[1]) +
@@ -285,8 +312,15 @@ statebins(state_data = na_state,
         axis.title = element_blank(),
         axis.text  = element_blank(),
         axis.ticks = element_blank(),
-        panel.grid.major = element_blank())
+        panel.background = element_blank(),
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        plot.background = element_blank())
 sb = ggplot_build(state_bins)
 sb$data[[2]]$label = na_state$label[match(sb$data[[2]]$label, na_state$abb)]
 sb = ggplot_gtable(sb)
-plot(sb)
+plot_states <- plot(sb)
+png(filename = here("output", "state-bins_V1.png"),
+    width = 12, height = 8, units = "in", res = 300)
+dev.off()
+```

@@ -14,7 +14,7 @@ editor_options:
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE, warnings = FALSE, message = FALSE)
+knitr::opts_chunk$set(echo = TRUE, warnings = FALSE, message = FALSE, fig.width = 8, fig.height = 6)
 pacman::p_load(tidyverse, here, rio, DT, ggthemes, scales)
 #read in data
 load(here("data", "2024 data/complete_canopy_2024.RData"))
@@ -45,7 +45,7 @@ theme_set(theme_transcend)
 
 Guiding question: **Which assessment tools are schools using?**  
 
-43% of Canopy schools (N = 82) are not using tools to assess 'nontraditional' factors systematically across their schools. When schools did report using an assessment tool systematically, they did not report more than 1 on average.  
+43% of Canopy schools (N = 82) are not using tools to assess 'non-traditional' factors systematically across their schools. When schools did report using an assessment tool systematically, they did not report more than 1 on average.  
 
 ```{r, warning = FALSE}
 #how many schools are even using assessments?
@@ -78,7 +78,7 @@ tools %>%
             no_tools = sum(n_tools == 0))
 ```
 
-Most Canopy schools were not using the assessment tools we outlined to assess 'nontraditional' factors. Of those that selected from the list, 19% had adopted the Panorama survey and were using it systematically across their school or learning environment. However, most (35%) reported using some other tool systematically.  
+Most Canopy schools were not using the assessment tools we outlined to assess 'non-traditional' factors. Of those that selected from the list, 19% had adopted the Panorama survey and were using it systematically across their school or learning environment. However, most (35%) reported using some other tool systematically.  
 
 ```{r}
 tools %>% 
@@ -88,7 +88,7 @@ tools %>%
   ggplot(., aes(x = reorder(tool, n), y = n)) +
   geom_col(fill = transcend_cols[1]) +
   theme(legend.position = "none", panel.grid.major.y = element_blank()) +
-  labs(title = "Tools used to assess 'nontraditional' factors", x = "", y = "Number of schools") + 
+  labs(title = "Tools used to assess 'non-traditional' factors", x = "", y = "Number of schools") + 
   scale_y_continuous(expand = c(0, 0), limits = c(0, 75)) +
   geom_text(aes(label = n), nudge_y = 0.5, hjust = 0, color = transcend_na, fontface = "bold", size = 5.5, family = "sans") + 
   scale_x_discrete(labels = wrap_format(10)) +
@@ -114,14 +114,76 @@ variables %>%
          )) %>% 
   group_by(tool, tool_use) %>% 
   summarize(n = sum(rate)) %>% 
+  mutate(tool_use = factor(tool_use, levels = c("I have never heard of this", "I have heard of this but we do not use it", "We have experimented with this", "We use this systematically across our school")),
+         n_center = case_when(
+           tool_use == "I have never heard of this" ~ -1*n,
+           tool_use == "I have heard of this but we do not use it" ~ -1*n,
+           TRUE ~ as.numeric(n)
+         )) %>% 
   ggplot(., aes(reorder(tool, n), n, fill = tool_use)) +
   geom_col() +
   scale_fill_manual(values = transcend_cols) +
   scale_y_continuous(expand = c(0, 0)) +
   coord_flip() +
-  labs(x = "", y = "Number of schools", title = "Reported use for assessment tools to\nmeasure 'nontraditional' factors", fill = "Reported use") +
+  labs(x = "", y = "Number of schools", title = "Reported use of assessment tools to measure\n'non-traditional' factors", fill = "Reported use") +
   theme(legend.position = "bottom", panel.grid.major.y = element_blank())
 ```
+
+The following is an alternate view, to emphasize reported use or non-use.
+
+```{r}
+plot_dat <- variables %>% 
+  select(school_id, starts_with("tool_"), -starts_with("tool_share"), -starts_with("tool_other_text")) %>% 
+  pivot_longer(cols = !school_id,
+               names_to = "tool",
+               values_to = "tool_use",
+               names_prefix = "tool_") %>% 
+  filter(!is.na(tool_use)) %>% 
+  mutate(rate = 1,
+         tool = case_when(
+           tool == "other_1" ~ "other",
+           tool == "other_2" ~ "other",
+           tool == "other_3" ~ "other",
+           TRUE ~ as.character(tool)
+         ),
+         tool_use = case_when(
+           tool_use == "I have never heard of this" ~ "Not used",
+           tool_use == "I have heard of this but we do not use it" ~ "Not used",
+           tool_use == "We have experimented with this" ~ "Some or systematic use",
+           tool_use == "We use this systematically across our school" ~ "Some or systematic use"
+         )) %>% 
+  group_by(tool, tool_use) %>% 
+  summarize(n = sum(rate)) %>% 
+  ungroup() %>% 
+  mutate(n_center = case_when(
+           tool_use == "Not used" ~ -1*n,
+           TRUE ~ as.numeric(n)
+         ))
+ggplot(plot_dat, aes(reorder(tool, n_center), n_center, fill = tool_use)) +
+  geom_col() +
+  scale_fill_manual(values = transcend_cols) +
+  scale_y_continuous(expand = c(0, 0), limits = c(-165, 100), labels = abs) +
+  coord_flip() +
+  geom_hline(yintercept = 0, color = transcend_cols[3]) +
+  labs(x = "", y = expression("Not used" %<->% "Some or systematic use"), title = "Reported use of assessment tools to measure\n'non-traditional' factors") +
+  theme(legend.position = "none", 
+        panel.grid.major.y = element_blank(),
+        panel.background = element_blank(), 
+        panel.grid.major = element_blank(), 
+        panel.grid.minor = element_blank(), 
+        plot.background = element_blank(),
+        axis.text.x = element_blank(),
+        axis.ticks.x = element_blank(),
+        axis.line.x = element_blank()) +
+  geom_text(aes(label = abs(n_center)),
+            color = transcend_na, 
+            nudge_y = 0.5,
+            hjust = 0,
+            fontface = "bold",
+            size = 5.5,
+            family = "sans")
+```
+
 
 Schools were more likely to be familiar with Mastery Transcript and Panorama surveys. They were least familiar with Portfolium by Instructure, Elevate survey by PERTS, and Cultivate survey by UChicago. Roughly 3 in 4 Canopy schools were unfamiliar with these assessment tools.  
 
@@ -141,7 +203,7 @@ variables %>%
   geom_col(fill = transcend_cols[1]) +
   scale_y_continuous(expand = c(0, 0), limits = c(0, 160)) +
   theme(panel.grid.major.y = element_blank()) +
-  labs(x = "", y = "Number of schools", title = "Unfamiliar assessments") +
+  labs(x = "", y = "Number of schools", title = "Assessment tools Canopy schools were unfamiliar with") +
   geom_text(aes(label = n), nudge_y = 0.5, hjust = 0, color = transcend_na, fontface = "bold", size = 5.5, family = "sans") +
   coord_flip()
 ```
@@ -164,7 +226,7 @@ variables %>%
   geom_col(fill = transcend_cols[1]) +
   scale_y_continuous(expand = c(0, 0), limits = c(0, 35)) +
   theme(panel.grid.major.y = element_blank()) +
-  labs(x = "", y = "Number of schools", title = "Tools schools have experimented with") +
+  labs(x = "", y = "Number of schools", title = "Assessment tools schools have experimented with") +
   geom_text(aes(label = n), nudge_y = 0.5, hjust = 0, color = transcend_na, fontface = "bold", size = 5.5, family = "sans") +
   coord_flip()
 ```
@@ -201,8 +263,9 @@ family %>%
   geom_col() +
   scale_fill_manual(values = c(transcend_cols[3], transcend_cols[1])) +
   scale_y_continuous(expand = c(0, 0), limits = c(0, 1), labels = scales::percent_format()) +
-  theme(panel.grid.major.x = element_blank()) +
-  labs(x = "", y = "Percent of schools", title = "Schools sharing 'non-traditional' assessment results with families") +
+  theme(panel.grid.major.x = element_blank(),
+        legend.position = "none") +
+  labs(x = "", y = "Percent of schools", title = "Schools sharing 'non-traditional' assessment\nresults with families") +
   geom_text(aes(label = scales::label_percent(accuracy = 1)(pct)), nudge_y = 0.01, vjust = 0, color = transcend_na, fontface = "bold", size = 5.5, family = "sans")
 
 family %>% 
@@ -222,7 +285,7 @@ family %>%
 
 Guiding question: **How does assessment tool use and sharing with family differ by school level?**  
 
-Across prekindergarten, elementary, middle, and high school grades, Canopy schools are using assessment tools to assess nontraditional factors at similar rates. Roughly half of prekindergarten, elementary, and high schools are using assessments, while 2 in 5 middle schools are using assessments.  
+Across prekindergarten, elementary, middle, and high school grades, Canopy schools are using assessment tools to assess non-traditional factors at similar rates. Roughly half of prekindergarten, elementary, and high schools are using assessments, while 2 in 5 middle schools are using assessments.  
 
 ```{r}
 tools %>% 
@@ -259,7 +322,7 @@ tools %>%
   geom_col(fill = transcend_cols[1]) +
   scale_y_continuous(expand = c(0, 0), limits = c(0, 1), labels = scales::percent_format()) +
   theme(panel.grid.major.x = element_blank()) +
-  labs(x = "", y = "Percent of schools", title = "Nontraditional assessment tool use by level") +
+  labs(x = "", y = "Percent of schools", title = "non-traditional assessment tool use by level") +
   geom_text(aes(label = scales::label_percent(accuracy = 1)(pct)), nudge_y = 0.01, vjust = 0, color = transcend_na, fontface = "bold", size = 5.5, family = "sans")
 ```
 
@@ -300,7 +363,7 @@ family %>%
   geom_col(fill = transcend_cols[1]) +
   scale_y_continuous(expand = c(0, 0), limits = c(0, 1), labels = scales::percent_format()) +
   theme(panel.grid.major.x = element_blank()) +
-  labs(x = "", y = "Percent of schools", title = "Reporting of nontraditional assessment results to families by level") +
+  labs(x = "", y = "Percent of schools", title = "Reporting of non-traditional assessment results\nto families by level") +
   geom_text(aes(label = scales::label_percent(accuracy = 1)(pct)), nudge_y = 0.01, vjust = 0, color = transcend_na, fontface = "bold", size = 5.5, family = "sans")
 ```
 
@@ -328,11 +391,11 @@ variables %>%
   geom_col(fill = transcend_cols[1]) +
   scale_y_continuous(expand = c(0, 0), limits = c(0, 1), labels = scales::percent_format()) +
   theme(panel.grid.major.x = element_blank()) +
-  labs(x = "", y = "Percent of schools", title = "Nontraditional assessment tool use by locale") +
+  labs(x = "", y = "Percent of schools", title = "non-traditional assessment tool use by locale") +
   geom_text(aes(label = scales::label_percent(accuracy = 1)(pct)), nudge_y = 0.01, vjust = 0, color = transcend_na, fontface = "bold", size = 5.5, family = "sans")
 ```
 
-The majority of rural schools reporting the use of nontraditional assessments systematically shared the results of these assessments with families (81%).  A slightly smaller proportion of suburban and urban schools shared the results of these assessments with their families.  
+The majority of rural schools reporting the use of non-traditional assessments systematically shared the results of these assessments with families (81%).  A slightly smaller proportion of suburban and urban schools shared the results of these assessments with their families.  
 
 ```{r}
 variables %>% 
@@ -355,7 +418,7 @@ variables %>%
   geom_col(fill = transcend_cols[1]) +
   scale_y_continuous(expand = c(0, 0), limits = c(0, 1), labels = scales::percent_format()) +
   theme(panel.grid.major.x = element_blank()) +
-  labs(x = "", y = "Percent of schools", title = "Reporting of nontraditional assessment results to families by locale") +
+  labs(x = "", y = "Percent of schools", title = "Reporting of non-traditional assessment results\nto families by locale") +
   geom_text(aes(label = scales::label_percent(accuracy = 1)(pct)), nudge_y = 0.01, vjust = 0, color = transcend_na, fontface = "bold", size = 5.5, family = "sans")
 ```
 
@@ -364,7 +427,7 @@ variables %>%
 
 Guiding question: **How does assessment tool use and sharing with family differ by school type?**  
 
-Most schools that reported using assessment tools to measure nontraditional factors were public district schools (42%) and public charter schools (35%). By contrast, only 1 in 5 independent (private) Canopy schools reported using assessment tools systematically.  
+Most schools that reported using assessment tools to measure non-traditional factors were public district schools (42%) and public charter schools (35%). By contrast, only 1 in 5 independent (private) Canopy schools reported using assessment tools systematically.  
 
 ```{r}
 variables %>% 
@@ -383,12 +446,12 @@ variables %>%
   geom_col(fill = transcend_cols[1]) +
   scale_y_continuous(expand = c(0, 0), limits = c(0, 1), labels = scales::percent_format()) +
   theme(panel.grid.major.x = element_blank()) +
-  labs(x = "", y = "Percent of schools", title = "Nontraditional assessment tool use by school governance") +
+  labs(x = "", y = "Percent of schools", title = "non-traditional assessment tool use by school\ngovernance") +
   geom_text(aes(label = scales::label_percent(accuracy = 1)(pct)), nudge_y = 0.01, vjust = 0, color = transcend_na, fontface = "bold", size = 5.5, family = "sans") +
   scale_x_discrete(labels = wrap_format(20))
 ```
 
-Public district, charter, and independent schools reported the results of nontraditional assessments to families at similar rates. 3 in 4 district and independent schools using assessments systematically shared results with families, while 67% of charter schools shared results.  
+Public district, charter, and independent schools reported the results of non-traditional assessments to families at similar rates. 3 in 4 district and independent schools using assessments systematically shared results with families, while 67% of charter schools shared results.  
 
 ```{r}
 variables %>% 
@@ -411,7 +474,123 @@ variables %>%
   geom_col(fill = transcend_cols[1]) +
   scale_y_continuous(expand = c(0, 0), limits = c(0, 1), labels = scales::percent_format()) +
   theme(panel.grid.major.x = element_blank()) +
-  labs(x = "", y = "Percent of schools", title = "Reporting of nontraditional assessment results to families by school governance") +
+  labs(x = "", y = "Percent of schools", title = "Reporting of non-traditional assessment results\nto families by school governance") +
   geom_text(aes(label = scales::label_percent(accuracy = 1)(pct)), nudge_y = 0.01, vjust = 0, color = transcend_na, fontface = "bold", size = 5.5, family = "sans") +
   scale_x_discrete(labels = wrap_format(20))
 ```
+
+## Leadership Diversity
+
+Guiding question: **How does assessment tool use and sharing with family differ by the racial diversity of the school's leadership team?**  
+
+Schools with predominantly White leadership teams used non-traditional assessment tools systematically more often than schools with more racially diverse leadership teams.  
+
+```{r}
+variables %>% 
+  select(school_id, leadership_diversity) %>% 
+  right_join(tools) %>% 
+  group_by(school_id, leadership_diversity) %>% 
+  summarize(n = sum(tool_value),
+            use = ifelse(n == 0, 0, 1)) %>% 
+  ungroup() %>% 
+  group_by(leadership_diversity) %>% 
+  summarize(n = sum(use, na.rm = TRUE),
+            pct = n/92) %>% 
+  ungroup() %>% 
+  filter(!is.na(leadership_diversity)) %>% 
+  ggplot(., aes(leadership_diversity, pct)) +
+  geom_col(fill = transcend_cols[1]) +
+  scale_y_continuous(expand = c(0, 0), limits = c(0, 1), labels = scales::percent_format()) +
+  theme(panel.grid.major.x = element_blank()) +
+  labs(x = "", y = "Percent of schools", title = "non-traditional assessment tool use by leadership\nracial diversity") +
+  geom_text(aes(label = scales::label_percent(accuracy = 1)(pct)), nudge_y = 0.01, vjust = 0, color = transcend_na, fontface = "bold", size = 5.5, family = "sans") +
+  scale_x_discrete(labels = wrap_format(10))
+```
+
+This pattern held when we looked at the racial diversity of teaching staff. Schools with predominantly White teaching staff used non-traditional assessment tools at higher rates.  
+
+```{r}
+variables %>% 
+  select(school_id, teaching_diversity) %>% 
+  right_join(tools) %>% 
+  group_by(school_id, teaching_diversity) %>% 
+  summarize(n = sum(tool_value),
+            use = ifelse(n == 0, 0, 1)) %>% 
+  ungroup() %>% 
+  group_by(teaching_diversity) %>% 
+  summarize(n = sum(use, na.rm = TRUE),
+            pct = n/92) %>% 
+  ungroup() %>% 
+  filter(!is.na(teaching_diversity)) %>% 
+  ggplot(., aes(teaching_diversity, pct)) +
+  geom_col(fill = transcend_cols[1]) +
+  scale_y_continuous(expand = c(0, 0), limits = c(0, 1), labels = scales::percent_format()) +
+  theme(panel.grid.major.x = element_blank()) +
+  labs(x = "", y = "Percent of schools", title = "non-traditional assessment tool use by teacher\nracial diversity") +
+  geom_text(aes(label = scales::label_percent(accuracy = 1)(pct)), nudge_y = 0.01, vjust = 0, color = transcend_na, fontface = "bold", size = 5.5, family = "sans") +
+  scale_x_discrete(labels = wrap_format(10))
+```
+
+Schools that were predominantly BIPOC-led with leadership teams comprised of 75% or more BIPOC-identifying individuals reported the results of non-traditional assessment tools to families at lower rates.  
+
+```{r}
+variables %>% 
+  select(school_id, leadership_diversity) %>% 
+  right_join(family) %>% 
+  group_by(school_id, leadership_diversity) %>% 
+  summarize(share = sum(value),
+            share = ifelse(share == 0, "No", "Yes"),
+            rate = 1) %>% 
+  ungroup() %>% 
+  group_by(share, leadership_diversity) %>% 
+  summarize(n = sum(rate)) %>% 
+  ungroup() %>% 
+  mutate(rate = 1) %>% 
+  group_by(leadership_diversity) %>% 
+  mutate(sum = sum(n),
+         pct = n/sum) %>% 
+  filter(share == "Yes", !is.na(leadership_diversity)) %>% 
+  ggplot(., aes(leadership_diversity, pct)) +
+  geom_col(fill = transcend_cols[1]) +
+  scale_y_continuous(expand = c(0, 0), limits = c(0, 1), labels = scales::percent_format()) +
+  theme(panel.grid.major.x = element_blank()) +
+  labs(x = "", y = "Percent of schools", title = "Reporting of non-traditional assessment results\nto families by leadership racial diversity") +
+  geom_text(aes(label = scales::label_percent(accuracy = 1)(pct)), nudge_y = 0.01, vjust = 0, color = transcend_na, fontface = "bold", size = 5.5, family = "sans") +
+  scale_x_discrete(labels = wrap_format(10))
+```
+
+Schools with varying proportions of BIPOC-identifying individuals in their teaching staff reported the results of non-traditional assessments at roughly equal rates.  
+
+```{r}
+variables %>% 
+  select(school_id, teaching_diversity) %>% 
+  right_join(family) %>% 
+  group_by(school_id, teaching_diversity) %>% 
+  summarize(share = sum(value),
+            share = ifelse(share == 0, "No", "Yes"),
+            rate = 1) %>% 
+  ungroup() %>% 
+  group_by(share, teaching_diversity) %>% 
+  summarize(n = sum(rate)) %>% 
+  ungroup() %>% 
+  mutate(rate = 1) %>% 
+  group_by(teaching_diversity) %>% 
+  mutate(sum = sum(n),
+         pct = n/sum) %>% 
+  filter(share == "Yes", !is.na(teaching_diversity)) %>% 
+  ggplot(., aes(teaching_diversity, pct)) +
+  geom_col(fill = transcend_cols[1]) +
+  scale_y_continuous(expand = c(0, 0), limits = c(0, 1), labels = scales::percent_format()) +
+  theme(panel.grid.major.x = element_blank()) +
+  labs(x = "", y = "Percent of schools", title = "Reporting of non-traditional assessment results\nto families by teaching staff racial diversity") +
+  geom_text(aes(label = scales::label_percent(accuracy = 1)(pct)), nudge_y = 0.01, vjust = 0, color = transcend_na, fontface = "bold", size = 5.5, family = "sans") +
+  scale_x_discrete(labels = wrap_format(10))
+```
+
+## Supports schools need  
+
+Guiding question: **What supports did schools most cite needing to enable them to use assessments for measuring non-traditional outcomes?**  
+
+Guiding question: **What were the top supports schools cited needing?**  
+
+Guiding question: **Did the top supports schools cited needing differ by school characteristics?**  

@@ -41,6 +41,8 @@ theme_set(theme_transcend)
 
 # Future resources
 
+## Level of concern
+
 Guiding question: **How concerned are school leaders about sustainability over the next 5 years?**  
 
 The majority (61%) of Canopy school leaders reported feeling concerned about sustainability over the next 5 years. By contrast, only around 20% of school leaders indicated they were not concerned about sustainability.  
@@ -196,3 +198,15 @@ variables %>%
   scale_x_discrete(labels = wrap_format(10)) +
   coord_flip()
 ```
+
+## Cause for concern  
+
+Guiding question: **For leaders who were concerned about future sustainability, what reasons did they cite for their concern?**  
+
+Guiding question: **Did the reason for concern vary by school characteristics?**  
+
+## Future transformations  
+
+Guiding question: **Which factors do school leaders think will be most transformative for schools in the next 5 years?**  
+
+Guiding question: **Do the top factors school leaders think will be most transformative for schools in the next 5 years differ by school characteristics?**  
