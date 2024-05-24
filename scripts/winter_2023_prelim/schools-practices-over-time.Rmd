@@ -31,8 +31,6 @@ sch = long |>
   )
 
 old_clusters = import(here("data/clusters_through_2024.csv"))
-#read in tag labels
-#labels <- import(here("data", "tag_labels.csv"))
 ```
 
 > The object of inquiry here is the school - how has each school's number of reported practices changed?
@@ -240,13 +238,14 @@ waffle_denom = potential_wafflers |>
 waffle_all = long_4y |>
   #filter(school_id %in% wafflers) |>
   filter(
-    all(0:1 %in% usage),    ## added and dropped 
-    n() > 2,                ## at least 3 survey responses
+    1 %in% usage,    ## present at least once
+    n() > 2,         ## at least 3 survey responses
     .by = c(var, school_id)
   ) |> 
   mutate(
     added = any(diff(usage) == 1),
     dropped = any(diff(usage) == -1),
+    all_1 = all(usage == 1),
     waffled = added & dropped,
     waffle_bump = waffled & last(usage, na_rm = TRUE) == 0,
     waffle_dip = waffled & last(usage, na_rm = TRUE) == 1,
@@ -254,7 +253,7 @@ waffle_all = long_4y |>
   ) |>
   pivot_wider(names_from = year, values_from = usage) |>
   left_join(sch, by = "school_id") |>
-  select(school_id, school_name, tag = var, `2019`:`2024`, added, dropped, starts_with("waffle")) |>
+  select(school_id, school_name, tag = var, `2019`:`2024`, added, dropped, all_1, starts_with("waffle")) |>
   arrange(school_id, desc(waffled)) |>
   mutate(
     binary_summary = paste(`2019`, `2021`, `2022`, `2023`, `2024`, sep = ","),
@@ -288,11 +287,12 @@ waffle_all |>
 ### Most and least waffled tags
 
 ```{r, echo = TRUE}
-waffle_all |>
+waffle_display = waffle_all |>
   summarize(
     n_waffle_all = sum(waffled),
     n_no_waffle = sum(!waffled),
-    n_present_never_dropped = sum((1 %in% `2019` | 1 %in% `2021` |1 %in% `2022` |1 %in% `2023`) & ! dropped),
+    n_never_dropped = sum(!dropped),
+    n_all_1 = sum(all_1),
     n_waffle_bump = sum(waffle_bump),
     n_waffle_dip = sum(waffle_dip),
     n_covid_bump = sum(waffle_type == "COVID bump", na.rm = TRUE),
@@ -307,7 +307,8 @@ waffle_all |>
     #prop_bump_weighted = (n_waffle_bump + 1) / (n_waffle_all + 2),
     .by = tag
   ) |>
-  select(tag, n_waffle_all, n_reg_waffle, n_covid_waffle, everything()) |>
+  select(tag, n_waffle_all, n_reg_waffle, n_covid_waffle, n_all_1, n_never_dropped, everything())
+waffle_display |>
    datatable(
     rownames = FALSE,
     options = list(autoWidth = TRUE, iDisplayLength = 10),
@@ -315,6 +316,56 @@ waffle_all |>
   ) |>
   formatPercentage(c("prop_waffles", "prop_covid_waffles_wtd", "prop_reg_waffles_wtd"), digits = 1)
 ```
+
+```{r}
+
+top_covid_waffle_tags = waffle_display |>
+  slice_max(n_covid_waffle, n = 10) |>
+  pull(tag)
+
+top_noncovid_waffle_tags = waffle_display |>
+  slice_max(n_reg_waffle, n = 10) |>
+  pull(tag)
+  
+waffle_covid_plot = waffle_all |> filter(waffled) |>
+  count(tag, waffle_type) |>
+  separate_wider_delim(waffle_type, delim = " ", names = c("COVID", "type")) |>
+  mutate(
+    signed_n = ifelse(type == "dip", -n, n)
+  ) |>
+  filter(tag %in% top_covid_waffle_tags, COVID == "COVID") |>
+  mutate(tag = reorder(tag, signed_n, FUN = max))
+
+waffle_noncovid_plot = waffle_all |> filter(waffled) |>
+  count(tag, waffle_type) |>
+  separate_wider_delim(waffle_type, delim = " ", names = c("COVID", "type")) |>
+  mutate(
+    signed_n = ifelse(type == "dip", -n, n)
+  ) |>
+  filter(tag %in% top_noncovid_waffle_tags, COVID == "non-COVID") |>
+  mutate(tag = reorder(tag, signed_n, FUN = max))
+  
+ggplot(
+  waffle_covid_plot,
+  aes(y = tag, x = signed_n, fill = type)
+) +
+  geom_col() +
+  facet_wrap(vars(COVID), ncol = 1) +
+  labs(x = "Number of Bumps and Dips", y = "", title = "Most waffled tags (non-COVID)") +
+  scale_y_tag() +
+  theme(panel.grid.major.y = element_blank())
+
+ggplot(
+  waffle_noncovid_plot,
+  aes(y = tag, x = signed_n, fill = type)
+) +
+  geom_col() +
+  facet_wrap(vars(COVID), ncol = 1) +
+  labs(x = "Number of Bumps and Dips", y = "", title = "Most waffled tags (COVID)") +
+  scale_y_tag() +
+  theme(panel.grid.major.y = element_blank())
+```
+
 
 
 ### Waffles with binary summaries
