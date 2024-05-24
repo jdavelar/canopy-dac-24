@@ -15,15 +15,100 @@ editor_options:
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE)
-pacman::p_load(tidyverse, here, rio, DT, ggcorrplot, psych, parameters)
+pacman::p_load(tidyverse, here, rio, DT, ggcorrplot, psych, parameters, ggthemes)
 
 load(here("data/2024 data", "complete_canopy_2024.RData"))
-source(here("scripts/branding.R"))
+# source(here("scripts/branding.R"))
+```
+
+```{r}
+#manual branding - file won't load
+transcend_cols = c("#1A4C81","#59C3B4","#EF464B","#ADE0EE")
+transcend_cols2 = c("#BC2582","#FFA630","#FFDE42","#99C24D","#218380","#D3B7D7")
+transcend_grays = c("#4D4D4F","#9D9FA2","#D1D3D4")
+transcend_na = transcend_grays[2]
+theme_transcend = theme_gdocs(base_size = 14, base_family = "Open Sans") +
+  theme(
+    plot.title = element_text(family = "Bebas Neue", color = "black"),
+    plot.background = element_blank(),
+    axis.text = element_text(colour = "black"),
+    axis.title = element_text(colour = "black"),
+    panel.border = element_rect(colour = "#4D4D4F"),
+    strip.text = element_text(size = rel(0.8)),
+    plot.margin = margin(10, 24, 10, 10, "pt")
+  )
+theme_set(theme_transcend)
 ```
 
 # Cycle 2 - 2024 Only Tag Analysis
 
 ## How long have schools been implementing each core practice?
+
+Check n's****
+as count and as percentage
+dropped and added core practices for multiple responder schools
+
+```{r}
+time_tags <- full %>% 
+  select(school_id, starts_with("time")) %>% 
+  pivot_longer(cols = starts_with("time"),
+               names_to = "practice",
+               names_prefix = "time_",
+               values_to = "frequency") %>% 
+  # mutate(frequency = case_when(frequency == 0 ~ "Not a core practice",
+  #                              frequency == 1 ~ "Less than a year",
+  #                              frequency == 2 ~ "1-2 years",
+  #                              frequency == 3 ~ "3-4 years",
+  #                              frequency == 4 ~ "5+ years",
+  #                              frequency == 5 ~ "Not sure")) %>% 
+  group_by(practice, frequency) %>% 
+  summarise(n = n())
+```
+
+```{r}
+time_tags %>% 
+  filter(frequency == "5+ years") %>% 
+  select(c(1, 3)) %>% 
+  arrange(desc(n)) %>% 
+  head()
+```
+
+```{r}
+time_tags %>% 
+  filter(frequency == "3-4 years") %>% 
+  select(c(1, 3)) %>% 
+  arrange(desc(n)) %>% 
+  head()
+```
+
+```{r}
+time_tags %>% 
+  filter(frequency == "1-2 years") %>% 
+  select(c(1, 3)) %>% 
+  arrange(desc(n)) %>% 
+  head()
+```
+
+```{r}
+time_tags %>% 
+  filter(frequency == "Less than a year") %>% 
+  select(c(1, 3)) %>% 
+  arrange(desc(n)) %>% 
+  head(10)
+```
+
+```{r}
+time_tags %>% 
+  filter(is.na(frequency)) %>% 
+  select(c(1, 3)) %>% 
+  arrange(desc(n)) %>% 
+  head(10)
+```
+
+
+## What are the top CORE tags selected when disaggregated? (By locale, level, type, leadership team, etc.)
+
+## Overall
 
 ```{r}
 time_vars <- tags %>% 
@@ -33,23 +118,16 @@ time_vars <- tags %>%
                values_to = "frequency",
                names_prefix = "time_") %>% 
   group_by(practice, frequency) %>% 
-  summarise(count_tag = n()) %>% 
-  mutate(frequency = case_when(frequency == 0 ~ "Not a core practice",
-                               frequency == 1 ~ "Less than a year",
-                               frequency == 2 ~ "1-2 years",
-                               frequency == 3 ~ "3-4 years",
-                               frequency == 4 ~ "5+ years",
-                               frequency == 5 ~ "Not sure"))
+  summarise(count_tag = n())
 
 # time_vars$frequency <- ifelse(is.na(time_vars$frequency), "Missing/Not Sure", time_vars$frequency)
 
 time_vars <- time_vars %>% 
   pivot_wider(names_from = frequency,
               values_from = count_tag) %>% 
-  # mutate(`Not sure`= ifelse(is.na(`Not sure`), 0, `Not sure`),
-  #        `Missing/Not Sure` = `Missing/Not Sure` + `Not sure`) %>% 
-  select(-`Not sure`) %>% 
-  select(c(1, 4, 3, 5, 6, 2))
+   mutate(`Not sure`= ifelse(is.na(`Not sure`), 0, `Not sure`),
+          `Missing/Not Sure` = `NA` + `Not sure`) %>% 
+  select(c(1, 6, 4, 5, 2, 8))
 ```
 
 ```{r}
@@ -62,78 +140,1168 @@ time_vars %>%
   head() %>% 
   ggplot(aes(x = reorder(practice, `5+ years`), y = `5+ years`)) +
   geom_col(aes(fill = practice)) +
-  coord_flip() +
-  theme_bw() +
-  theme(legend.position = "none") +
-  labs(x = "Top Practices",
-       title = "Practices Used Longest and Most Often")
-```
-
-
-## What are the top tags selected when disaggregated? (By locale, level, type, leadership team, etc.)
-
-```{r}
-dis_agg <- full %>% 
-  select(school_id, contains("locale_"), starts_with("grades_"), school_descriptor) %>% 
-  select(-c(2, 3))
-```
-
-```{r}
-disag_tags <- tags %>% 
-  select(school_id, starts_with("time")) %>% 
-  pivot_longer(cols = starts_with("time"),
-               names_to = "practice",
-               values_to = "frequency",
-               names_prefix = "time_")%>% 
-  left_join(., dis_agg) %>% 
-  mutate(frequency = case_when(frequency == 0 ~ "Not a core practice",
-                               frequency == 1 ~ "Less than a year",
-                               frequency == 2 ~ "1-2 years",
-                               frequency == 3 ~ "3-4 years",
-                               frequency == 4 ~ "5+ years",
-                               frequency == 5 ~ "Not sure"))
-```
-
-### School Descriptor
-
-```{r}
-disag_tags <- disag_tags %>% 
-  mutate(school_descriptor = case_when(school_descriptor == 1 ~ "Public district school",
-                                       school_descriptor == 2 ~ "Public charter school",
-                                       school_descriptor == 3 ~ "Independent (private) school"))
-```
-
-```{r}
-school_type_tags <- disag_tags %>% 
-  group_by(school_descriptor, practice, frequency) %>% 
-  summarise(n = n())
-```
-
-```{r}
-school_type_tags %>% 
-  filter(frequency != "Not a core practice") %>% 
-  arrange(desc(n)) %>% 
-  ggplot(aes(x = practice, y = n, group = frequency)) +
-  geom_col(aes(fill = frequency), position = "dodge") +
+  geom_text(aes(label = `5+ years`), nudge_y = 0.5, hjust = 0, color = transcend_na, fontface = "bold", family = "sans") +
   coord_flip() +
   theme_bw() +
   theme(legend.position = "none") +
   labs(x = "Top Practices",
        title = "Practices Used Longest and Most Often") +
-  facet_wrap(~school_descriptor)
+  scale_fill_manual(values = c(transcend_cols2, transcend_na, transcend_cols[1])) +
+  theme(
+    plot.title = element_text(family = "Bebas Neue", color = "black"),
+    plot.background = element_blank(),
+    axis.text = element_text(colour = "black"),
+    axis.title = element_text(colour = "black"),
+    panel.border = element_rect(colour = "#4D4D4F"),
+    strip.text = element_text(size = rel(0.8)),
+    plot.margin = margin(10, 24, 10, 10, "pt")
+  )
+```
+
+
+Restrict to variables needed.
+```{r}
+dis_agg_time <- full %>% 
+  select(school_id, contains("locale_"), starts_with("grades_"), school_type, starts_with("time_")) %>%
+  pivot_longer(cols = starts_with("time_"),
+               names_to = "practice",
+               names_prefix = "time_",
+               values_to = "frequency")
+```
+
+### School Type
+
+```{r}
+school_type_tags <- dis_agg_time %>% 
+  group_by(school_type, practice, frequency) %>% 
+  summarise(n = n())
 ```
 
 ```{r}
-op
+pds_viz <- school_type_tags %>% 
+  filter(frequency == "5+ years",
+         school_type == "Public district school") %>% 
+  arrange(desc(n)) %>% 
+  head(10) %>% 
+  ggplot(aes(x = reorder(practice, n), y = n)) +
+  geom_col(fill = transcend_cols[1], position = "dodge") +
+  geom_text(aes(label = n), nudge_y = 0.5, hjust = 0, color = transcend_na, fontface = "bold", family = "sans") +
+  scale_y_continuous(limits = c(0, 25)) +
+  coord_flip() +
+  theme_bw() +
+  theme(legend.position = "none") +
+  labs(x = "Top Practices",
+       title = "Public District Schools") +
+  theme(
+    plot.title = element_text(family = "Bebas Neue", color = "black"),
+    plot.background = element_blank(),
+    axis.text = element_text(colour = "black"),
+    axis.title = element_text(colour = "black"),
+    panel.border = element_rect(colour = "#4D4D4F"),
+    strip.text = element_text(size = rel(0.8)),
+    plot.margin = margin(10, 24, 10, 10, "pt")
+  )
+
+pcs_viz <- school_type_tags %>% 
+  filter(frequency == "5+ years",
+         school_type == "Public charter school") %>% 
+  arrange(desc(n)) %>% 
+  head(10) %>% 
+  ggplot(aes(x = reorder(practice, n), y = n)) +
+  geom_col(fill = transcend_cols[2], position = "dodge") +
+  geom_text(aes(label = n), nudge_y = 0.5, hjust = 0, color = transcend_na, fontface = "bold", family = "sans") +
+  scale_y_continuous(limits = c(0, 25)) +
+  coord_flip() +
+  theme_bw() +
+  theme(legend.position = "none") +
+  labs(x = " ",
+       title = "Public Charter Schools") +
+  theme(
+    plot.title = element_text(family = "Bebas Neue", color = "black"),
+    plot.background = element_blank(),
+    axis.text = element_text(colour = "black"),
+    axis.title = element_text(colour = "black"),
+    panel.border = element_rect(colour = "#4D4D4F"),
+    strip.text = element_text(size = rel(0.8)),
+    plot.margin = margin(10, 24, 10, 10, "pt")
+  )
+
+ips_viz <- school_type_tags %>% 
+  filter(frequency == "5+ years",
+         school_type == "Independent (private) school") %>% 
+  arrange(desc(n)) %>% 
+  head(10) %>% 
+  ggplot(aes(x = reorder(practice, n), y = n)) +
+  geom_col(fill = transcend_cols[3], position = "dodge") +
+  geom_text(aes(label = n), nudge_y = 0.5, hjust = 0, color = transcend_na, fontface = "bold", family = "sans") +
+  scale_y_continuous(limits = c(0, 25)) +
+  coord_flip() +
+  theme_bw() +
+  theme(legend.position = "none") +
+  labs(x = " ",
+       title = "Independent (Private) Schools") +
+    theme(
+    plot.title = element_text(family = "Bebas Neue", color = "black"),
+    plot.background = element_blank(),
+    axis.text = element_text(colour = "black"),
+    axis.title = element_text(colour = "black"),
+    panel.border = element_rect(colour = "#4D4D4F"),
+    strip.text = element_text(size = rel(0.8)),
+    plot.margin = margin(10, 24, 10, 10, "pt")
+  )
+```
+
+```{r fig.height=5, fig.width=15}
+library(patchwork)
+
+practices_descriptor_plot <- pds_viz + pcs_viz + ips_viz + plot_layout(ncol = 3) + 
+  plot_annotation(title = "Practices Used Longest and Most Often - School Type",
+                  theme = theme(plot.title = element_text(hjust = 0.5)))
+practices_descriptor_plot
+```
+
+### School Level
+
+```{r}
+school_level_tags <- dis_agg_time %>% 
+  select(school_id, practice, frequency, starts_with("grades_"), ) %>% 
+  filter(frequency == "5+ years")
+```
+
+```{r}
+prek_viz <- school_level_tags %>% 
+  filter(grades_pk == 1) %>% 
+  group_by(practice) %>% 
+  summarise(n = n()) %>% 
+  arrange(desc(n)) %>% 
+  head(10) %>% 
+  ggplot(aes(x = reorder(practice, n), y = n)) +
+  geom_col(fill = transcend_cols[1], position = "dodge") +
+  geom_text(aes(label = n), nudge_y = 0.5, hjust = 0, color = transcend_na, fontface = "bold", family = "sans") +
+  scale_y_continuous(limits = c(0, 40)) +
+  coord_flip() +
+  theme_bw() +
+  theme(legend.position = "none") +
+  labs(x = " ",
+       title = "Pre-Kindergarten") +
+    theme(
+    plot.title = element_text(family = "Bebas Neue", color = "black"),
+    plot.background = element_blank(),
+    axis.text = element_text(colour = "black"),
+    axis.title = element_text(colour = "black"),
+    panel.border = element_rect(colour = "#4D4D4F"),
+    strip.text = element_text(size = rel(0.8)),
+    plot.margin = margin(10, 24, 10, 10, "pt")
+  )
+
+elem_viz <- school_level_tags %>% 
+  filter(grades_elementary == 1) %>% 
+  group_by(practice) %>% 
+  summarise(n = n()) %>% 
+  arrange(desc(n)) %>% 
+  head(10) %>% 
+  ggplot(aes(x = reorder(practice, n), y = n)) +
+  geom_col(fill = transcend_cols[2], position = "dodge") +
+  geom_text(aes(label = n), nudge_y = 0.5, hjust = 0, color = transcend_na, fontface = "bold", family = "sans") +
+  scale_y_continuous(limits = c(0, 40)) +
+  coord_flip() +
+  theme_bw() +
+  theme(legend.position = "none") +
+  labs(x = " ",
+       title = "Elementary School") +
+    theme(
+    plot.title = element_text(family = "Bebas Neue", color = "black"),
+    plot.background = element_blank(),
+    axis.text = element_text(colour = "black"),
+    axis.title = element_text(colour = "black"),
+    panel.border = element_rect(colour = "#4D4D4F"),
+    strip.text = element_text(size = rel(0.8)),
+    plot.margin = margin(10, 24, 10, 10, "pt")
+  )
+
+middle_viz <- school_level_tags %>% 
+  filter(grades_middle == 1) %>% 
+  group_by(practice) %>% 
+  summarise(n = n()) %>% 
+  arrange(desc(n)) %>% 
+  head(10) %>% 
+  ggplot(aes(x = reorder(practice, n), y = n)) +
+  geom_col(fill = transcend_cols[3], position = "dodge") +
+  geom_text(aes(label = n), nudge_y = 0.5, hjust = 0, color = transcend_na, fontface = "bold", family = "sans") +
+  scale_y_continuous(limits = c(0, 40)) +
+  coord_flip() +
+  theme_bw() +
+  theme(legend.position = "none") +
+  labs(x = " ",
+       title = "Middle School") +
+    theme(
+    plot.title = element_text(family = "Bebas Neue", color = "black"),
+    plot.background = element_blank(),
+    axis.text = element_text(colour = "black"),
+    axis.title = element_text(colour = "black"),
+    panel.border = element_rect(colour = "#4D4D4F"),
+    strip.text = element_text(size = rel(0.8)),
+    plot.margin = margin(10, 24, 10, 10, "pt")
+  )
+
+high_viz <- school_level_tags %>% 
+  filter(grades_high == 1) %>% 
+  group_by(practice) %>% 
+  summarise(n = n()) %>% 
+  arrange(desc(n)) %>% 
+  head(10) %>% 
+  ggplot(aes(x = reorder(practice, n), y = n)) +
+  geom_col(fill = transcend_cols[4], position = "dodge") +
+  geom_text(aes(label = n), nudge_y = 0.5, hjust = 0, color = transcend_na, fontface = "bold", family = "sans") +
+  scale_y_continuous(limits = c(0, 40)) +
+  coord_flip() +
+  theme_bw() +
+  theme(legend.position = "none") +
+  labs(x = " ",
+       title = "High School") +
+    theme(
+    plot.title = element_text(family = "Bebas Neue", color = "black"),
+    plot.background = element_blank(),
+    axis.text = element_text(colour = "black"),
+    axis.title = element_text(colour = "black"),
+    panel.border = element_rect(colour = "#4D4D4F"),
+    strip.text = element_text(size = rel(0.8)),
+    plot.margin = margin(10, 24, 10, 10, "pt")
+  )
+
+```
+
+```{r}
+practices_levels_plot <- prek_viz + elem_viz + middle_viz + high_viz + plot_layout(ncol = 2) + 
+  plot_annotation(title = "Practices Used Longest and Most Often - By the Levels Schools Offer",
+                  theme = theme(plot.title = element_text(hjust = 0.5)))
+practices_levels_plot
+```
+
+### Locale
+
+```{r}
+school_locale_tags <- dis_agg_time %>% 
+  select(school_id, practice, frequency, contains("locale"), ) %>% 
+  filter(frequency == "5+ years")
+```
+
+```{r}
+rural_viz <- school_locale_tags %>% 
+  filter(locale_rural == 1) %>% 
+  group_by(practice) %>% 
+  summarise(n = n()) %>% 
+  arrange(desc(n)) %>% 
+  head(10) %>% 
+  ggplot(aes(x = reorder(practice, n), y = n)) +
+  geom_col(fill = transcend_cols[1], position = "dodge") +
+  geom_text(aes(label = n), nudge_y = 0.5, hjust = 0, color = transcend_na, fontface = "bold", family = "sans") +
+  scale_y_continuous(limits = c(0, 40)) +
+  coord_flip() +
+  theme_bw() +
+  theme(legend.position = "none") +
+  labs(x = " ",
+       title = "Rural") +
+    theme(
+    plot.title = element_text(family = "Bebas Neue", color = "black"),
+    plot.background = element_blank(),
+    axis.text = element_text(colour = "black"),
+    axis.title = element_text(colour = "black"),
+    panel.border = element_rect(colour = "#4D4D4F"),
+    strip.text = element_text(size = rel(0.8)),
+    plot.margin = margin(10, 24, 10, 10, "pt")
+  )
+
+urban_viz <- school_locale_tags %>% 
+  filter(locale_urban == 1) %>% 
+  group_by(practice) %>% 
+  summarise(n = n()) %>% 
+  arrange(desc(n)) %>% 
+  head(10) %>% 
+  ggplot(aes(x = reorder(practice, n), y = n)) +
+  geom_col(fill = transcend_cols[2], position = "dodge") +
+  geom_text(aes(label = n), nudge_y = 0.5, hjust = 0, color = transcend_na, fontface = "bold", family = "sans") +
+  scale_y_continuous(limits = c(0, 40)) +
+  coord_flip() +
+  theme_bw() +
+  theme(legend.position = "none") +
+  labs(x = " ",
+       title = "Urban") +
+    theme(
+    plot.title = element_text(family = "Bebas Neue", color = "black"),
+    plot.background = element_blank(),
+    axis.text = element_text(colour = "black"),
+    axis.title = element_text(colour = "black"),
+    panel.border = element_rect(colour = "#4D4D4F"),
+    strip.text = element_text(size = rel(0.8)),
+    plot.margin = margin(10, 24, 10, 10, "pt")
+  )
+
+suburban_viz <- school_locale_tags %>% 
+  filter(locale_suburban == 1) %>% 
+  group_by(practice) %>% 
+  summarise(n = n()) %>% 
+  arrange(desc(n)) %>% 
+  head(10) %>% 
+  ggplot(aes(x = reorder(practice, n), y = n)) +
+  geom_col(fill = transcend_cols[3], position = "dodge") +
+  geom_text(aes(label = n), nudge_y = 0.5, hjust = 0, color = transcend_na, fontface = "bold", family = "sans") +
+  scale_y_continuous(limits = c(0, 40)) +
+  coord_flip() +
+  theme_bw() +
+  theme(legend.position = "none") +
+  labs(x = " ",
+       title = "Suburban") +
+    theme(
+    plot.title = element_text(family = "Bebas Neue", color = "black"),
+    plot.background = element_blank(),
+    axis.text = element_text(colour = "black"),
+    axis.title = element_text(colour = "black"),
+    panel.border = element_rect(colour = "#4D4D4F"),
+    strip.text = element_text(size = rel(0.8)),
+    plot.margin = margin(10, 24, 10, 10, "pt")
+  )
+
+multiple_locale_viz <- school_locale_tags %>% 
+  filter(locale_multiple == 1) %>% 
+  group_by(practice) %>% 
+  summarise(n = n()) %>% 
+  arrange(desc(n)) %>% 
+  head(10) %>% 
+  ggplot(aes(x = reorder(practice, n), y = n)) +
+  geom_col(fill = transcend_cols[4], position = "dodge") +
+  geom_text(aes(label = n), nudge_y = 0.5, hjust = 0, color = transcend_na, fontface = "bold", family = "sans") +
+  scale_y_continuous(limits = c(0, 40)) +
+  coord_flip() +
+  theme_bw() +
+  theme(legend.position = "none") +
+  labs(x = " ",
+       title = "Multiple Locales") +
+    theme(
+    plot.title = element_text(family = "Bebas Neue", color = "black"),
+    plot.background = element_blank(),
+    axis.text = element_text(colour = "black"),
+    axis.title = element_text(colour = "black"),
+    panel.border = element_rect(colour = "#4D4D4F"),
+    strip.text = element_text(size = rel(0.8)),
+    plot.margin = margin(10, 24, 10, 10, "pt")
+  )
+
+```
+
+```{r}
+practices_locale_plot <- rural_viz + urban_viz + suburban_viz + multiple_locale_viz + plot_layout(ncol = 2) + 
+  plot_annotation(title = "Practices Used Longest and Most Often - By School Locale",
+                  theme = theme(plot.title = element_text(hjust = 0.5)))
+practices_locale_plot
+```
+
+## What are the top ALL tags selected when disaggregated? (By locale, level, type, leadership team, etc.)
+
+```{r}
+dis_agg_all <- full %>% 
+  select(school_id, contains("locale_"), starts_with("grades_"), school_type, starts_with("practices_")) %>%
+  pivot_longer(cols = starts_with("practices_"),
+               names_to = "practice",
+               names_prefix = "practices_",
+               values_to = "frequency")
+```
+
+### Overall
+
+```{r}
+dis_agg_all %>% 
+  filter(frequency == 1) %>% 
+  group_by(practice) %>% 
+  summarise(n = n()) %>% 
+  arrange(desc(n)) %>% 
+  head() %>% 
+  ggplot(aes(x = reorder(practice, n), y = n)) +
+  geom_col(aes(fill = practice)) +
+  geom_text(aes(label = n), nudge_y = 0.5, hjust = 0, color = transcend_na, fontface = "bold", size = 4, family = "sans") +
+  coord_flip() +
+  theme_bw() +
+  theme(legend.position = "none") +
+  labs(x = "Top Practices",
+       title = "Practices Most Frequently Selected") +
+  scale_fill_manual(values = c(transcend_cols2, transcend_na, transcend_cols[1])) +
+  theme(
+    plot.title = element_text(family = "Bebas Neue", color = "black"),
+    plot.background = element_blank(),
+    axis.text = element_text(colour = "black"),
+    axis.title = element_text(colour = "black"),
+    panel.border = element_rect(colour = "#4D4D4F"),
+    strip.text = element_text(size = rel(0.8)),
+    plot.margin = margin(10, 24, 10, 10, "pt")
+  )
 ```
 
 
-## What are the top core tags selected when disaggregated? (By locale, level, type, leadership team, etc.)
+### School Descriptor
+
+```{r}
+school_type_tags <- dis_agg_all %>% 
+  filter(frequency == 1) %>% 
+  group_by(school_type, practice) %>% 
+  summarise(n = n())
+```
+
+```{r}
+pds_viz <- school_type_tags %>% 
+  filter(school_type == "Public district school") %>% 
+  arrange(desc(n)) %>% 
+  head(10) %>% 
+  ggplot(aes(x = reorder(practice, n), y = n)) +
+  geom_col(fill = transcend_cols[1], position = "dodge") +
+  geom_text(aes(label = n), nudge_y = 0.5, hjust = 0, color = transcend_na, fontface = "bold", family = "sans") +
+  scale_y_continuous(limits = c(0, max(school_type_tags$n) + 5)) +  
+  coord_flip() +
+  theme_bw() +
+  theme(legend.position = "none") +
+  labs(x = "Top Practices",
+       title = "Public District") +
+  theme(
+    plot.title = element_text(family = "Bebas Neue", color = "black"),
+    plot.background = element_blank(),
+    axis.text = element_text(colour = "black"),
+    axis.title = element_text(colour = "black"),
+    panel.border = element_rect(colour = "#4D4D4F"),
+    strip.text = element_text(size = rel(0.8)),
+    plot.margin = margin(10, 24, 10, 10, "pt")
+  )
+
+pcs_viz <- school_type_tags %>% 
+  filter(school_type == "Public charter school") %>% 
+  arrange(desc(n)) %>% 
+  head(10) %>% 
+  ggplot(aes(x = reorder(practice, n), y = n)) +
+  geom_col(fill = transcend_cols[2], position = "dodge") +
+  geom_text(aes(label = n), nudge_y = 0.5, hjust = 0, color = transcend_na, fontface = "bold", family = "sans") +
+  scale_y_continuous(limits = c(0, max(school_type_tags$n) + 5)) +  
+  coord_flip() +
+  theme_bw() +
+  theme(legend.position = "none") +
+  labs(x = " ",
+       title = "Public Charter") +
+  theme(
+    plot.title = element_text(family = "Bebas Neue", color = "black"),
+    plot.background = element_blank(),
+    axis.text = element_text(colour = "black"),
+    axis.title = element_text(colour = "black"),
+    panel.border = element_rect(colour = "#4D4D4F"),
+    strip.text = element_text(size = rel(0.8)),
+    plot.margin = margin(10, 24, 10, 10, "pt")
+  )
+
+ips_viz <- school_type_tags %>% 
+  filter(school_type == "Independent (private) school") %>% 
+  arrange(desc(n)) %>% 
+  head(10) %>% 
+  ggplot(aes(x = reorder(practice, n), y = n)) +
+  geom_col(fill = transcend_cols[3], position = "dodge") +
+  geom_text(aes(label = n), nudge_y = 0.5, hjust = 0, color = transcend_na, fontface = "bold", family = "sans") +
+  scale_y_continuous(limits = c(0, max(school_type_tags$n) + 5)) +  
+  coord_flip() +
+  theme_bw() +
+  theme(legend.position = "none") +
+  labs(x = " ",
+       title = "Independent (Private)") +
+    theme(
+    plot.title = element_text(family = "Bebas Neue", color = "black"),
+    plot.background = element_blank(),
+    axis.text = element_text(colour = "black"),
+    axis.title = element_text(colour = "black"),
+    panel.border = element_rect(colour = "#4D4D4F"),
+    strip.text = element_text(size = rel(0.8)),
+    plot.margin = margin(10, 24, 10, 10, "pt")
+  )
+```
+
+```{r fig.height=5, fig.width=15}
+library(patchwork)
+
+practices_descriptor_plot <- pds_viz + pcs_viz + ips_viz + plot_layout(ncol = 3) + 
+  plot_annotation(title = "Most Selected Practices - School Type",
+                  theme = theme(plot.title = element_text(hjust = 0.5)))
+practices_descriptor_plot
+```
+
+### School Level
+
+```{r}
+school_level_tags <- dis_agg_all %>% 
+  select(school_id, practice, frequency, starts_with("grades_"), ) %>% 
+  filter(frequency == 1)
+```
+
+```{r}
+prek_viz <- school_level_tags %>% 
+  filter(grades_pk == 1) %>% 
+  group_by(practice) %>% 
+  summarise(n = n()) %>% 
+  arrange(desc(n)) %>% 
+  head(10) %>% 
+  ggplot(aes(x = reorder(practice, n), y = n)) +
+  geom_col(fill = transcend_cols[1], position = "dodge") +
+  geom_text(aes(label = n), nudge_y = 0.5, hjust = 0, color = transcend_na, fontface = "bold", family = "sans") +
+  scale_y_continuous(limits = c(0, 132)) +
+  coord_flip() +
+  theme_bw() +
+  theme(legend.position = "none") +
+  labs(x = " ",
+       title = "Pre-Kindergarten") +
+    theme(
+    plot.title = element_text(family = "Bebas Neue", color = "black"),
+    plot.background = element_blank(),
+    axis.text = element_text(colour = "black"),
+    axis.title = element_text(colour = "black"),
+    panel.border = element_rect(colour = "#4D4D4F"),
+    strip.text = element_text(size = rel(0.8)),
+    plot.margin = margin(10, 24, 10, 10, "pt")
+  )
+
+elem_viz <- school_level_tags %>% 
+  filter(grades_elementary == 1) %>% 
+  group_by(practice) %>% 
+  summarise(n = n()) %>% 
+  arrange(desc(n)) %>% 
+  head(10) %>% 
+  ggplot(aes(x = reorder(practice, n), y = n)) +
+  geom_col(fill = transcend_cols[2], position = "dodge") +
+  geom_text(aes(label = n), nudge_y = 0.5, hjust = 0, color = transcend_na, fontface = "bold", family = "sans") +
+  scale_y_continuous(limits = c(0, 132)) +
+  coord_flip() +
+  theme_bw() +
+  theme(legend.position = "none") +
+  labs(x = " ",
+       title = "Elementary School") +
+    theme(
+    plot.title = element_text(family = "Bebas Neue", color = "black"),
+    plot.background = element_blank(),
+    axis.text = element_text(colour = "black"),
+    axis.title = element_text(colour = "black"),
+    panel.border = element_rect(colour = "#4D4D4F"),
+    strip.text = element_text(size = rel(0.8)),
+    plot.margin = margin(10, 24, 10, 10, "pt")
+  )
+
+middle_viz <- school_level_tags %>% 
+  filter(grades_middle == 1) %>% 
+  group_by(practice) %>% 
+  summarise(n = n()) %>% 
+  arrange(desc(n)) %>% 
+  head(10) %>% 
+  ggplot(aes(x = reorder(practice, n), y = n)) +
+  geom_col(fill = transcend_cols[3], position = "dodge") +
+  geom_text(aes(label = n), nudge_y = 0.5, hjust = 0, color = transcend_na, fontface = "bold", family = "sans") +
+  scale_y_continuous(limits = c(0, 132)) +
+  coord_flip() +
+  theme_bw() +
+  theme(legend.position = "none") +
+  labs(x = " ",
+       title = "Middle School") +
+    theme(
+    plot.title = element_text(family = "Bebas Neue", color = "black"),
+    plot.background = element_blank(),
+    axis.text = element_text(colour = "black"),
+    axis.title = element_text(colour = "black"),
+    panel.border = element_rect(colour = "#4D4D4F"),
+    strip.text = element_text(size = rel(0.8)),
+    plot.margin = margin(10, 24, 10, 10, "pt")
+  )
+
+high_viz <- school_level_tags %>% 
+  filter(grades_high == 1) %>% 
+  group_by(practice) %>% 
+  summarise(n = n()) %>% 
+  arrange(desc(n)) %>% 
+  head(10) %>% 
+  ggplot(aes(x = reorder(practice, n), y = n)) +
+  geom_col(fill = transcend_cols[4], position = "dodge") +
+  geom_text(aes(label = n), nudge_y = 0.5, hjust = 0, color = transcend_na, fontface = "bold", family = "sans") +
+  scale_y_continuous(limits = c(0, 132)) +
+  coord_flip() +
+  theme_bw() +
+  theme(legend.position = "none") +
+  labs(x = " ",
+       title = "High School") +
+    theme(
+    plot.title = element_text(family = "Bebas Neue", color = "black"),
+    plot.background = element_blank(),
+    axis.text = element_text(colour = "black"),
+    axis.title = element_text(colour = "black"),
+    panel.border = element_rect(colour = "#4D4D4F"),
+    strip.text = element_text(size = rel(0.8)),
+    plot.margin = margin(10, 24, 10, 10, "pt")
+  )
+
+```
+
+```{r}
+practices_levels_plot <- prek_viz + elem_viz + middle_viz + high_viz + plot_layout(ncol = 2) + 
+  plot_annotation(title = "Most Selected Practices - By the Levels Schools Offer",
+                  theme = theme(plot.title = element_text(hjust = 0.5)))
+practices_levels_plot
+```
+
+### Locale
+
+```{r}
+school_locale_tags <- dis_agg_all %>% 
+  select(school_id, practice, frequency, contains("locale"), ) %>% 
+  filter(frequency == 1)
+```
+
+```{r}
+rural_viz <- school_locale_tags %>% 
+  filter(locale_rural == 1) %>% 
+  group_by(practice) %>% 
+  summarise(n = n()) %>% 
+  arrange(desc(n)) %>% 
+  head(10) %>% 
+  ggplot(aes(x = reorder(practice, n), y = n)) +
+  geom_text(aes(label = n), nudge_y = 0.5, hjust = 0, color = transcend_na, fontface = "bold", family = "sans") +
+  scale_y_continuous(limits = c(0, 120)) +
+  geom_col(fill = transcend_cols[1], position = "dodge") +
+  coord_flip() +
+  theme_bw() +
+  theme(legend.position = "none") +
+  labs(x = " ",
+       title = "Rural") +
+    theme(
+    plot.title = element_text(family = "Bebas Neue", color = "black"),
+    plot.background = element_blank(),
+    axis.text = element_text(colour = "black"),
+    axis.title = element_text(colour = "black"),
+    panel.border = element_rect(colour = "#4D4D4F"),
+    strip.text = element_text(size = rel(0.8)),
+    plot.margin = margin(10, 24, 10, 10, "pt")
+  )
+
+urban_viz <- school_locale_tags %>% 
+  filter(locale_urban == 1) %>% 
+  group_by(practice) %>% 
+  summarise(n = n()) %>% 
+  arrange(desc(n)) %>% 
+  head(10) %>% 
+  ggplot(aes(x = reorder(practice, n), y = n)) +
+  geom_text(aes(label = n), nudge_y = 0.5, hjust = 0, color = transcend_na, fontface = "bold", family = "sans") +
+  scale_y_continuous(limits = c(0, 120)) +
+  geom_col(fill = transcend_cols[2], position = "dodge") +
+  coord_flip() +
+  theme_bw() +
+  theme(legend.position = "none") +
+  labs(x = " ",
+       title = "Urban") +
+    theme(
+    plot.title = element_text(family = "Bebas Neue", color = "black"),
+    plot.background = element_blank(),
+    axis.text = element_text(colour = "black"),
+    axis.title = element_text(colour = "black"),
+    panel.border = element_rect(colour = "#4D4D4F"),
+    strip.text = element_text(size = rel(0.8)),
+    plot.margin = margin(10, 24, 10, 10, "pt")
+  )
+
+suburban_viz <- school_locale_tags %>% 
+  filter(locale_suburban == 1) %>% 
+  group_by(practice) %>% 
+  summarise(n = n()) %>% 
+  arrange(desc(n)) %>% 
+  head(10) %>% 
+  ggplot(aes(x = reorder(practice, n), y = n)) +
+  geom_text(aes(label = n), nudge_y = 0.5, hjust = 0, color = transcend_na, fontface = "bold", family = "sans") +
+  scale_y_continuous(limits = c(0, 120)) +
+  geom_col(fill = transcend_cols[3], position = "dodge") +
+  coord_flip() +
+  theme_bw() +
+  theme(legend.position = "none") +
+  labs(x = " ",
+       title = "Suburban") +
+    theme(
+    plot.title = element_text(family = "Bebas Neue", color = "black"),
+    plot.background = element_blank(),
+    axis.text = element_text(colour = "black"),
+    axis.title = element_text(colour = "black"),
+    panel.border = element_rect(colour = "#4D4D4F"),
+    strip.text = element_text(size = rel(0.8)),
+    plot.margin = margin(10, 24, 10, 10, "pt")
+  )
+
+multiple_locale_viz <- school_locale_tags %>% 
+  filter(locale_multiple == 1) %>% 
+  group_by(practice) %>% 
+  summarise(n = n()) %>% 
+  arrange(desc(n)) %>% 
+  head(10) %>% 
+  ggplot(aes(x = reorder(practice, n), y = n)) +
+  geom_text(aes(label = n), nudge_y = 0.5, hjust = 0, color = transcend_na, fontface = "bold", family = "sans") +
+  scale_y_continuous(limits = c(0, 120)) +
+  geom_col(fill = transcend_cols[4], position = "dodge") +
+  coord_flip() +
+  theme_bw() +
+  theme(legend.position = "none") +
+  labs(x = " ",
+       title = "Multiple Locales") +
+    theme(
+    plot.title = element_text(family = "Bebas Neue", color = "black"),
+    plot.background = element_blank(),
+    axis.text = element_text(colour = "black"),
+    axis.title = element_text(colour = "black"),
+    panel.border = element_rect(colour = "#4D4D4F"),
+    strip.text = element_text(size = rel(0.8)),
+    plot.margin = margin(10, 24, 10, 10, "pt")
+  )
+```
+
+```{r}
+practices_locale_plot <- rural_viz + urban_viz + suburban_viz + multiple_locale_viz + plot_layout(ncol = 2) + 
+  plot_annotation(title = "Most Selected Practices - By School Locale",
+                  theme = theme(plot.title = element_text(hjust = 0.5)))
+practices_locale_plot
+```
 
 ## MODELING: Estimate model for each tag prevalence using (relatively) complete set of expanatory variables for general use in answering "How do tagging patterns differ across X?"
 
 #### Level, Locale, Demographics, Type
 
-## What are the newest core and pilot tags being implemented?
+## What are the top core and pilot tags being implemented?
+
+### Core
+
+```{r}
+core_tags <- full %>% 
+  select(school_id, starts_with("core")) %>% 
+  pivot_longer(cols = starts_with("core"),
+               names_to = "practice",
+               names_prefix = "core_",
+               values_to = "frequency") %>% 
+  filter(frequency == 1) %>% 
+  select(-frequency)
+```
+
+```{r}
+core_tags %>% 
+  group_by(practice) %>% 
+  summarise(n = n()) %>% 
+  arrange(desc(n)) %>% 
+  head(10) %>% 
+  ggplot(aes(x = reorder(practice, n), y = n)) +
+  geom_col(fill = transcend_cols2[2]) +
+  geom_text(aes(label = n), nudge_y = 0.5, hjust = 0, color = transcend_na, fontface = "bold", size = 4, family = "sans") +
+  coord_flip() +
+  theme_bw() +
+  theme(legend.position = "none") +
+  labs(x = "Practices",
+       y = "Number of Schools",
+       title = "Top Core Practices") +
+  scale_fill_manual(values = c(transcend_cols2, transcend_na, transcend_cols[1])) +
+  theme(
+    plot.title = element_text(family = "Bebas Neue", color = "black"),
+    plot.background = element_blank(),
+    axis.text = element_text(colour = "black"),
+    axis.title = element_text(colour = "black"),
+    panel.border = element_rect(colour = "#4D4D4F"),
+    strip.text = element_text(size = rel(0.8)),
+    plot.margin = margin(10, 24, 10, 10, "pt")
+  )
+```
+
+
+## What are the newest core tags being implemented?
+
+```{r}
+pilot_tags <- full %>% 
+  select(school_id, starts_with("pilot")) %>% 
+  pivot_longer(cols = starts_with("pilot"),
+               names_to = "practice",
+               names_prefix = "pilot_",
+               values_to = "frequency") %>% 
+  filter(frequency == 1) %>% 
+  select(-frequency)
+```
+
+```{r}
+pilot_tags %>% 
+  group_by(practice) %>% 
+  summarise(n = n()) %>% 
+  arrange(desc(n)) %>% 
+  head(10) %>% 
+  ggplot(aes(x = reorder(practice, n), y = n)) +
+  geom_col(fill = transcend_cols2[3]) +
+  geom_text(aes(label = n), nudge_y = 0.5, hjust = 0, color = transcend_na, fontface = "bold", size = 4, family = "sans") +
+  coord_flip() +
+  theme_bw() +
+  theme(legend.position = "none") +
+  labs(x = "Practices",
+       y = "Number of Schools",
+       title = "Top Pilot Tags") +
+  scale_fill_manual(values = c(transcend_cols2, transcend_na, transcend_cols[1])) +
+  theme(
+    plot.title = element_text(family = "Bebas Neue", color = "black"),
+    plot.background = element_blank(),
+    axis.text = element_text(colour = "black"),
+    axis.title = element_text(colour = "black"),
+    panel.border = element_rect(colour = "#4D4D4F"),
+    strip.text = element_text(size = rel(0.8)),
+    plot.margin = margin(10, 24, 10, 10, "pt")
+  )
+```
 
 ## What are the top core tags schools have been implementing for 5 or more years?
+
+Already ran above.
+
+## What are the newest core tags being implemented?
+
+Restrict to variables needed.
+```{r}
+dis_agg_time <- full %>% 
+  select(school_id, contains("locale_"), starts_with("grades_"), school_type, starts_with("time_")) %>%
+  pivot_longer(cols = starts_with("time_"),
+               names_to = "practice",
+               names_prefix = "time_",
+               values_to = "frequency")
+```
+
+### Overall
+
+```{r}
+dis_agg_time %>% 
+  group_by(practice, frequency) %>% 
+  summarise(n = n()) %>% 
+  filter(frequency == "1-2 years") %>% 
+  arrange(desc(n)) %>% 
+  head(10)
+```
+
+
+
+### School Type
+
+```{r}
+school_type_tags <- dis_agg_time %>% 
+  group_by(school_type, practice, frequency) %>% 
+  summarise(n = n())
+```
+
+```{r}
+pds_viz <- school_type_tags %>% 
+  filter(frequency == "5+ years",
+         school_type == "Public district school") %>% 
+  arrange(desc(n)) %>% 
+  head(10) %>% 
+  ggplot(aes(x = reorder(practice, n), y = n)) +
+  geom_col(fill = transcend_cols[1], position = "dodge") +
+  geom_text(aes(label = n), nudge_y = 0.5, hjust = 0, color = transcend_na, fontface = "bold", family = "sans") +
+  scale_y_continuous(limits = c(0, 25)) +
+  coord_flip() +
+  theme_bw() +
+  theme(legend.position = "none") +
+  labs(x = "Top Practices",
+       title = "Public District Schools") +
+  theme(
+    plot.title = element_text(family = "Bebas Neue", color = "black"),
+    plot.background = element_blank(),
+    axis.text = element_text(colour = "black"),
+    axis.title = element_text(colour = "black"),
+    panel.border = element_rect(colour = "#4D4D4F"),
+    strip.text = element_text(size = rel(0.8)),
+    plot.margin = margin(10, 24, 10, 10, "pt")
+  )
+
+pcs_viz <- school_type_tags %>% 
+  filter(frequency == "5+ years",
+         school_type == "Public charter school") %>% 
+  arrange(desc(n)) %>% 
+  head(10) %>% 
+  ggplot(aes(x = reorder(practice, n), y = n)) +
+  geom_col(fill = transcend_cols[2], position = "dodge") +
+  geom_text(aes(label = n), nudge_y = 0.5, hjust = 0, color = transcend_na, fontface = "bold", family = "sans") +
+  scale_y_continuous(limits = c(0, 25)) +
+  coord_flip() +
+  theme_bw() +
+  theme(legend.position = "none") +
+  labs(x = " ",
+       title = "Public Charter Schools") +
+  theme(
+    plot.title = element_text(family = "Bebas Neue", color = "black"),
+    plot.background = element_blank(),
+    axis.text = element_text(colour = "black"),
+    axis.title = element_text(colour = "black"),
+    panel.border = element_rect(colour = "#4D4D4F"),
+    strip.text = element_text(size = rel(0.8)),
+    plot.margin = margin(10, 24, 10, 10, "pt")
+  )
+
+ips_viz <- school_type_tags %>% 
+  filter(frequency == "5+ years",
+         school_type == "Independent (private) school") %>% 
+  arrange(desc(n)) %>% 
+  head(10) %>% 
+  ggplot(aes(x = reorder(practice, n), y = n)) +
+  geom_col(fill = transcend_cols[3], position = "dodge") +
+  geom_text(aes(label = n), nudge_y = 0.5, hjust = 0, color = transcend_na, fontface = "bold", family = "sans") +
+  scale_y_continuous(limits = c(0, 25)) +
+  coord_flip() +
+  theme_bw() +
+  theme(legend.position = "none") +
+  labs(x = " ",
+       title = "Independent (Private) Schools") +
+    theme(
+    plot.title = element_text(family = "Bebas Neue", color = "black"),
+    plot.background = element_blank(),
+    axis.text = element_text(colour = "black"),
+    axis.title = element_text(colour = "black"),
+    panel.border = element_rect(colour = "#4D4D4F"),
+    strip.text = element_text(size = rel(0.8)),
+    plot.margin = margin(10, 24, 10, 10, "pt")
+  )
+```
+
+```{r fig.height=5, fig.width=15}
+library(patchwork)
+
+practices_descriptor_plot <- pds_viz + pcs_viz + ips_viz + plot_layout(ncol = 3) + 
+  plot_annotation(title = "Practices Used Longest and Most Often - School Type",
+                  theme = theme(plot.title = element_text(hjust = 0.5)))
+practices_descriptor_plot
+```
+
+### School Level
+
+```{r}
+school_level_tags <- dis_agg_time %>% 
+  select(school_id, practice, frequency, starts_with("grades_"), ) %>% 
+  filter(frequency == "5+ years")
+```
+
+```{r}
+prek_viz <- school_level_tags %>% 
+  filter(grades_pk == 1) %>% 
+  group_by(practice) %>% 
+  summarise(n = n()) %>% 
+  arrange(desc(n)) %>% 
+  head(10) %>% 
+  ggplot(aes(x = reorder(practice, n), y = n)) +
+  geom_col(fill = transcend_cols[1], position = "dodge") +
+  geom_text(aes(label = n), nudge_y = 0.5, hjust = 0, color = transcend_na, fontface = "bold", family = "sans") +
+  scale_y_continuous(limits = c(0, 40)) +
+  coord_flip() +
+  theme_bw() +
+  theme(legend.position = "none") +
+  labs(x = " ",
+       title = "Pre-Kindergarten") +
+    theme(
+    plot.title = element_text(family = "Bebas Neue", color = "black"),
+    plot.background = element_blank(),
+    axis.text = element_text(colour = "black"),
+    axis.title = element_text(colour = "black"),
+    panel.border = element_rect(colour = "#4D4D4F"),
+    strip.text = element_text(size = rel(0.8)),
+    plot.margin = margin(10, 24, 10, 10, "pt")
+  )
+
+elem_viz <- school_level_tags %>% 
+  filter(grades_elementary == 1) %>% 
+  group_by(practice) %>% 
+  summarise(n = n()) %>% 
+  arrange(desc(n)) %>% 
+  head(10) %>% 
+  ggplot(aes(x = reorder(practice, n), y = n)) +
+  geom_col(fill = transcend_cols[2], position = "dodge") +
+  geom_text(aes(label = n), nudge_y = 0.5, hjust = 0, color = transcend_na, fontface = "bold", family = "sans") +
+  scale_y_continuous(limits = c(0, 40)) +
+  coord_flip() +
+  theme_bw() +
+  theme(legend.position = "none") +
+  labs(x = " ",
+       title = "Elementary School") +
+    theme(
+    plot.title = element_text(family = "Bebas Neue", color = "black"),
+    plot.background = element_blank(),
+    axis.text = element_text(colour = "black"),
+    axis.title = element_text(colour = "black"),
+    panel.border = element_rect(colour = "#4D4D4F"),
+    strip.text = element_text(size = rel(0.8)),
+    plot.margin = margin(10, 24, 10, 10, "pt")
+  )
+
+middle_viz <- school_level_tags %>% 
+  filter(grades_middle == 1) %>% 
+  group_by(practice) %>% 
+  summarise(n = n()) %>% 
+  arrange(desc(n)) %>% 
+  head(10) %>% 
+  ggplot(aes(x = reorder(practice, n), y = n)) +
+  geom_col(fill = transcend_cols[3], position = "dodge") +
+  geom_text(aes(label = n), nudge_y = 0.5, hjust = 0, color = transcend_na, fontface = "bold", family = "sans") +
+  scale_y_continuous(limits = c(0, 40)) +
+  coord_flip() +
+  theme_bw() +
+  theme(legend.position = "none") +
+  labs(x = " ",
+       title = "Middle School") +
+    theme(
+    plot.title = element_text(family = "Bebas Neue", color = "black"),
+    plot.background = element_blank(),
+    axis.text = element_text(colour = "black"),
+    axis.title = element_text(colour = "black"),
+    panel.border = element_rect(colour = "#4D4D4F"),
+    strip.text = element_text(size = rel(0.8)),
+    plot.margin = margin(10, 24, 10, 10, "pt")
+  )
+
+high_viz <- school_level_tags %>% 
+  filter(grades_high == 1) %>% 
+  group_by(practice) %>% 
+  summarise(n = n()) %>% 
+  arrange(desc(n)) %>% 
+  head(10) %>% 
+  ggplot(aes(x = reorder(practice, n), y = n)) +
+  geom_col(fill = transcend_cols[4], position = "dodge") +
+  geom_text(aes(label = n), nudge_y = 0.5, hjust = 0, color = transcend_na, fontface = "bold", family = "sans") +
+  scale_y_continuous(limits = c(0, 40)) +
+  coord_flip() +
+  theme_bw() +
+  theme(legend.position = "none") +
+  labs(x = " ",
+       title = "High School") +
+    theme(
+    plot.title = element_text(family = "Bebas Neue", color = "black"),
+    plot.background = element_blank(),
+    axis.text = element_text(colour = "black"),
+    axis.title = element_text(colour = "black"),
+    panel.border = element_rect(colour = "#4D4D4F"),
+    strip.text = element_text(size = rel(0.8)),
+    plot.margin = margin(10, 24, 10, 10, "pt")
+  )
+
+```
+
+```{r}
+practices_levels_plot <- prek_viz + elem_viz + middle_viz + high_viz + plot_layout(ncol = 2) + 
+  plot_annotation(title = "Practices Used Longest and Most Often - By the Levels Schools Offer",
+                  theme = theme(plot.title = element_text(hjust = 0.5)))
+practices_levels_plot
+```
+
+### Locale
+
+```{r}
+school_locale_tags <- dis_agg_time %>% 
+  select(school_id, practice, frequency, contains("locale"), ) %>% 
+  filter(frequency == "5+ years")
+```
+
+```{r}
+rural_viz <- school_locale_tags %>% 
+  filter(locale_rural == 1) %>% 
+  group_by(practice) %>% 
+  summarise(n = n()) %>% 
+  arrange(desc(n)) %>% 
+  head(10) %>% 
+  ggplot(aes(x = reorder(practice, n), y = n)) +
+  geom_col(fill = transcend_cols[1], position = "dodge") +
+  geom_text(aes(label = n), nudge_y = 0.5, hjust = 0, color = transcend_na, fontface = "bold", family = "sans") +
+  scale_y_continuous(limits = c(0, 40)) +
+  coord_flip() +
+  theme_bw() +
+  theme(legend.position = "none") +
+  labs(x = " ",
+       title = "Rural") +
+    theme(
+    plot.title = element_text(family = "Bebas Neue", color = "black"),
+    plot.background = element_blank(),
+    axis.text = element_text(colour = "black"),
+    axis.title = element_text(colour = "black"),
+    panel.border = element_rect(colour = "#4D4D4F"),
+    strip.text = element_text(size = rel(0.8)),
+    plot.margin = margin(10, 24, 10, 10, "pt")
+  )
+
+urban_viz <- school_locale_tags %>% 
+  filter(locale_urban == 1) %>% 
+  group_by(practice) %>% 
+  summarise(n = n()) %>% 
+  arrange(desc(n)) %>% 
+  head(10) %>% 
+  ggplot(aes(x = reorder(practice, n), y = n)) +
+  geom_col(fill = transcend_cols[2], position = "dodge") +
+  geom_text(aes(label = n), nudge_y = 0.5, hjust = 0, color = transcend_na, fontface = "bold", family = "sans") +
+  scale_y_continuous(limits = c(0, 40)) +
+  coord_flip() +
+  theme_bw() +
+  theme(legend.position = "none") +
+  labs(x = " ",
+       title = "Urban") +
+    theme(
+    plot.title = element_text(family = "Bebas Neue", color = "black"),
+    plot.background = element_blank(),
+    axis.text = element_text(colour = "black"),
+    axis.title = element_text(colour = "black"),
+    panel.border = element_rect(colour = "#4D4D4F"),
+    strip.text = element_text(size = rel(0.8)),
+    plot.margin = margin(10, 24, 10, 10, "pt")
+  )
+
+suburban_viz <- school_locale_tags %>% 
+  filter(locale_suburban == 1) %>% 
+  group_by(practice) %>% 
+  summarise(n = n()) %>% 
+  arrange(desc(n)) %>% 
+  head(10) %>% 
+  ggplot(aes(x = reorder(practice, n), y = n)) +
+  geom_col(fill = transcend_cols[3], position = "dodge") +
+  geom_text(aes(label = n), nudge_y = 0.5, hjust = 0, color = transcend_na, fontface = "bold", family = "sans") +
+  scale_y_continuous(limits = c(0, 40)) +
+  coord_flip() +
+  theme_bw() +
+  theme(legend.position = "none") +
+  labs(x = " ",
+       title = "Suburban") +
+    theme(
+    plot.title = element_text(family = "Bebas Neue", color = "black"),
+    plot.background = element_blank(),
+    axis.text = element_text(colour = "black"),
+    axis.title = element_text(colour = "black"),
+    panel.border = element_rect(colour = "#4D4D4F"),
+    strip.text = element_text(size = rel(0.8)),
+    plot.margin = margin(10, 24, 10, 10, "pt")
+  )
+
+multiple_locale_viz <- school_locale_tags %>% 
+  filter(locale_multiple == 1) %>% 
+  group_by(practice) %>% 
+  summarise(n = n()) %>% 
+  arrange(desc(n)) %>% 
+  head(10) %>% 
+  ggplot(aes(x = reorder(practice, n), y = n)) +
+  geom_col(fill = transcend_cols[4], position = "dodge") +
+  geom_text(aes(label = n), nudge_y = 0.5, hjust = 0, color = transcend_na, fontface = "bold", family = "sans") +
+  scale_y_continuous(limits = c(0, 40)) +
+  coord_flip() +
+  theme_bw() +
+  theme(legend.position = "none") +
+  labs(x = " ",
+       title = "Multiple Locales") +
+    theme(
+    plot.title = element_text(family = "Bebas Neue", color = "black"),
+    plot.background = element_blank(),
+    axis.text = element_text(colour = "black"),
+    axis.title = element_text(colour = "black"),
+    panel.border = element_rect(colour = "#4D4D4F"),
+    strip.text = element_text(size = rel(0.8)),
+    plot.margin = margin(10, 24, 10, 10, "pt")
+  )
+
+```
+
+```{r}
+practices_locale_plot <- rural_viz + urban_viz + suburban_viz + multiple_locale_viz + plot_layout(ncol = 2) + 
+  plot_annotation(title = "Practices Used Longest and Most Often - By School Locale",
+                  theme = theme(plot.title = element_text(hjust = 0.5)))
+practices_locale_plot
+```
+
+
