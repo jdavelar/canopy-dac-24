@@ -15,7 +15,7 @@ editor_options:
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE)
-pacman::p_load(tidyverse, here, rio, DT, ggcorrplot, psych, parameters, ggthemes)
+pacman::p_load(tidyverse, here, rio, DT, ggcorrplot, psych, parameters, ggthemes, broom)
 
 load(here("data/2024 data", "complete_canopy_2024.RData"))
 # source(here("scripts/branding.R"))
@@ -913,12 +913,242 @@ practices_locale_plot
 
 ## MODELING: Estimate model for each tag prevalence using (relatively) complete set of expanatory variables for general use in answering "How do tagging patterns differ across X?"
 
-```{r}
+Rather than individual tag, I'm going to run this on the recommended clusters for this year.
 
+Following Janette's cluster_trends doc, I am implementing a binomial logistic regression here.
+
+```{r}
+cluster <- import(here("data/longitudinal", "tag_clusters_longitudinal.csv")) %>% 
+  janitor::clean_names()
+
+deeper_cluster <- cluster %>% 
+  filter(proposed_cluster_for_preliminary_24_analysis == "Deeper learning") %>% 
+  pull(tag)
+
+ed_justice_cluster <- cluster %>% 
+  filter(proposed_cluster_for_preliminary_24_analysis == "Ed justice") %>% 
+  pull(tag)
+
+individualized_cluster <- cluster %>% 
+  filter(proposed_cluster_for_preliminary_24_analysis == "Individualized") %>% 
+  pull(tag)
+
+postsecondary_cluster <- cluster %>% 
+  filter(proposed_cluster_for_preliminary_24_analysis == "Postsecondary") %>% 
+  pull(tag)
+
+no_cluster <- cluster %>%
+  filter(proposed_cluster_for_preliminary_24_analysis == "None" |
+           proposed_cluster_for_preliminary_24_analysis == "None?") %>%
+  pull(tag)
 ```
 
 
-#### Level, Locale, Demographics, Type
+```{r}
+
+tags_long <- tags %>% 
+  select(school_id, starts_with("practice")) %>% 
+  pivot_longer(cols = starts_with("practice"),
+               names_to = "var",
+               names_prefix = "practices_",
+               values_to = "usage") %>% 
+  mutate(var = recode(var, !!!labels)) %>% 
+  mutate(cluster = case_when(
+    var %in% deeper_cluster ~ "deeper",
+    var %in% ed_justice_cluster ~ "ed_justice",
+    var %in% individualized_cluster ~ "individualized",
+    var %in% postsecondary_cluster ~ "postsecondary",
+    var %in% no_cluster ~ "misc"
+  ))
+
+mod_dat <- tags_long %>% 
+  group_by(cluster, school_id) %>% 
+  summarise(total = n_distinct(var),
+            n = sum(usage),
+            pct = n/total) %>% 
+  select(school_id, cluster, n, pct) %>% 
+  ungroup() %>% 
+  pivot_wider(names_from = cluster,
+              values_from = c(n, pct))
+
+#read in characteristic vars for modeling and merge
+vars <- full %>% 
+  select(school_id, school_type, school_locale, leadership_diversity, school_enrollment, pct_bipoc, pct_ell, pct_frpl, pct_swd, grades_pk, grades_elementary, grades_middle, grades_high) %>% 
+  mutate(c_enrollment = scale(school_enrollment, center = TRUE, scale = TRUE)[,1],
+         c_bipoc = scale(pct_bipoc, center = TRUE, scale = TRUE)[,1],
+         c_ell = scale(pct_ell, center = TRUE, scale = TRUE)[,1],
+         c_frpl = scale(pct_frpl, center = TRUE, scale = TRUE)[,1],
+         c_swd = scale(pct_swd, center = TRUE, scale = TRUE)[,1]) %>% 
+  select(-c(school_enrollment, starts_with("pct")))
+
+#merge
+mod_dat <- mod_dat %>% 
+  left_join(vars, by = c("school_id"))
+
+# set vars of interest
+dv <- mod_dat %>% select(starts_with("n_")) %>% colnames()
+
+preds <- mod_dat %>% select(-school_id, -starts_with("pct_"), -starts_with("n_")) %>% colnames()
+```
+
+Begin model setup
+```{r}
+log_dat <- mod_dat %>% 
+  mutate(tot_deeper = 12, # total = 12
+         tot_ed_justice = 19, # total = 19
+         tot_individualized = 9, # total = 9
+         tot_misc = 24, # total = 24
+         tot_postsecondary = 9, # total = 9
+         max_deeper = 12,
+         max_ed_justice = 19,
+         max_individualized = 9,
+         max_misc = 24,
+         max_postsecondary = 9) %>% 
+  pivot_longer(cols = c(starts_with("n_"), starts_with("pct_"), starts_with("tot_"), starts_with("max_")),
+               names_to = c(".value", "cluster"),
+               names_pattern = "^([^_]+)_(.*)$") %>% 
+  rowwise() %>% 
+  mutate(success = n,
+         failure = max - n,
+         school_type = factor(school_type, levels = c("Public district school", "Public charter school", "Independent (private) school")),
+         school_locale = factor(school_locale, levels = c("Urban", "Suburban", "Rural", "Multiple")))
+```
+
+### Deeper Learning
+```{r}
+#manual run because loops aren't working - deeper learning
+deep <- log_dat %>% 
+  filter(cluster == "deeper") %>% 
+  filter(!if_any(all_of(preds), is.na))
+
+deep_mod <- glm(cbind(success, failure) ~ school_type + school_locale + grades_pk + grades_elementary + grades_high + c_enrollment + c_bipoc + c_ell + c_swd,
+                family = binomial,
+                data = deep)
+# plot
+tidy(deep_mod, effects = "ran_pars", conf.int = TRUE) %>%
+  filter(term != "(Intercept)") %>%
+  mutate(estimate = exp(estimate)) %>% 
+  ggplot(., aes(y = fct_reorder(term, estimate), x = estimate)) +
+  geom_linerange(aes(xmin = estimate - std.error,
+                     xmax = estimate + std.error),
+                 color = "blue") +
+  geom_point() +
+  geom_vline(xintercept = 1) +
+  theme_transcend +
+  theme(panel.grid.major.y = element_blank()) +
+  labs(
+    x = "Likelihood",
+    y = "",
+    title = "School characteristics describing \ndeeper learning")
+```
+
+### Ed Justice
+
+```{r}
+ed_justice <- log_dat %>% 
+  filter(cluster == "ed_justice") %>% 
+  filter(!if_any(all_of(preds), is.na))
+
+ed_justice_mod <- glm(cbind(success, failure) ~  school_type + school_locale + grades_pk + grades_elementary + grades_high + c_enrollment + c_bipoc + c_ell + c_swd + offset(log(max)),
+                family = binomial,
+                data = ed_justice)
+# plot
+tidy(ed_justice_mod, effects = "ran_pars", conf.int = TRUE) %>%
+  filter(term != "(Intercept)") %>%
+  mutate(estimate = exp(estimate)) %>% 
+  ggplot(., aes(y = fct_reorder(term, estimate), x = estimate)) +
+  geom_linerange(aes(xmin = estimate - std.error,
+                     xmax = estimate + std.error),
+                 color = "blue") +
+  geom_point() +
+  geom_vline(xintercept = 1) +
+  theme_transcend +
+  theme(panel.grid.major.y = element_blank()) +
+  labs(
+    x = "Likelihood",
+    y = "",
+    title = "School characteristics describing \neducational justice")
+```
+
+### Individualized Learning
+```{r}
+individualized <- log_dat %>% 
+  filter(cluster == "individualized") %>% 
+  filter(!if_any(all_of(preds), is.na))
+
+individualized_mod <- glm(cbind(success, failure) ~  school_type + school_locale + grades_pk + grades_elementary + grades_high + c_enrollment + c_bipoc + c_ell + c_swd,
+                family = binomial,
+                data = individualized)
+# plot
+tidy(individualized_mod, effects = "ran_pars", conf.int = TRUE) %>%
+  filter(term != "(Intercept)") %>%
+  mutate(estimate = exp(estimate)) %>% 
+  ggplot(., aes(y = fct_reorder(term, estimate), x = estimate)) +
+  geom_linerange(aes(xmin = estimate - std.error,
+                       xmax = estimate + std.error),
+                   color = "blue") +
+  geom_point() +
+  theme_transcend +
+  geom_vline(xintercept = 1) +
+  theme(panel.grid.major.y = element_blank()) +
+  labs(x = "Likelihood",
+       y = "",
+       title = "School characteristics describing \nindividualized learning")
+```
+
+### Postsecondary Pathways
+```{r}
+postsecondary <- log_dat %>% 
+  filter(cluster == "postsecondary") %>% 
+  filter(!if_any(all_of(preds), is.na))
+
+postsecondary_mod <- glm(cbind(success, failure) ~ school_type + school_locale + grades_pk + grades_elementary + grades_high + c_enrollment + c_bipoc + c_ell + c_swd + offset(log(max)),
+                family = binomial,
+                data = postsecondary)
+# plot
+tidy(postsecondary_mod, effects = "ran_pars", conf.int = TRUE) %>%
+  filter(term != "(Intercept)") %>%
+  mutate(estimate = exp(estimate)) %>% 
+  ggplot(., aes(y = fct_reorder(term, estimate), x = estimate)) +
+  geom_linerange(aes(xmin = estimate - std.error,
+                       xmax = estimate + std.error),
+                   color = "blue") +
+  geom_point() +
+  geom_vline(xintercept = 1) +
+  theme_transcend +
+  theme(panel.grid.major.y = element_blank()) +
+  labs(x = "Likelihood",
+       y = "",
+       title = "School characteristics describing \npostsecondary pathways")
+```
+
+### Miscellaneous
+
+```{r}
+misc <- log_dat %>% 
+  filter(cluster == "misc") %>% 
+  filter(!if_any(all_of(preds), is.na))
+
+misc_mod <- glm(cbind(success, failure) ~ school_type + school_locale + grades_pk + grades_elementary + grades_high + c_enrollment + c_bipoc + c_ell + c_swd + offset(log(max)),
+                family = binomial,
+                data = misc)
+# plot
+tidy(misc_mod, effects = "ran_pars", conf.int = TRUE) %>%
+  filter(term != "(Intercept)") %>%
+  mutate(estimate = exp(estimate)) %>% 
+  ggplot(., aes(y = fct_reorder(term, estimate), x = estimate)) +
+  geom_linerange(aes(xmin = estimate - std.error,
+                     xmax = estimate + std.error),
+                     color = "blue") +
+  geom_point() +
+  geom_vline(xintercept = 1) +
+  theme_transcend +
+  theme(panel.grid.major.y = element_blank()) +
+  labs(x = "Likelihood",
+       y = "",
+       title = "School characteristics describing \ntags without a cluster")
+```
+
 
 ## What are the top core and pilot tags being implemented?
 
