@@ -44,9 +44,6 @@ theme_set(theme_transcend)
 
 ## How long have schools been implementing each core practice?
 
-Check n's****
-as count and as percentage
-dropped and added core practices for multiple responder schools
 
 ```{r}
 time_tags <- full %>% 
@@ -65,6 +62,7 @@ time_tags <- full %>%
   summarise(n = n())
 ```
 
+5+ years
 ```{r}
 time_tags %>% 
   filter(frequency == "5+ years") %>% 
@@ -73,6 +71,7 @@ time_tags %>%
   head()
 ```
 
+3-4 years
 ```{r}
 time_tags %>% 
   filter(frequency == "3-4 years") %>% 
@@ -81,6 +80,7 @@ time_tags %>%
   head()
 ```
 
+1-2 years
 ```{r}
 time_tags %>% 
   filter(frequency == "1-2 years") %>% 
@@ -89,6 +89,7 @@ time_tags %>%
   head()
 ```
 
+Less than a year
 ```{r}
 time_tags %>% 
   filter(frequency == "Less than a year") %>% 
@@ -97,6 +98,7 @@ time_tags %>%
   head(10)
 ```
 
+Not selected
 ```{r}
 time_tags %>% 
   filter(is.na(frequency)) %>% 
@@ -105,7 +107,7 @@ time_tags %>%
   head(10)
 ```
 
-Recreating graphic from last year: top 10 core practices by time implemented
+Recreating graphic from last year: top 10 core practices by time implemented:
 ```{r}
 top_10 <- time_tags %>% 
   filter(frequency == "5+ years") %>% 
@@ -126,7 +128,7 @@ tag_name <- dictionary %>%
 labels <- setNames(tag_name$clean_labels, tag_name$variable_name)
 ```
 
-```{r}
+```{r fig.width=13, fig.height=4}
 top_10_time <- left_join(top_10, time_tags) %>% 
   mutate(pct = n/189) %>% 
   filter(!is.na(frequency))
