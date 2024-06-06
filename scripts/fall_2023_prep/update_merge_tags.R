@@ -146,3 +146,4 @@ check <- tags_wide %>%
   summarise(school_count = sum(tag_sum), missing_count = sum(is.na(value))) %>%
   ungroup()
 write.csv(tags_wide, "data/longitudinal/tags-wide.csv", row.names = FALSE)
+
