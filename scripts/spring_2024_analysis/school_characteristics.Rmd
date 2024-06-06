@@ -15,7 +15,7 @@ editor_options:
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE, warnings = FALSE, message = FALSE, fig.width = 8, fig.height = 6)
-pacman::p_load(tidyverse, here, rio, DT, ggthemes, scales, statebins) #plotly, parameters, ggrepel, 
+pacman::p_load(tidyverse, here, rio, DT, ggthemes, scales, statebins, ggbreak)
 #read in data
 load(here("data", "2024 data/complete_canopy_2024.RData"))
 ```
@@ -174,6 +174,25 @@ variables %>%
   scale_x_discrete(labels = wrap_format(12))
 ```
 
+Additional digging into microschools: **Why are microschools such a large proportion of our sample? Which schools are identifying as microschools?**  
+
+```{r}
+variables %>% 
+  filter(school_desc_micro == 1) %>% 
+  select(school_id, school_name, school_state, school_type, school_locale, school_enrollment, grades_pk, grades_elementary, grades_middle, grades_high) %>% 
+  datatable()
+```
+
+Additional digging into school-within-schools: **What are school-within-schools such a large proportion of our sample? Which schools are identifying as schools-within-schools?**
+
+```{r}
+variables %>% 
+  filter(school_desc_sws == 1) %>% 
+  select(school_id, school_name, school_state, school_type, school_locale, school_enrollment, grades_pk, grades_elementary, grades_middle, grades_high) %>% 
+  datatable()
+```
+
+
 Guiding question: **What's the average number of enrolled students in these schools?**
 
 ```{r}
@@ -195,10 +214,21 @@ variables %>%
   ggplot(., aes(reorder(school_descriptor, school_enrollment), school_enrollment, fill = school_descriptor)) +
     geom_boxplot() +
     scale_fill_manual(values = transcend_cols2) +
-    theme(legend.position = "none", panel.grid.major.x = element_blank()) +
+    theme(legend.position = "none", 
+          panel.grid.major = element_blank(),
+          panel.grid.minor = element_blank(),
+          panel.border = element_blank()) +
     labs(title = "Enrollment in Canopy schools with alternative models", x = "", y = "Number of students attending") +
   scale_x_discrete(labels = wrap_format(12)) +
-  coord_flip()
+  coord_flip() +
+  scale_y_break(c(3000, 9500), expand = TRUE) +
+  scale_y_continuous(
+        breaks = c(seq(0, 3000, 1000), 10000),
+        labels = c(seq(0, 3000, 1000), "10000")) + 
+  theme(axis.text.y.right = element_blank(),
+        axis.line.y.right = element_blank(),
+        axis.ticks.y.right = element_blank(),
+        panel.grid.minor = element_blank())
 ```
 
 
