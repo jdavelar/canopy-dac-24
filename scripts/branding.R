@@ -7,7 +7,6 @@ library(glue)
 library(here)
 library(systemfonts)
 library(scales)
-load(here("data", "complete_canopy_2023.RData"))
 
 ## FONTS
 if(!all(c("Open Sans", "Bebas Neue") %in% system_fonts()$family)) {
@@ -24,12 +23,8 @@ if(!all(c("Open Sans", "Bebas Neue") %in% system_fonts()$family)) {
 
 
 # Tag labels ###
-tag_labels = dictionary %>%
-  select(tag = `Variable Name`, label = `Clean Label`)
 
-# fixing a pesky punctutation issue
-tag_labels$label <- gsub("career prep & work-basedlearning", "career prep & work-based learning", tag_labels$label)
-  
+tag_labels = read_csv(here("data", "branding_labels.csv"), col_types = "cc")
 
 label_tags = function(capitalize = "none", wrap = Inf) {
   scales:::force_all(capitalize, wrap)
