@@ -8,7 +8,7 @@ output: html_document
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 
-pacman::p_load(here, purrr, tidyverse, ggcorrplot, proxy, plotly, patchwork, psych, GPArotation, parameters, DT, nFactors, broom, scales, rstanarm, broom.mixed, gmodels, ggthemes)
+pacman::p_load(here, purrr, tidyverse, ggcorrplot, proxy, plotly, patchwork, psych, GPArotation, parameters, DT, nFactors, broom, scales, rstanarm, broom.mixed, gmodels, ggthemes, tidytext)
 
 # source(here("scripts/branding.R"))
 load(here("data/2024 data", "complete_canopy_2024.RData"))
@@ -38,7 +38,7 @@ theme_set(theme_transcend)
 
 What are the top tags selected when disaggregated (by locale, level, type, leadership team, etc.)?
 
-Step 1. Data cleaning
+### Step 1. Data cleaning
 ```{r}
 mod_prep <- full %>% 
   select(school_id, school_type, school_locale, school_enrollment, pct_bipoc, pct_ell, pct_frpl, pct_swd, grades_pk, grades_elementary, grades_middle, grades_high, starts_with("practices")) %>% 
@@ -98,9 +98,9 @@ logistic_one_dat =
 
 ```
 
-Step 2. Run models.
+### Step 2. Run models.
 
-```{r}
+```{r eval=FALSE, echo = TRUE}
 
 # [tag] <- locale_rural ~ self_reported_total_enrollment + black_percent + hispanic_percent + white_percent + native_percent + asian_percent + frpl_percent + swd_percent + ell_percent + school_descriptor + grades_prek + grades_elementary + grades_middle + grades_high
 
@@ -135,3 +135,52 @@ bayes_tidy = lapply(bayes_mods, tidy) %>%
 # save(bayes_tidy, bayes_mods, file = "bayesmods.rda")
 ```
 
+```{r}
+load(here("data/2024 data", "bayesmods.rda"))
+```
+
+### Step 3. Make plots.
+
+```{r}
+bayes_facet_dat = bayes_tidy %>% 
+  group_by(term) %>%
+  arrange(desc(abs(estimate))) %>%
+  slice(1:10)  
+#   left_join(tag_labels, by = c("response" = "tag"))
+
+list_plot <- bayes_facet_dat %>% 
+  split(.$term) %>% 
+  map(~ggplot(., aes(y = exp(estimate), 
+             x = reorder_within(response, estimate, within = term, fun = mean)
+             )) +
+  geom_col(fill = transcend_cols[1]) + 
+  labs(y = "",
+       x = "") +
+  scale_y_continuous(
+    trans = "log",
+    breaks = c(.0625, .25, .5, 1, 2, 4, 16),
+    labels = c("1/16 as likely", "1/4 as likely", "1/2 as likely", "Even", "2x as likely", "4x as likely", "16x as likely"),
+    expand = expansion(0, 0)
+  ) +
+#  scale_x_reordered() + 
+  geom_hline(yintercept = 1, color = transcend_grays[1]) +
+  coord_flip() +
+  guides(fill = "none") +
+  theme(axis.text = element_text(size = rel(1)), strip.text = element_text(size = rel(0.6)),
+        panel.grid.major.y = element_blank(),
+        axis.text.x = element_text(angle = -45, size = rel(0.5), vjust = 0.5, hjust = 0))
+  )
+```
+
+```{r}
+file_names <- stringr::str_c(names(list_plot), ".png")
+```
+
+Run code below only to resave files
+```{r}
+pwalk(list(file_names, list_plot), ggsave, path = "disagtag_modeling")
+```
+
+```{r}
+list_plot
+```
