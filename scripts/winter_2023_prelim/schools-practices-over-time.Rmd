@@ -317,14 +317,14 @@ waffle_display |>
   formatPercentage(c("prop_waffles", "prop_covid_waffles_wtd", "prop_reg_waffles_wtd"), digits = 1)
 ```
 
-```{r}
+```{r, fig.width = 7}
 
 top_covid_waffle_tags = waffle_display |>
-  slice_max(n_covid_waffle, n = 10) |>
+  slice_max(n_covid_waffle, n = 5) |>
   pull(tag)
 
 top_noncovid_waffle_tags = waffle_display |>
-  slice_max(n_reg_waffle, n = 10) |>
+  slice_max(n_reg_waffle, n = 5) |>
   pull(tag)
   
 waffle_covid_plot = waffle_all |> filter(waffled) |>
@@ -351,7 +351,7 @@ ggplot(
 ) +
   geom_col() +
   facet_wrap(vars(COVID), ncol = 1) +
-  labs(x = "Number of Bumps and Dips", y = "", title = "Most waffled tags (non-COVID)") +
+  labs(x = "Number of Bumps and Dips", y = "", title = "5 Most waffled tags") +
   scale_y_tag() +
   theme(panel.grid.major.y = element_blank())
 
@@ -361,7 +361,7 @@ ggplot(
 ) +
   geom_col() +
   facet_wrap(vars(COVID), ncol = 1) +
-  labs(x = "Number of Bumps and Dips", y = "", title = "Most waffled tags (COVID)") +
+  labs(x = "Number of Bumps and Dips", y = "", title = "Most waffled tags") +
   scale_y_tag() +
   theme(panel.grid.major.y = element_blank())
 ```
@@ -696,6 +696,8 @@ xx = xx |>
   mutate(
     enroll_scaled = (total_enroll - mean(total_enroll, na.rm = TRUE)) / 
       sd(total_enroll, na.rm = TRUE),
+    stu_poc_pct_scaled = (stu_poc_pct - mean(stu_poc_pct, na.rm = TRUE)) /
+      sd(stu_poc_pct, na.rm = TRUE),
     locale = relevel(factor(locale), ref = "Urban"),
     school_descriptor = factor(
       school_descriptor,
@@ -726,7 +728,7 @@ missing_count =  mm_vol |>
 datatable(missing_count)
 
 vol_mod = lm(
-  n_changes ~ transition + stu_poc_pct + enroll_scaled + locale + school_descriptor +
+  n_changes ~ transition + stu_poc_pct_scaled + enroll_scaled + locale + school_descriptor +
      grades_elementary + grades_middle + grades_high,
   data = mm_vol
 )
@@ -746,7 +748,7 @@ ggplot(vol_coef, aes(y = term, x = estimate)) +
   )
 
 add_mod = lm(
-  n_changes ~ transition + stu_poc_pct + enroll_scaled + locale + school_descriptor +
+  n_changes ~ transition + stu_poc_pct_scaled + enroll_scaled + locale + school_descriptor +
      grades_elementary + grades_middle + grades_high,
   data = mm_add
 )
@@ -780,7 +782,7 @@ Below, we re-run the models above omitting Juab and Purdue, but the Rural effect
 waffle_outlier_ids = c(105, 165) ## Purdue Polytechnic High School and Juab High School 
 
 vol_mod_exc = lm(
-  n_changes ~ transition + stu_poc_pct + enroll_scaled + locale + school_descriptor +
+  n_changes ~ transition + stu_poc_pct_scaled + enroll_scaled + locale + school_descriptor +
      grades_elementary + grades_middle + grades_high,
   data = filter(mm_vol, !school_id %in% waffle_outlier_ids)
 )
@@ -802,7 +804,7 @@ ggplot(vol_coef_exc, aes(y = term, x = estimate)) +
 
 
 add_mod_exc = lm(
-  n_changes ~ transition + stu_poc_pct + enroll_scaled + locale + school_descriptor +
+  n_changes ~ transition + stu_poc_pct_scaled + enroll_scaled + locale + school_descriptor +
      grades_elementary + grades_middle + grades_high,
   data = filter(mm_add, !school_id %in% waffle_outlier_ids)
 )
@@ -830,7 +832,7 @@ Next we'll try looking only post-COVID:
 ```{r}
 fit_and_plot = function(data) {
   mod = lm(
-  n_changes ~ stu_poc_pct + enroll_scaled + locale + school_descriptor +
+  n_changes ~ stu_poc_pct_scaled + enroll_scaled + locale + school_descriptor +
      grades_elementary + grades_middle + grades_high,
   data = data
   )
@@ -898,7 +900,9 @@ changes_by_year = long |>
   ) |>
   mutate(
     prop_changed = n_changes / n_prev_all,
-    prop_same = n_same / n_prev_all
+    prop_same = n_same / n_prev_all,
+    #prop_adds = n_adds / n_prev_0,
+    #prop_drop = n_drops / n_prev_1
   )
 
 changes_by_year |>
