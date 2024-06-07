@@ -1,0 +1,137 @@
+---
+title: "Disaggregated Tag Modeling"
+author: "Anwesha Guha"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+pacman::p_load(here, purrr, tidyverse, ggcorrplot, proxy, plotly, patchwork, psych, GPArotation, parameters, DT, nFactors, broom, scales, rstanarm, broom.mixed, gmodels, ggthemes)
+
+# source(here("scripts/branding.R"))
+load(here("data/2024 data", "complete_canopy_2024.RData"))
+# load(here("data/demo_models_for_findings.RData"))
+```
+
+```{r}
+#manual branding - file won't load
+transcend_cols = c("#1A4C81","#59C3B4","#EF464B","#ADE0EE")
+transcend_cols2 = c("#BC2582","#FFA630","#FFDE42","#99C24D","#218380","#D3B7D7")
+transcend_grays = c("#4D4D4F","#9D9FA2","#D1D3D4")
+transcend_na = transcend_grays[2]
+theme_transcend = theme_gdocs(base_size = 14, base_family = "Open Sans") +
+  theme(
+    plot.title = element_text(family = "Bebas Neue", color = "black"),
+    plot.background = element_blank(),
+    axis.text = element_text(colour = "black"),
+    axis.title = element_text(colour = "black"),
+    panel.border = element_rect(colour = "#4D4D4F"),
+    strip.text = element_text(size = rel(0.8)),
+    plot.margin = margin(10, 24, 10, 10, "pt")
+  )
+theme_set(theme_transcend)
+```
+
+# Cycle 2 - 2024 Only Tag Analysis
+
+What are the top tags selected when disaggregated (by locale, level, type, leadership team, etc.)?
+
+Step 1. Data cleaning
+```{r}
+mod_prep <- full %>% 
+  select(school_id, school_type, school_locale, school_enrollment, pct_bipoc, pct_ell, pct_frpl, pct_swd, grades_pk, grades_elementary, grades_middle, grades_high, starts_with("practices")) %>% 
+  pivot_longer(cols = c(starts_with("practices")),
+               names_to = "tag",
+               values_to = "value")
+
+# create categorical dummy vars
+library(fastDummies)
+mod_prep <- mod_prep %>% 
+  dummy_cols(select_columns = c("school_type", "school_locale")) %>% 
+  select(-c(school_type, school_locale, school_locale_NA)) %>% 
+  rename(independent_private = `school_type_Independent (private) school`,
+         public_charter = `school_type_Public charter school`,
+         public_district = `school_type_Public district school`)
+
+## below section is filtering on tags that have been selected by atleast 20% of schools
+m <- mod_prep %>% 
+  group_by(tag, value, school_id) %>% 
+  summarise(selected_n = n()) %>% 
+  arrange(selected_n) %>% 
+  filter(value > 0) %>% 
+  select(-2)
+
+tag_counts <- m %>%
+  group_by(tag) %>%
+  summarise(school_count = n_distinct(school_id))
+
+threshold <- n_distinct(mod_prep$school_id) * 0.2
+
+low_select_tags <- tag_counts %>%
+  filter(school_count < threshold) %>%
+  pull(tag)
+
+## remove them for our analysis
+mod_prep <- mod_prep %>% 
+  filter(!(tag %in% low_select_tags)) %>% 
+  select(-tag, -value, tag, value) #arrange so tag and value are at the end
+
+vars <- names(mod_prep)[2:17]
+
+logistic_one_dat = 
+  mod_prep %>%
+  select(value, tag, one_of(vars)) %>%
+  na.omit() %>%
+  group_by(tag) %>%
+  # scaling non-binary predictors
+  mutate_at(vars(
+    c(
+      "school_enrollment",
+      "pct_bipoc",
+      "pct_ell",
+      "pct_swd",
+      "pct_frpl"
+    )
+  ), scale)
+
+```
+
+Step 2. Run models.
+
+```{r}
+
+# [tag] <- locale_rural ~ self_reported_total_enrollment + black_percent + hispanic_percent + white_percent + native_percent + asian_percent + frpl_percent + swd_percent + ell_percent + school_descriptor + grades_prek + grades_elementary + grades_middle + grades_high
+
+one_form = as.formula(paste("value", "~", paste(vars, collapse = "+")))
+
+bayes_mods = list()
+
+
+for(x in unique(mod_prep$tag)) {
+  bayes_mods[[x]] = stan_glm(
+    one_form,
+    data = filter(logistic_one_dat, tag == x),
+    family = binomial(link = "logit"),
+    prior = student_t( #df and scale updated to have less extreme values
+      df = 10,
+      location = 0,
+      scale = 2.5
+    )
+  )
+  
+}
+
+bayes_tidy = lapply(bayes_mods, tidy) %>%
+  bind_rows(.id = "response") %>%
+  filter(term != "(Intercept)")
+  # mutate(
+  #   nice_tag = label_tags()(response),
+  #   nice_demog = factor(label_dems(term))
+  # )
+
+# save data file
+# save(bayes_tidy, bayes_mods, file = "bayesmods.rda")
+```
+

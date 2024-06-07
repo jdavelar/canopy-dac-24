@@ -559,7 +559,9 @@ dis_agg_all <- full %>%
                values_to = "frequency")
 ```
 
-### Overall
+### Counts alone
+
+#### Overall
 
 ```{r}
 dis_agg_all %>% 
@@ -589,7 +591,7 @@ dis_agg_all %>%
 ```
 
 
-### School Descriptor
+#### School Descriptor
 
 ```{r}
 school_type_tags <- dis_agg_all %>% 
@@ -678,7 +680,7 @@ practices_descriptor_plot <- pds_viz + pcs_viz + ips_viz + plot_layout(ncol = 3)
 practices_descriptor_plot
 ```
 
-### School Level
+#### School Level
 
 ```{r}
 school_level_tags <- dis_agg_all %>% 
@@ -796,7 +798,7 @@ practices_levels_plot <- prek_viz + elem_viz + middle_viz + high_viz + plot_layo
 practices_levels_plot
 ```
 
-### Locale
+#### Locale
 
 ```{r}
 school_locale_tags <- dis_agg_all %>% 
@@ -912,6 +914,8 @@ practices_locale_plot <- rural_viz + urban_viz + suburban_viz + multiple_locale_
                   theme = theme(plot.title = element_text(hjust = 0.5)))
 practices_locale_plot
 ```
+
+### Models: see disagtag_modeling.Rmd
 
 ## MODELING: Estimate model for each tag prevalence using (relatively) complete set of expanatory variables for general use in answering "How do tagging patterns differ across X?"
 
