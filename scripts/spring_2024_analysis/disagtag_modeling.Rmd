@@ -184,3 +184,9 @@ pwalk(list(file_names, list_plot), ggsave, path = "disagtag_modeling")
 ```{r}
 list_plot
 ```
+
+Notes from meeting:
+place-based learning - grade level dive
+pct predominantly black, latinx, indigenous
+
+clean up files
