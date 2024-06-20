@@ -14,7 +14,7 @@ editor_options:
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE)
 pacman::p_load(tidyverse, rio, here, DT)
 
 load(here("data/2024 data", "complete_canopy_2024.RData"))
@@ -174,10 +174,86 @@ cat_by_year %>%
        legend = "Status")
 ```
 
-This is from Cycle 2. Updating for this time? tbd.
+This is from Cycle 2. What if we looked at schools who only selected one catalyst?
+
+```{r}
+one_cat_change <- catalyst_all_years %>% 
+  select(-contains("_other"), -contains("_key")) %>% 
+  mutate(cat_select = rowSums(across(3:11))) %>% 
+  filter(cat_select == 1) %>% 
+  pivot_longer(cols = contains("catalyst"),
+               names_to = "catalyst",
+               values_to = "selected",
+               names_prefix = "catalyst_") %>% 
+  filter(selected == 1)
+```
+
+Looks like there was just one school who meets this criteria. This school went from focusing on inequity to demographics.
 
 ## For leaders who were concerned about future sustainability, what reasons did they cite for their concern and did these reasons differ across schools?
 
 2024 only
 
+```{r}
+barriers <- full %>% 
+  select(school_id, starts_with("barrier"))
+```
+
+First, am curious how the free response category responded. I generated a wordcloud of these below.
+```{r}
+library(wordcloud)
+library(tm)
+
+responses <- barriers$barrier_other_text
+
+# Create a text corpus
+corpus <- Corpus(VectorSource(responses))
+
+# Text preprocessing
+corpus <- tm_map(corpus, content_transformer(tolower))  # Convert to lower case
+corpus <- tm_map(corpus, removePunctuation)             # Remove punctuation
+corpus <- tm_map(corpus, removeNumbers)                 # Remove numbers
+corpus <- tm_map(corpus, removeWords, stopwords("english"))  # Remove stopwords
+corpus <- tm_map(corpus, stripWhitespace)               # Strip whitespace
+
+# Create a document-term matrix
+dtm <- TermDocumentMatrix(corpus)
+
+# Convert the matrix to a dataframe
+matrix <- as.matrix(dtm)
+word_freqs <- sort(rowSums(matrix), decreasing=TRUE)
+data <- data.frame(word=names(word_freqs), freq=word_freqs)
+
+# Generate the wordcloud
+set.seed(1234) # For reproducibility
+wordcloud(words = data$word, freq = data$freq, min.freq = 1,
+          max.words=200, random.order=FALSE, rot.per=0.35, 
+          colors=brewer.pal(8, "Dark2"))
+
+```
+
+For the rest of the options, here is what leaders selected.
+```{r}
+barriers <- barriers %>% 
+  select(-contains("_other")) %>% 
+  pivot_longer(cols = contains("barrier"),
+               names_to = "barrier",
+               values_to = "selected",
+               names_prefix = "barrier_") %>% 
+  filter(selected == 1) %>% 
+  group_by(barrier) %>% 
+  summarize(n = n())
+```
+
+```{r}
+barriers %>% 
+  ggplot(aes(reorder(barrier, n), n)) +
+  geom_col(aes(fill = barrier)) +
+  scale_fill_manual(values = c(transcend_cols, transcend_cols2)) +
+  labs(title = "2024 Barriers to Sustainability",
+       x = "Barrier",
+       y = "Count") +
+  theme(legend.position = "none") +
+  coord_flip()
+```
 
