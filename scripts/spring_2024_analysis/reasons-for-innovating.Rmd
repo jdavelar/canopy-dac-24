@@ -18,6 +18,7 @@ knitr::opts_chunk$set(echo = TRUE)
 pacman::p_load(tidyverse, rio, here, DT)
 
 load(here("data/2024 data", "complete_canopy_2024.RData"))
+source(here("scripts/branding.R"))
 
 tags_wide <- import(here("data/longitudinal", "full-tags-wide.csv"))
 ```
@@ -63,19 +64,117 @@ rfdf %>%
 ```
 
 
-Reflections: tbd. Some interesting stuff, though.
+Reflections: Following are related to each catalyst. Correlations above 0.15 are noted.
+
+- External: Assessments career (0.20), MTSS academics (0.15), assessments bilingual (0.15), multi-age (0.15)
+- Student agency: student conferences (0.18) assessments agency (0.17)
+- Teacher agency: hiring equity (0.22), enriched virtual (0.18), colead teachers (0.17)
+- Demographics: sel integrated (0.24), student conferences (0.18), advancement mastery (0.17), colead industry (0.17), antiracist (0.16), makerspace (0.15)
+- Internal: colead teachers(0.22), competency framework (0.18), extended learning (0.15), sel integrated (0.15)
+- Stakeholders: colead CBO (0.18), antiracist (0.17)
+- Inequities: UDL (0.15)
+- Absence: expanded open hours (0.18)
+- Covid: MTSS academics (0.16), interdisciplinary (0.15), multi-age (0.15)
+- No notable correlations for following catalysts: cutting edge, mental health
 
 ## How have the main reasons for innovating changed since 2021?
+```{r}
+catalyst_all_years <- import(here("data/longitudinal", "longitudinal_data.csv")) %>% 
+  select(year, school_id, starts_with("catalyst")) %>% 
+  filter(year == 2021 | year == 2024) 
 
-Across
+catalyst_all_years_long <- catalyst_all_years %>% 
+  select(-contains("_other"), -contains("_key")) %>% 
+  pivot_longer(cols = contains("catalyst"),
+               names_to = "catalyst",
+               values_to = "selected",
+               names_prefix = "catalyst_")
+```
 
-Within
+From Cycle 2, I had created this graph.
+```{r}
+library(ggrepel)
+label_positions <- catalyst_all_years_long %>% 
+  group_by(catalyst) %>% 
+  summarize(year = 2021, selected = first(selected))
+
+catalyst_all_years_long <- catalyst_all_years_long %>% 
+  group_by(catalyst, year, selected) %>% 
+  filter(selected == 1) %>% 
+  select(-selected) %>% 
+  summarize(selected = n())
+
+catalyst_all_years_long %>% 
+  ggplot(aes(x = year, y = selected, color = catalyst)) +
+  geom_line() +
+  geom_text_repel(data = label_positions, aes(label = catalyst)) +
+  scale_x_continuous(breaks = c(2021, 2024)) +
+  labs(x = "Year",
+       y = "Number of Times Selected",
+       title = "Catalyst Selection by Year") +
+  theme(legend.position = "none")
+```
+
+How many schools selected just one catalyst in particular?
+
+```{r}
+one_cat <- catalyst_all_years %>% 
+  select(-contains("_other"), -contains("_key")) %>% 
+  mutate(cat_select = rowSums(across(3:11))) %>% 
+  filter(cat_select == 1) %>% 
+  pivot_longer(cols = contains("catalyst"),
+               names_to = "catalyst",
+               values_to = "selected",
+               names_prefix = "catalyst_") %>% 
+  filter(selected == 1) %>% 
+  group_by(year, catalyst) %>% 
+  summarise(count = n())
+```
+
+```{r}
+one_cat %>% 
+  ggplot(aes(x = count, y = catalyst, fill = as.factor(year))) +
+  geom_col(position = "dodge") +
+  scale_fill_manual(values = transcend_cols) +
+  labs(title = "Solo-Select Catalysts",
+       x = "Catalyst",
+       y = "Count",
+       legend = "Year")
+```
+
 
 ## How often have schools that responded in both 2021 and 2024 changed their key catalysts?
 
-Across
+```{r}
+cat_by_year <- catalyst_all_years %>% 
+  select(year, school_id, starts_with("catalyst_key"), -contains("_other")) %>% 
+  pivot_longer(cols = contains("catalyst"),
+               names_to = "catalyst_key",
+               values_to = "selected",
+               names_prefix = "catalyst_key_") %>% 
+  pivot_wider(names_from = year,
+              values_from = selected) %>% 
+  na.omit() %>%  #omit schools that only answered one year
+  mutate(selected = case_when(`2021` == 0 & `2024` == 0 ~ "neither year",
+                            `2021` == 0 & `2024` == 1 ~ "added",
+                            `2021` == 1 & `2024` == 0 ~ "dropped",
+                            `2021` == 1 & `2024` == 1 ~ "both years")) %>% 
+  group_by(catalyst_key, selected) %>% 
+  summarise(n = n())
+```
 
-Within
+```{r}
+cat_by_year %>% 
+  ggplot(aes(x = n, y = catalyst_key, fill = selected)) +
+  geom_col(position = "dodge") +
+  scale_fill_manual(values = transcend_cols) +
+  labs(title = "Catalyst Key Selection for Schools with Both Years of Data",
+       x = "Catalyst",
+       y = "Count",
+       legend = "Status")
+```
+
+This is from Cycle 2. Updating for this time? tbd.
 
 ## For leaders who were concerned about future sustainability, what reasons did they cite for their concern and did these reasons differ across schools?
 
