@@ -199,7 +199,7 @@ barriers <- full %>%
   select(school_id, starts_with("barrier"))
 ```
 
-First, am curious how the free response category responded. I generated a wordcloud of these below.
+First, am curious how the free response category responded. I generated a wordcloud of these for barriers below.
 ```{r}
 library(wordcloud)
 library(tm)
@@ -232,6 +232,39 @@ wordcloud(words = data$word, freq = data$freq, min.freq = 1,
 
 ```
 
+
+While we're here, I'm also including a wordcloud for the catalysts for innovation here.
+
+```{r}
+responses <- full$catalyst_other_text
+
+# Create a text corpus
+corpus <- Corpus(VectorSource(responses))
+
+# Text preprocessing
+corpus <- tm_map(corpus, content_transformer(tolower))  # Convert to lower case
+corpus <- tm_map(corpus, removePunctuation)             # Remove punctuation
+corpus <- tm_map(corpus, removeNumbers)                 # Remove numbers
+corpus <- tm_map(corpus, removeWords, stopwords("english"))  # Remove stopwords
+corpus <- tm_map(corpus, stripWhitespace)               # Strip whitespace
+
+# Create a document-term matrix
+dtm <- TermDocumentMatrix(corpus)
+
+# Convert the matrix to a dataframe
+matrix <- as.matrix(dtm)
+word_freqs <- sort(rowSums(matrix), decreasing=TRUE)
+data <- data.frame(word=names(word_freqs), freq=word_freqs)
+
+# Generate the wordcloud
+set.seed(1234) # For reproducibility
+wordcloud(words = data$word, freq = data$freq, min.freq = 1,
+          max.words=200, random.order=FALSE, rot.per=0.35, 
+          colors=brewer.pal(8, "Dark2"))
+```
+
+Back to barriers -- 
+
 For the rest of the options, here is what leaders selected.
 ```{r}
 barriers <- barriers %>% 
@@ -256,4 +289,6 @@ barriers %>%
   theme(legend.position = "none") +
   coord_flip()
 ```
+
+
 
