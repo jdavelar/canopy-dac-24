@@ -1,0 +1,702 @@
+---
+title: "Policy Exploration"
+author: "Janette Avelar"
+date: '2024-06-13'
+output: 
+  html_document:
+    toc: true
+    toc_float: true
+    theme: flatly
+    highlight: tango
+    code_folding: hide
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, warnings = FALSE, message = FALSE, fig.width = 10, fig.height = 8)
+pacman::p_load(tidyverse, here, rio, DT, ggthemes, scales, broom)
+#read in data
+load(here("data", "2024 data/complete_canopy_2024.RData"))
+```
+
+```{r}
+#manual branding - file won't load
+transcend_cols = c("#1A4C81","#59C3B4","#EF464B","#ADE0EE")
+transcend_cols2 = c("#BC2582","#FFA630","#FFDE42","#99C24D","#218380","#D3B7D7")
+transcend_grays = c("#4D4D4F","#9D9FA2","#D1D3D4")
+transcend_na = transcend_grays[2]
+theme_transcend = theme_gdocs(base_size = 14, base_family = "Open Sans") +
+  theme(
+    plot.title = element_text(family = "Bebas Neue", color = "black"),
+    plot.background = element_blank(),
+    axis.text = element_text(colour = "black"),
+    axis.title = element_text(colour = "black"),
+    panel.border = element_rect(colour = "#4D4D4F"),
+    strip.text = element_text(size = rel(0.8)),
+    plot.margin = margin(10, 24, 10, 10, "pt")
+  )
+theme_set(theme_transcend)
+```
+
+Guiding Question: **What are the policies and ecosystem factors shaping innovation?**   
+
+## Initial exploration
+
+```{r}
+#policy labels
+policy_labs <- variables %>% 
+  select(starts_with("policy")) %>% 
+  pivot_longer(cols = starts_with("policy"),
+               names_to = "policy",
+               values_to = "response") %>% 
+  select(policy) %>% 
+  unique() %>% 
+  mutate(label = case_when(
+    policy == "policy_public_revenue" ~ "Availability of public revenue",
+    policy == "policy_philanthropy" ~ "Availability of philanthropic funding",
+    policy == "policy_schedule" ~ "Calendar and schedule requirements",
+    policy == "policy_graduation" ~ "Course progression, seat time, and graduation requirements",
+    policy == "policy_admissions" ~ "Admission requirements for college, high school, or middle school",
+    policy == "policy_accountability" ~ "Accountability systems imposed by states, districts, or authorizers",
+    policy == "policy_report_funders" ~ "Accountability or reporting expectations from philanthropic funders",
+    policy == "policy_service" ~ "Interactions with public service providers",
+    policy == "policy_credentials" ~ "Teacher/staff credentialing or evaluation requirements",
+    policy == "policy_union" ~ "Labor contracts and/or union relationships",
+    policy == "policy_enrollment" ~ "Enrollment, lottery, or school assignment systems"
+  ),
+  short_label = case_when(
+    policy == "policy_public_revenue" ~ "Public revenue",
+    policy == "policy_philanthropy" ~ "Philanthropic funding",
+    policy == "policy_schedule" ~ "Calendar/scheduling requirements",
+    policy == "policy_graduation" ~ "Course progression, seat time, and graduation",
+    policy == "policy_admissions" ~ "Admission requirements",
+    policy == "policy_accountability" ~ "Accountability systems",
+    policy == "policy_report_funders" ~ "Expectations from philanthropic funders",
+    policy == "policy_service" ~ "Public service providers",
+    policy == "policy_credentials" ~ "Credentialing/evaluation",
+    policy == "policy_union" ~ "Labor contracts and/or union relationships",
+    policy == "policy_enrollment" ~ "Enrollment, lottery, or school assignment"
+  )) %>% 
+  filter(!is.na(label))
+```
+
+
+Raw counts:
+
+The distribution for a couple of these reported policies and ecosystem factors are interesting to note:  
+
+1) Availability of philanthropic funding has a clear curve upward with few schools saying it hinders their work, and many more schools reporting it somewhat or really helps their work. Unlike other factors, most schools reported that it "really helps."  
+
+2) Availability of public revenue also had an odd pattern, with many school leaders reporting that it really hinders, really helps, and both hinders and helps their innovation work.   
+
+3) Labor contracts and/or union relationships skewed more negatively, with most schools responding they both helped and hindered innovation work (N = 29) and an equal number reporting they hindered innovation work (N = 28). This factor is also interesting because fewer schools responded to it. While other factors had between ~140-170 responses, labor/union only had 116 responses total, and 49 of these are not represented in the figure because schools reported they have "no effect."  
+
+```{r}
+variables %>% 
+  select(school_id, starts_with("policy")) %>% 
+  pivot_longer(cols = starts_with("policy"),
+               names_to = "policy",
+               values_to = "response") %>% 
+  mutate(rate = 1,
+         response = factor(response, levels = c("Really helps", "Somewhat helps", "Both helps and hinders", "Somewhat hinders", "Really hinders"))) %>% 
+  group_by(policy, response) %>% 
+  summarize(n = sum(rate)) %>% 
+  ungroup() %>% 
+  left_join(policy_labs, by = "policy") %>% 
+  filter(!is.na(response), policy != "support", policy != "No effect") %>% 
+  ggplot(., aes(response, n)) +
+  geom_col(fill = transcend_cols[1]) +
+  theme(legend.position = "none", 
+        panel.grid.major.x = element_blank(),
+        axis.text.y = element_text(size = 11)) +
+  scale_y_continuous(expand = c(0, 0), limits = c(0, 75)) +
+  geom_text(aes(label = n), nudge_y = 0.5, hjust = 0, color = transcend_na, fontface = "bold", size = 5.5, family = "sans") +
+  coord_flip() +
+  facet_wrap(~short_label, labeller = label_wrap_gen(width = 15)) +
+  labs(x = "",
+       y = "",
+       title = "How do existing policies and ecosystem factors affect \nyour innovation work?")
+```
+
+Here's an overall table view of the number of schools responding and how they are responding (collapsed into helps/hinders).
+
+```{r}
+variables %>% 
+  select(school_id, starts_with("policy"), -policy_support) %>%
+  pivot_longer(cols = starts_with("policy"),
+               names_to = "policy",
+               values_to = "response") %>% 
+  mutate(rate = 1,
+         response = case_when(
+           response == "Really helps" ~ "Helps",
+           response == "Somewhat helps" ~ "Helps",
+           response == "Both helps and hinders" ~ "Both",
+           response == "No effect" ~ "No effect",
+           response == "Somewhat hinders" ~ "Hinders",
+           response == "Really hinders" ~ "Hinders"
+         )) %>% 
+  group_by(policy, response) %>% 
+  summarize(n = sum(rate)) %>% 
+  ungroup() %>% 
+  filter(!is.na(response)) %>% 
+  group_by(policy) %>% 
+  mutate(total = sum(n)) %>% 
+  ungroup() %>% 
+  pivot_wider(names_from = response,
+              values_from = n) %>% 
+  left_join(policy_labs, by = "policy") %>% 
+  select(`Policy or Ecosystem Factor` = label, `Schools responding` = total, Helps, Hinders, Both, `No effect`) %>% 
+  unique() %>% 
+  datatable()
+```
+
+
+The figure above is kind of a lot to take in at once, so I next explored which policies/ecosystem factors are **helping**?  
+
+By far, the availability of philanthropic funds are what schools report is helping support innovation work the most, followed by availability of public revenue. This isn't terribly surprising, as financial support is necessary to maintain innovation work. More surprising is that interactions with public service providers (e.g., social services, law enforcement, etc.) was in the top 3 reported ecosystem factors supporting innovation work.  
+
+```{r}
+variables %>% 
+  select(school_id, starts_with("policy")) %>% 
+  pivot_longer(cols = starts_with("policy"),
+               names_to = "policy",
+               values_to = "response") %>% 
+  mutate(rate = 1) %>% 
+  group_by(policy, response) %>% 
+  summarize(n = sum(rate)) %>% 
+  ungroup() %>% 
+  left_join(policy_labs, by = "policy") %>% 
+  filter(response == "Really helps" | response == "Somewhat helps") %>% 
+  ggplot(., aes(reorder(short_label, n), n, fill = response)) +
+  geom_col() +
+  scale_fill_manual(values = transcend_cols) +
+  theme(legend.position = "top", 
+        legend.direction = "horizontal",
+        panel.grid.major.x = element_blank(),
+        axis.text.y = element_text(size = 13)) +
+  scale_y_continuous(expand = c(0, 0)) +
+  scale_x_discrete(labels = wrap_format(25)) +
+  geom_text(aes(label = n), position = position_stack(vjust = .85), color = "white", size = 5.5, family = "sans") +
+  coord_flip() +
+  labs(x = "",
+       y = "",
+       title = "How do existing policies and ecosystem factors \naffect your innovation work?",
+       fill = "Response")
+```
+
+Below is the same plot, with the percentage of schools reporting, rather than raw counts.  
+
+```{r}
+variables %>% 
+  select(school_id, starts_with("policy")) %>% 
+  pivot_longer(cols = starts_with("policy"),
+               names_to = "policy",
+               values_to = "response") %>% 
+  mutate(rate = 1) %>% 
+  group_by(policy, response) %>% 
+  summarize(n = sum(rate)) %>% 
+  ungroup() %>% 
+  filter(!is.na(response)) %>% 
+  group_by(policy) %>% 
+  mutate(total = sum(n)) %>% 
+  ungroup() %>% 
+  mutate(pct = n/total) %>% 
+  left_join(policy_labs, by = "policy") %>% 
+  filter(response == "Really helps" | response == "Somewhat helps") %>% 
+  ggplot(., aes(reorder(short_label, pct), pct, fill = response)) +
+  geom_col() +
+  scale_fill_manual(values = transcend_cols) +
+  theme(legend.position = "top", 
+        legend.direction = "horizontal",
+        panel.grid.major.x = element_blank(),
+        axis.text.y = element_text(size = 13)) +
+  scale_y_continuous(expand = c(0, 0), limits = c(0, 1), labels = scales::percent_format()) +
+  scale_x_discrete(labels = wrap_format(25)) +
+  geom_text(aes(label = scales::label_percent(accuracy = 1)(pct)), 
+            position = position_stack(vjust = .75), 
+            color = "white", 
+            size = 5, 
+            family = "sans") +
+  coord_flip() +
+  labs(x = "",
+       y = "",
+       title = "How do existing policies and ecosystem factors \naffect your innovation work?",
+       fill = "Response")
+```
+
+Which policies/ecosystem factors are **hindering** innovation work?  
+
+Accountability systems most hindered innovation work for these school leaders, followed by policies that establish requirements for schools to follow, including course progression/seat time/graduation, credentialing/evaluation of teachers, calendar/scheduling requirements, and admission requirements. The extent to which they hindered work seems to differ across factors, but generally around a quarter or more of schools that responded said these type of requirements at least somewhat hinder innovation work.  
+
+```{r}
+variables %>% 
+  select(school_id, starts_with("policy")) %>% 
+  pivot_longer(cols = starts_with("policy"),
+               names_to = "policy",
+               values_to = "response") %>% 
+  mutate(rate = 1) %>% 
+  group_by(policy, response) %>% 
+  summarize(n = sum(rate)) %>% 
+  ungroup() %>% 
+  left_join(policy_labs, by = "policy") %>% 
+  filter(response == "Really hinders" | response == "Somewhat hinders") %>% 
+  ggplot(., aes(reorder(short_label, n), n, fill = response)) +
+  geom_col() +
+  scale_fill_manual(values = c(transcend_cols[3], transcend_cols2[2])) +
+  theme(legend.position = "top", 
+        legend.direction = "horizontal",
+        panel.grid.major.x = element_blank(),
+        axis.text.y = element_text(size = 13)) +
+  scale_y_continuous(expand = c(0, 0)) +
+  scale_x_discrete(labels = wrap_format(25)) +
+  geom_text(aes(label = n), position = position_stack(vjust = .85), color = "white", size = 5.5, family = "sans") +
+  coord_flip() +
+  labs(x = "",
+       y = "",
+       title = "How do existing policies and ecosystem factors \naffect your innovation work?",
+       fill = "Response")
+```
+
+Below is the same plot, with the percentage of schools reporting, rather than raw counts.  
+
+```{r}
+variables %>% 
+  select(school_id, starts_with("policy")) %>% 
+  pivot_longer(cols = starts_with("policy"),
+               names_to = "policy",
+               values_to = "response") %>% 
+  mutate(rate = 1) %>% 
+  group_by(policy, response) %>% 
+  summarize(n = sum(rate)) %>% 
+  ungroup() %>% 
+  filter(!is.na(response)) %>% 
+  group_by(policy) %>% 
+  mutate(total = sum(n)) %>% 
+  ungroup() %>% 
+  mutate(pct = n/total) %>% 
+  left_join(policy_labs, by = "policy") %>% 
+  filter(response == "Really hinders" | response == "Somewhat hinders") %>% 
+  ggplot(., aes(reorder(short_label, pct), pct, fill = response)) +
+  geom_col() +
+  scale_fill_manual(values = c(transcend_cols[3], transcend_cols2[2])) +
+  theme(legend.position = "top", 
+        legend.direction = "horizontal",
+        panel.grid.major.x = element_blank(),
+        axis.text.y = element_text(size = 13)) +
+  scale_y_continuous(expand = c(0, 0), limits = c(0, 1), labels = scales::percent_format()) +
+  scale_x_discrete(labels = wrap_format(25)) +
+  geom_text(aes(label = scales::label_percent(accuracy = 1)(pct)), 
+            position = position_stack(vjust = .75), 
+            color = "white", 
+            size = 5, 
+            family = "sans") +
+  coord_flip() +
+  labs(x = "",
+       y = "",
+       title = "How do existing policies and ecosystem factors \naffect your innovation work?",
+       fill = "Response")
+```
+
+Which policies/ecosystem factors are not having an effect?  
+
+We gave school leaders the option to select "No effect" for any ecosystem policies/factors on the list. A third of respondents reported expectations from philanthropic funders did not effect their innovation work, while roughly a quarter reported enrollment, lottery, or school assignment policies, admission requirements, labor contracts/unions, and interactions with public service providers had no effect on their innovation work. On the other hand, funding and accountability were much less often reported as having no effect, which seems to be aligned with the findings above that these two areas were ones leaders heavily reported as helping or hindering innovation work to a greater extent.  
+
+```{r}
+variables %>% 
+  select(school_id, starts_with("policy")) %>% 
+  pivot_longer(cols = starts_with("policy"),
+               names_to = "policy",
+               values_to = "response") %>% 
+  mutate(rate = 1) %>% 
+  group_by(policy, response) %>% 
+  summarize(n = sum(rate)) %>% 
+  ungroup() %>% 
+  left_join(policy_labs, by = "policy") %>% 
+  filter(response == "No effect") %>% 
+  ggplot(., aes(reorder(short_label, n), n, fill = response)) +
+  geom_col() +
+  scale_fill_manual(values = c(transcend_cols[4])) +
+  theme(legend.position = "none", 
+        panel.grid.major.x = element_blank(),
+        axis.text.y = element_text(size = 13)) +
+  scale_y_continuous(expand = c(0, 0), limits = c(0, 75)) +
+  scale_x_discrete(labels = wrap_format(25)) +
+  geom_text(aes(label = n), nudge_y = 0.5, hjust = 0, color = transcend_na, fontface = "bold", size = 5.5, family = "sans") +
+  coord_flip() +
+  labs(x = "",
+       y = "",
+       title = "How do existing policies and ecosystem factors \naffect your innovation work?",
+       fill = "Response")
+```
+
+```{r}
+variables %>% 
+  select(school_id, starts_with("policy")) %>% 
+  pivot_longer(cols = starts_with("policy"),
+               names_to = "policy",
+               values_to = "response") %>% 
+  mutate(rate = 1) %>% 
+  group_by(policy, response) %>% 
+  summarize(n = sum(rate)) %>% 
+  ungroup() %>% 
+  group_by(policy) %>% 
+  mutate(total = sum(n)) %>% 
+  ungroup() %>% 
+  mutate(pct = n/total) %>% 
+  left_join(policy_labs, by = "policy") %>% 
+  filter(response == "No effect") %>% 
+  ggplot(., aes(reorder(short_label, pct), pct, fill = response)) +
+  geom_col() +
+  scale_fill_manual(values = c(transcend_cols[4])) +
+  theme(legend.position = "none", 
+        panel.grid.major.x = element_blank(),
+        axis.text.y = element_text(size = 13)) +
+  scale_y_continuous(expand = c(0, 0), limits = c(0, 1), labels = scales::percent_format()) +
+  scale_x_discrete(labels = wrap_format(25)) +
+  geom_text(aes(label = scales::label_percent(accuracy = 1)(pct)), hjust = 0, color = transcend_na, fontface = "bold", size = 5.5, family = "sans") +
+  coord_flip() +
+  labs(x = "",
+       y = "",
+       title = "How do existing policies and ecosystem factors \naffect your innovation work?",
+       fill = "Response")
+```
+
+## Modeling
+
+I ran a series of regression models below to explore the school characteristics that helped explain which factors or policies helped innovation work. In order to do so, I converted each policy/factor into a binary variable with a positive value (somewhat/really helps) set to 1. Thus, the output can be read as the likelihood for schools to report a policy helping their work.  
+
+I have not worked with ordinal outcome variables very much so I wasn't sure if an ordinal regression model would be a better fit and was not entirely sure how to set up the data or fit the model for that purpose. For instance, should we include a factor for Hinders -> No effect -> Helps? I'm open to suggestions here.
+
+```{r}
+mod_dat <- variables %>% 
+  select(school_id, starts_with("policy"), -policy_support, school_locale, school_type, grades_pk, grades_elementary, grades_middle, grades_high, school_enrollment, pct_bipoc, pct_ell, pct_frpl, pct_swd, teaching_diversity, leadership_diversity) %>% 
+  mutate(across(starts_with("policy"), ~case_when(
+    . == "Really helps" ~ 1,
+    . == "Somewhat helps" ~ 1,
+    is.na(.) ~ NA,
+    TRUE ~ 0
+  )),
+  teaching_diversity = gsub("people", "teachers", teaching_diversity),
+  leadership_diversity = gsub("people", "leaders", leadership_diversity),
+  school_locale = factor(school_locale, levels = c("Urban", "Suburban", "Rural", "Multiple")),
+  school_type = factor(school_type, levels = c("Public district school", "Public charter school", "Independent (private) school")),
+  teaching_diversity = factor(teaching_diversity, levels = c("0 - 24% teachers of color", "25 - 49% teachers of color", "50 - 74% teachers of color", "75 - 100% teachers of color")),
+  leadership_diversity = factor(leadership_diversity, levels = c("0 - 24% leaders of color", "25 - 49% leaders of color", "50 - 74% leaders of color", "75 - 100% leaders of color")),
+  school_enrollment = as.numeric(scale(school_enrollment, center = TRUE, scale = TRUE))) %>% 
+  mutate(across(starts_with("pct"), ~as.numeric(scale(., center = TRUE, scale = TRUE))))
+```
+
+**Availability of public revenue**  
+
+```{r}
+#model
+pub_rev <- glm(policy_public_revenue ~ school_locale + school_type + grades_pk + grades_elementary + grades_middle + grades_high + school_enrollment + pct_bipoc + pct_ell + pct_frpl + pct_swd + teaching_diversity + leadership_diversity,
+               family = "binomial",
+               data = mod_dat)
+# set labels
+pred_labels <- c(
+  "school_typeIndependent (private) school" = "Independent (private) school",
+  "school_typePublic charter school" = "Public charter school",
+  "grades_pk" = "PreK",
+  "grades_elementary" = "Elementary",
+  "grades_middle" = "Middle",
+  "grades_high" = "High",
+  "school_enrollment" = "School Enrollment",
+  "pct_bipoc" = "% BIPOC students",
+  "pct_ell" = "% EL-designated students",
+  "pct_frpl" = "% FRPL-eligible",
+  "pct_swd" = "% Students with disabilities",
+  "school_localeMultiple" = "Multiple locales",
+  "school_localeSuburban" = "Suburban",
+  "school_localeRural" = "Rural",
+  "leadership_diversity25 - 49% leaders of color" = "25-49% leaders of color",
+  "leadership_diversity50 - 74% leaders of color" = "50-74% leaders of color",
+  "leadership_diversity75 - 100% leaders of color" = "75-100% leaders of color",
+  "teaching_diversity25 - 49% teachers of color" = "25-49% teachers of color",
+  "teaching_diversity50 - 74% teachers of color" = "50-74% teachers of color",
+  "teaching_diversity75 - 100% teachers of color" = "75-100% teachers of color"
+)
+# plot
+tidy(pub_rev, effects = "ran_pars", conf.int = TRUE) %>%
+  filter(term != "(Intercept)") %>%
+  mutate(estimate = exp(estimate)) %>% 
+  mutate(term = pred_labels[term]) %>% 
+ggplot(., aes(y = fct_reorder(term, estimate), x = estimate)) +
+  geom_linerange(aes(xmin = estimate - std.error,
+                     xmax = estimate + std.error),
+                 color = "blue") +
+  geom_point() +
+  geom_vline(xintercept = 1) +
+  theme_transcend +
+  theme(panel.grid.major.y = element_blank()) +
+  labs(
+    x = "Likelihood",
+    y = "",
+    title = str_wrap("School characteristics predicting reporting public revenue as helpful", 60))
+```
+
+**Availability of philanthropic funding**
+
+```{r}
+#model
+pub_rev <- glm(policy_philanthropy ~ school_locale + school_type + grades_pk + grades_elementary + grades_middle + grades_high + school_enrollment + pct_bipoc + pct_ell + pct_frpl + pct_swd + teaching_diversity + leadership_diversity,
+               family = "binomial",
+               data = mod_dat)
+# plot
+tidy(pub_rev, effects = "ran_pars", conf.int = TRUE) %>%
+  filter(term != "(Intercept)") %>%
+  mutate(estimate = exp(estimate)) %>% 
+  mutate(term = pred_labels[term]) %>% 
+ggplot(., aes(y = fct_reorder(term, estimate), x = estimate)) +
+  geom_linerange(aes(xmin = estimate - std.error,
+                     xmax = estimate + std.error),
+                 color = "blue") +
+  geom_point() +
+  geom_vline(xintercept = 1) +
+  theme_transcend +
+  theme(panel.grid.major.y = element_blank()) +
+  labs(
+    x = "Likelihood",
+    y = "",
+    title = str_wrap("School characteristics predicting reporting philanthropic funds as helpful", 60))
+```
+
+**Calendar and schedule requirements**
+
+```{r}
+#model
+pub_rev <- glm(policy_schedule ~ school_locale + school_type + grades_pk + grades_elementary + grades_middle + grades_high + school_enrollment + pct_bipoc + pct_ell + pct_frpl + pct_swd + teaching_diversity + leadership_diversity,
+               family = "binomial",
+               data = mod_dat)
+# plot
+tidy(pub_rev, effects = "ran_pars", conf.int = TRUE) %>%
+  filter(term != "(Intercept)") %>%
+  mutate(estimate = exp(estimate)) %>% 
+  mutate(term = pred_labels[term]) %>% 
+ggplot(., aes(y = fct_reorder(term, estimate), x = estimate)) +
+  geom_linerange(aes(xmin = estimate - std.error,
+                     xmax = estimate + std.error),
+                 color = "blue") +
+  geom_point() +
+  geom_vline(xintercept = 1) +
+  theme_transcend +
+  theme(panel.grid.major.y = element_blank()) +
+  labs(
+    x = "Likelihood",
+    y = "",
+    title = str_wrap("School characteristics predicting reporting calendar/scheduling requirements as helpful", 60))
+```
+
+**Course progression, seat time, and graduation requirements**
+
+```{r}
+#model
+pub_rev <- glm(policy_schedule ~ school_locale + school_type + grades_pk + grades_elementary + grades_middle + grades_high + school_enrollment + pct_bipoc + pct_ell + pct_frpl + pct_swd + teaching_diversity + leadership_diversity,
+               family = "binomial",
+               data = mod_dat)
+# plot
+tidy(pub_rev, effects = "ran_pars", conf.int = TRUE) %>%
+  filter(term != "(Intercept)") %>%
+  mutate(estimate = exp(estimate)) %>% 
+  mutate(term = pred_labels[term]) %>% 
+ggplot(., aes(y = fct_reorder(term, estimate), x = estimate)) +
+  geom_linerange(aes(xmin = estimate - std.error,
+                     xmax = estimate + std.error),
+                 color = "blue") +
+  geom_point() +
+  geom_vline(xintercept = 1) +
+  theme_transcend +
+  theme(panel.grid.major.y = element_blank()) +
+  labs(
+    x = "Likelihood",
+    y = "",
+    title = str_wrap("School characteristics predicting reporting course progression, seat time, and graduation requirements as helpful", 60))
+```
+
+**Admission requirements for college, high school, or middle school**  
+
+Model output was very strange for this factor and a few below. Predicted likelihood was super small. Wondering if we would see something different if we ran models predicting hindering innovation work, rather than helping innovation work? Or maybe this is one area where running a binomial model rather than an ordinal model introduces issues. 
+
+```{r}
+#model
+pub_rev <- glm(policy_admissions ~ school_locale + school_type + grades_pk + grades_elementary + grades_middle + grades_high + school_enrollment + pct_bipoc + pct_ell + pct_frpl + pct_swd + teaching_diversity + leadership_diversity,
+               family = "binomial",
+               data = mod_dat)
+# plot
+tidy(pub_rev, effects = "ran_pars", conf.int = TRUE) %>%
+  filter(term != "(Intercept)") %>%
+  mutate(estimate = exp(estimate)) %>% 
+  mutate(term = pred_labels[term]) %>% 
+ggplot(., aes(y = fct_reorder(term, estimate), x = estimate)) +
+  geom_linerange(aes(xmin = estimate - std.error,
+                     xmax = estimate + std.error),
+                 color = "blue") +
+  geom_point() +
+  geom_vline(xintercept = 1) +
+  theme_transcend +
+  theme(panel.grid.major.y = element_blank()) +
+  labs(
+    x = "Likelihood",
+    y = "",
+    title = str_wrap("School characteristics predicting reporting admission requirements as helpful", 60))
+```
+
+**Accountability systems (including tests) imposed by states, districts, or authorizers**
+
+```{r}
+#model
+pub_rev <- glm(policy_accountability ~ school_locale + school_type + grades_pk + grades_elementary + grades_middle + grades_high + school_enrollment + pct_bipoc + pct_ell + pct_frpl + pct_swd + teaching_diversity + leadership_diversity,
+               family = "binomial",
+               data = mod_dat)
+# plot
+tidy(pub_rev, effects = "ran_pars", conf.int = TRUE) %>%
+  filter(term != "(Intercept)") %>%
+  mutate(estimate = exp(estimate)) %>% 
+  mutate(term = pred_labels[term]) %>% 
+ggplot(., aes(y = fct_reorder(term, estimate), x = estimate)) +
+  geom_linerange(aes(xmin = estimate - std.error,
+                     xmax = estimate + std.error),
+                 color = "blue") +
+  geom_point() +
+  geom_vline(xintercept = 1) +
+  theme_transcend +
+  theme(panel.grid.major.y = element_blank()) +
+  labs(
+    x = "Likelihood",
+    y = "",
+    title = str_wrap("School characteristics predicting reporting accountability systems as helpful", 60))
+```
+
+**Accountability or reporting expectations from philanthropic funders**
+
+```{r}
+#model
+pub_rev <- glm(policy_report_funders ~ school_locale + school_type + grades_pk + grades_elementary + grades_middle + grades_high + school_enrollment + pct_bipoc + pct_ell + pct_frpl + pct_swd + teaching_diversity + leadership_diversity,
+               family = "binomial",
+               data = mod_dat)
+# plot
+tidy(pub_rev, effects = "ran_pars", conf.int = TRUE) %>%
+  filter(term != "(Intercept)") %>%
+  mutate(estimate = exp(estimate)) %>% 
+  mutate(term = pred_labels[term]) %>% 
+ggplot(., aes(y = fct_reorder(term, estimate), x = estimate)) +
+  geom_linerange(aes(xmin = estimate - std.error,
+                     xmax = estimate + std.error),
+                 color = "blue") +
+  geom_point() +
+  geom_vline(xintercept = 1) +
+  theme_transcend +
+  theme(panel.grid.major.y = element_blank()) +
+  labs(
+    x = "Likelihood",
+    y = "",
+    title = str_wrap("School characteristics predicting reporting expectations from philanthropic funders as helpful", 60))
+```
+
+**Interactions with public service providers (e.g., social services, law enforcement, etc.)**
+
+```{r}
+#model
+pub_rev <- glm(policy_service ~ school_locale + school_type + grades_pk + grades_elementary + grades_middle + grades_high + school_enrollment + pct_bipoc + pct_ell + pct_frpl + pct_swd + teaching_diversity + leadership_diversity,
+               family = "binomial",
+               data = mod_dat)
+# plot
+tidy(pub_rev, effects = "ran_pars", conf.int = TRUE) %>%
+  filter(term != "(Intercept)") %>%
+  mutate(estimate = exp(estimate)) %>% 
+  mutate(term = pred_labels[term]) %>% 
+ggplot(., aes(y = fct_reorder(term, estimate), x = estimate)) +
+  geom_linerange(aes(xmin = estimate - std.error,
+                     xmax = estimate + std.error),
+                 color = "blue") +
+  geom_point() +
+  geom_vline(xintercept = 1) +
+  theme_transcend +
+  theme(panel.grid.major.y = element_blank()) +
+  labs(
+    x = "Likelihood",
+    y = "",
+    title = str_wrap("School characteristics predicting reporting interactions with public service providers as helpful", 60))
+```
+
+**Teacher/staff credentialing or evaluation requirements** 
+
+```{r}
+#model
+pub_rev <- glm(policy_credentials ~ school_locale + school_type + grades_pk + grades_elementary + grades_middle + grades_high + school_enrollment + pct_bipoc + pct_ell + pct_frpl + pct_swd + teaching_diversity + leadership_diversity,
+               family = "binomial",
+               data = mod_dat)
+# plot
+tidy(pub_rev, effects = "ran_pars", conf.int = TRUE) %>%
+  filter(term != "(Intercept)") %>%
+  mutate(estimate = exp(estimate)) %>% 
+  mutate(term = pred_labels[term]) %>% 
+ggplot(., aes(y = fct_reorder(term, estimate), x = estimate)) +
+  geom_linerange(aes(xmin = estimate - std.error,
+                     xmax = estimate + std.error),
+                 color = "blue") +
+  geom_point() +
+  geom_vline(xintercept = 1) +
+  theme_transcend +
+  theme(panel.grid.major.y = element_blank()) +
+  labs(
+    x = "Likelihood",
+    y = "",
+    title = str_wrap("School characteristics predicting reporting credentialing and evaluation requirements as helpful", 60))
+```
+
+**Labor contracts and/or union relationships**
+
+I'm not too surprised that this one turned out looking very strange because the sample was so small. It also threw warnings for this model.
+
+```{r}
+#model
+pub_rev <- glm(policy_union ~ school_locale + school_type + grades_pk + grades_elementary + grades_middle + grades_high + school_enrollment + pct_bipoc + pct_ell + pct_frpl + pct_swd + teaching_diversity + leadership_diversity,
+               family = "binomial",
+               data = mod_dat)
+# plot
+tidy(pub_rev, effects = "ran_pars", conf.int = TRUE) %>%
+  filter(term != "(Intercept)") %>%
+  mutate(estimate = exp(estimate)) %>% 
+  mutate(term = pred_labels[term]) %>% 
+ggplot(., aes(y = fct_reorder(term, estimate), x = estimate)) +
+  geom_linerange(aes(xmin = estimate - std.error,
+                     xmax = estimate + std.error),
+                 color = "blue") +
+  geom_point() +
+  geom_vline(xintercept = 1) +
+  theme_transcend +
+  theme(panel.grid.major.y = element_blank()) +
+  labs(
+    x = "Likelihood",
+    y = "",
+    title = str_wrap("School characteristics predicting reporting labor contracts and/or union relationships as helpful", 60))
+```
+
+**Enrollment, lottery, or school assignment systems**
+
+```{r}
+#model
+pub_rev <- glm(policy_enrollment ~ school_locale + school_type + grades_pk + grades_elementary + grades_middle + grades_high + school_enrollment + pct_bipoc + pct_ell + pct_frpl + pct_swd + teaching_diversity + leadership_diversity,
+               family = "binomial",
+               data = mod_dat)
+# plot
+tidy(pub_rev, effects = "ran_pars", conf.int = TRUE) %>%
+  filter(term != "(Intercept)") %>%
+  mutate(estimate = exp(estimate)) %>% 
+  mutate(term = pred_labels[term]) %>% 
+ggplot(., aes(y = fct_reorder(term, estimate), x = estimate)) +
+  geom_linerange(aes(xmin = estimate - std.error,
+                     xmax = estimate + std.error),
+                 color = "blue") +
+  geom_point() +
+  geom_vline(xintercept = 1) +
+  theme_transcend +
+  theme(panel.grid.major.y = element_blank()) +
+  labs(
+    x = "Likelihood",
+    y = "",
+    title = str_wrap("School characteristics predicting reporting enrollment, lottery, or school assignment systems as helpful", 60))
+```
+

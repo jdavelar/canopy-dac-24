@@ -1,0 +1,77 @@
+---
+title: "2024 Clusters"
+author: "Janette Avelar"
+date: '2024-06-07'
+output: 
+  html_document:
+    toc: true
+    toc_float: true
+    theme: flatly
+    highlight: tango
+    code_folding: hide
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, warnings = FALSE, message = FALSE)
+pacman::p_load(tidyverse, here, rio, DT, parameters, ggrepel, plotly, broom, lme4, gridExtra, ggthemes)
+#read in data
+dat <- import(here("data/longitudinal", "tags-long.csv"))
+#read in tag labels
+labels <- import(here("data", "tag_labels.csv"))
+#read in cluster information
+cluster <- import(here("data/longitudinal", "tag_clusters_longitudinal.csv")) %>% 
+  janitor::clean_names() %>% 
+  select(label = tag, cluster = proposed_cluster_for_preliminary_24_analysis) %>% 
+  left_join(labels, by = "label")
+```
+
+```{r}
+#manual branding - file won't load
+transcend_cols = c("#1A4C81","#59C3B4","#EF464B","#ADE0EE")
+transcend_cols2 = c("#BC2582","#FFA630","#FFDE42","#99C24D","#218380","#D3B7D7")
+transcend_grays = c("#4D4D4F","#9D9FA2","#D1D3D4")
+transcend_na = transcend_grays[2]
+theme_transcend = theme_gdocs(base_size = 14, base_family = "Open Sans") +
+  theme(
+    plot.title = element_text(family = "Bebas Neue", color = "black"),
+    plot.background = element_blank(),
+    axis.text = element_text(colour = "black"),
+    axis.title = element_text(colour = "black"),
+    panel.border = element_rect(colour = "#4D4D4F"),
+    strip.text = element_text(size = rel(0.8)),
+    plot.margin = margin(10, 24, 10, 10, "pt")
+  )
+theme_set(theme_transcend)
+```
+
+Guiding question: **Is any resulting cluster from 2024 data particularly popular?**
+
+We did not create new clusters this year, so I pulled from the existing clusters we've been exploring: deeper learning, educational justice, individualized learning, and postsecondary pathways.  
+
+The graph below maps the average change in tag selection within a cluster from 2023 to 2024. In other words, this gives us a sense of a cluster's popularity relative to last year. Educational justice was the most popular, with an average change of ~34 selections, and postsecondary pathways was the least popular with an average change of ~13 selections.  
+
+```{r}
+dat %>% 
+  filter(year > 2022) %>% 
+  group_by(year, var) %>% 
+  summarize(n = sum(usage)) %>% 
+  ungroup() %>% 
+  pivot_wider(names_from = year,
+              values_from = n) %>% 
+  mutate(change = `2023` - `2024`) %>% 
+  left_join(cluster, by = "var") %>% 
+  group_by(cluster) %>% 
+  summarize(avg = round(mean(change, na.rm = TRUE), 2)) %>% 
+  ungroup() %>% 
+  filter(!is.na(cluster), cluster != "None", cluster != "None?") %>% 
+  ggplot(., aes(cluster, avg, fill = cluster)) +
+  geom_col() +
+    scale_fill_manual(values = transcend_cols) +
+    theme(legend.position = "none", panel.grid.major.x = element_blank()) +
+    labs(title = "Cluster adoption relative to 2023", x = "", y = "Schools selecting tags") +
+    scale_y_continuous(expand = c(0, 0), limits = c(0, 40)) + 
+    geom_text(aes(label = avg), nudge_y = 0.5, vjust = 0, color = transcend_na, fontface = "bold", size = 5.5, family = "sans")
+```
+
