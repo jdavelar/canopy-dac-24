@@ -14,8 +14,8 @@ editor_options:
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE, fig.width = 8, fig.height = 6)
-pacman::p_load(tidyverse, here, rio, DT, ggthemes, scales)
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE, fig.width = 10, fig.height = 8)
+pacman::p_load(tidyverse, here, rio, DT, ggthemes, scales, broom, lme4, wordcloud, tm)
 #read in data
 load(here("data", "2024 data/complete_canopy_2024.RData"))
 ```
@@ -199,14 +199,418 @@ variables %>%
   coord_flip()
 ```
 
+In the figure below, I ran a logistic regression model to estimate the likelihood for a school leader to indicate they were concerned with future sustainability, using school characteristics as additional covariates. Note that I transformed the `future_resources` variable into a binary, with 1 indicating concern ("Yes, extremely"; "Yes, somewhat). I'm open to feedback about alternate modeling choices--I'm less familiar with multivariate approaches and was not entirely sure how to set it up or if it was a preferable approach.  
+
+School that are predominantly BIPOC-led were far more likely to indicate they were concerned about future sustainability, more than 20x more likely than schools with 0-25% leaders of color. Elementary schools, charter schools, and rural schools or schools serving students in more than one geographic locale were all also more likely to indicate they were concerned about future sustainability. 
+
+```{r}
+#prep data
+mod_dat <- variables %>% 
+  select(school_id, future_resources, school_locale, school_type, grades_pk, grades_elementary, grades_middle, grades_high, school_enrollment, pct_bipoc, pct_ell, pct_frpl, pct_swd, teaching_diversity, leadership_diversity) %>% 
+  mutate(future_resources = case_when(
+    future_resources == "Yes, extremely" ~ 1,
+    future_resources == "Yes, somewhat" ~ 1,
+    TRUE ~ 0
+  ),
+  teaching_diversity = gsub("people", "teachers", teaching_diversity),
+  leadership_diversity = gsub("people", "leaders", leadership_diversity),
+  school_locale = factor(school_locale, levels = c("Urban", "Suburban", "Rural", "Multiple")),
+  school_type = factor(school_type, levels = c("Public district school", "Public charter school", "Independent (private) school")),
+  teaching_diversity = factor(teaching_diversity, levels = c("0 - 24% teachers of color", "25 - 49% teachers of color", "50 - 74% teachers of color", "75 - 100% teachers of color")),
+  leadership_diversity = factor(leadership_diversity, levels = c("0 - 24% leaders of color", "25 - 49% leaders of color", "50 - 74% leaders of color", "75 - 100% leaders of color")),
+  school_enrollment = as.numeric(scale(school_enrollment, center = TRUE, scale = TRUE))) %>% 
+  mutate(across(starts_with("pct"), ~as.numeric(scale(., center = TRUE, scale = TRUE))))
+#model
+mod1 <- glm(future_resources ~ school_locale + school_type + grades_pk + grades_elementary + grades_middle + grades_high + school_enrollment + pct_bipoc + pct_ell + pct_frpl + pct_swd + teaching_diversity + leadership_diversity,
+               family = "binomial",
+               data = mod_dat)
+# set labels
+cov_labels <- c(
+  "school_typeIndependent (private) school" = "Independent (private) school",
+  "school_typePublic charter school" = "Public charter school",
+  "grades_pk" = "PreK",
+  "grades_elementary" = "Elementary",
+  "grades_middle" = "Middle",
+  "grades_high" = "High",
+  "school_enrollment" = "School Enrollment",
+  "pct_bipoc" = "% BIPOC students",
+  "pct_ell" = "% EL-designated students",
+  "pct_frpl" = "% FRPL-eligible",
+  "pct_swd" = "% Students with disabilities",
+  "school_localeMultiple" = "Multiple locales",
+  "school_localeSuburban" = "Suburban",
+  "school_localeRural" = "Rural",
+  "leadership_diversity25 - 49% leaders of color" = "25-49% leaders of color",
+  "leadership_diversity50 - 74% leaders of color" = "50-74% leaders of color",
+  "leadership_diversity75 - 100% leaders of color" = "75-100% leaders of color",
+  "teaching_diversity25 - 49% teachers of color" = "25-49% teachers of color",
+  "teaching_diversity50 - 74% teachers of color" = "50-74% teachers of color",
+  "teaching_diversity75 - 100% teachers of color" = "75-100% teachers of color"
+)
+# plot
+tidy(mod1, effects = "ran_pars", conf.int = TRUE) %>%
+  filter(term != "(Intercept)") %>%
+  mutate(estimate = exp(estimate)) %>% 
+  mutate(term = cov_labels[term]) %>% 
+ggplot(., aes(y = fct_reorder(term, estimate), x = estimate)) +
+  geom_linerange(aes(xmin = estimate - std.error,
+                     xmax = estimate + std.error),
+                 color = "blue") +
+  geom_point() +
+  geom_vline(xintercept = 1) +
+  theme_transcend +
+  theme(panel.grid.major.y = element_blank()) +
+  labs(
+    x = "Likelihood",
+    y = "",
+    title = str_wrap("School characteristics predicting higher concern with future sustainability", 60))
+```
+
+
 ## Cause for concern  
 
 Guiding question: **For leaders who were concerned about future sustainability, what reasons did they cite for their concern?**  
 
+School leaders expressed the most concern over funding, including availability of local funds and private funding from foundations or donors. They were also concerned about staffing shortages and inflation/increasing prices, to a slightly smaller extent.  
+
+```{r}
+#nice labels
+barrier_labs <- variables %>% 
+  select(starts_with("barrier"), -barrier_other_text) %>% 
+  pivot_longer(cols = starts_with("barrier"),
+               names_to = "barrier",
+               values_to = "response") %>% 
+  select(barrier) %>% 
+  unique() %>% 
+  mutate(label = case_when(
+    barrier == "barrier_local_funds" ~ "Availability of local funds",
+    barrier == "barrier_private_funds" ~ "Availability of private funding from foundations or donors",
+    barrier == "barrier_donations" ~ "Changes to in-kind donations",
+    barrier == "barrier_inflation" ~ "Inflation/increasing prices",
+    barrier == "barrier_enrollment" ~ "Changes in school enrollment",
+    barrier == "barrier_shortage" ~ "Staffing shortages",
+    barrier == "barrier_federal_funds" ~ "Expiration of federal relief funds",
+    barrier == "barrier_other" ~ "Some other reason"
+  ))
+#plot
+variables %>% 
+  select(school_id, future_resources, starts_with("barrier"), -barrier_other_text) %>% 
+  filter(future_resources == "Yes, extremely" | future_resources == "Yes, somewhat") %>% 
+  pivot_longer(cols = starts_with("barrier"),
+               names_to = "barrier",
+               values_to = "response") %>% 
+  group_by(barrier) %>% 
+  summarize(n = sum(response)) %>% 
+  left_join(barrier_labs, by = "barrier") %>% 
+  ggplot(., aes(reorder(label, n,), n)) +
+  geom_col(fill = transcend_cols[1]) +
+  theme(legend.position = "none", 
+        panel.grid.major.y = element_blank(),
+        axis.text.y = element_text(size = 11)) +
+  scale_y_continuous(expand = c(0, 0), limits = c(0, 95)) +
+  scale_x_discrete(labels = wrap_format(35)) +
+  geom_text(aes(label = n), nudge_y = 0.5, hjust = 0, color = transcend_na, fontface = "bold", size = 5.5, family = "sans") +
+  coord_flip() +
+  labs(x = "",
+       y = "",
+       title = "Reasons for concern over future sustainability")
+```
+
+The following graph provides the same information, with the percentage of schools that selected each reason from those who indicated they were concerned (N = 115) rather than a raw number.  
+
+```{r}
+variables %>% 
+  select(school_id, future_resources, starts_with("barrier"), -barrier_other_text) %>% 
+  filter(future_resources == "Yes, extremely" | future_resources == "Yes, somewhat") %>% 
+  pivot_longer(cols = starts_with("barrier"),
+               names_to = "barrier",
+               values_to = "response") %>% 
+  group_by(barrier) %>% 
+  summarize(n = sum(response),
+            pct = n/115) %>% 
+  left_join(barrier_labs, by = "barrier") %>% 
+  ggplot(., aes(reorder(label, pct), pct)) +
+  geom_col(fill = transcend_cols[1]) +
+  theme(legend.position = "none", 
+        panel.grid.major.y = element_blank(),
+        axis.text.y = element_text(size = 11)) +
+  scale_y_continuous(expand = c(0, 0), limits = c(0, 1), labels = scales::percent_format()) +
+  scale_x_discrete(labels = wrap_format(35)) +
+  geom_text(aes(label = scales::label_percent(accuracy = 1)(pct)), hjust = 0, color = transcend_na, fontface = "bold", size = 5.5, family = "sans") +
+  coord_flip() +
+  labs(x = "",
+       y = "",
+       title = "Reasons for concern over future sustainability")
+```
+
+Of leaders who expressed concern over future sustainability, 15 chose a reason that was not listed and provided a written response describing an additional factor that may hinder their ability to sustain adequate resources for their school in the next five years. I created a word cloud (thanks for the inspriration and code, Anwesha!) but it wasn't especially interesting.  
+
+```{r}
+# Pull open response answers
+responses <- variables %>% 
+  select(future_resources, barrier_other_text) %>% 
+  filter(future_resources == "Yes, extremely" | future_resources == "Yes, somewhat") %>% 
+  filter(!is.na(barrier_other_text))
+
+# Create a text corpus
+corpus <- Corpus(VectorSource(responses))
+
+# Text preprocessing
+corpus <- tm_map(corpus, content_transformer(tolower))  # Convert to lower case
+corpus <- tm_map(corpus, removePunctuation)             # Remove punctuation
+corpus <- tm_map(corpus, removeNumbers)                 # Remove numbers
+corpus <- tm_map(corpus, removeWords, stopwords("english"))  # Remove stopwords
+corpus <- tm_map(corpus, stripWhitespace)               # Strip whitespace
+
+# Create a document-term matrix
+dtm <- TermDocumentMatrix(corpus)
+
+# Convert the matrix to a dataframe
+matrix <- as.matrix(dtm)
+word_freqs <- sort(rowSums(matrix), decreasing=TRUE)
+data <- data.frame(word=names(word_freqs), freq=word_freqs)
+
+# Generate the wordcloud
+set.seed(1234) # For reproducibility
+wordcloud(words = data$word, freq = data$freq, min.freq = 1,
+          max.words=200, random.order=FALSE, rot.per=0.35, 
+          colors=brewer.pal(8, "Dark2"))
+```
+
+Here's the original responses:  
+
+```{r}
+datatable(responses)
+```
+
+
 Guiding question: **Did the reason for concern vary by school characteristics?**  
+
+Generally, yes. How school characteristics differed by rationale provided for concern varies by the specific factor of interest, but some high-level takeaways seem to be that leadership diversity and geographic region are playing a large role in the variance, and to a lesser extent, school level and school governance. Predominantly BIPOC-led schools with at least 75% of leaders identifying as a person of color were more likely to select every factor as something that may hinder their ability to sustain adequate resources for their school in the next 5 years.  
+
+Note that for this set of models I used a logistic regression model to calculate the likelihood of schools with certain characteristics to select a given factor. School leaders were able to select as many factors as they'd like, so I treated them as independent answers/outcomes using dummy codes.  
+
+```{r}
+# model function
+log_model <- function(outcome, title){ #outcome needs to be dummy
+  #prep data
+  data <-  variables %>% 
+    select({{outcome}}, school_id, school_locale, school_type, grades_pk, grades_elementary, grades_middle, grades_high, school_enrollment, pct_bipoc, pct_ell, pct_frpl, pct_swd, teaching_diversity, leadership_diversity) %>% 
+    mutate(teaching_diversity = gsub("people", "teachers", teaching_diversity),
+           leadership_diversity = gsub("people", "leaders", leadership_diversity),
+           school_locale = factor(school_locale, levels = c("Urban", "Suburban", "Rural", "Multiple")),
+           school_type = factor(school_type, levels = c("Public district school", "Public charter school", "Independent (private) school")),
+           teaching_diversity = factor(teaching_diversity, levels = c("0 - 24% teachers of color", "25 - 49% teachers of color", "50 - 74% teachers of color", "75 - 100% teachers of color")),
+           leadership_diversity = factor(leadership_diversity, levels = c("0 - 24% leaders of color", "25 - 49% leaders of color", "50 - 74% leaders of color", "75 - 100% leaders of color")),
+           school_enrollment = as.numeric(scale(school_enrollment, center = TRUE, scale = TRUE))) %>% 
+    mutate(across(starts_with("pct"), ~as.numeric(scale(., center = TRUE, scale = TRUE))))
+  #model
+  mod <- glm({{outcome}} ~ school_locale + school_type + grades_pk + grades_elementary + grades_middle + grades_high + school_enrollment + pct_bipoc + pct_ell + pct_frpl + pct_swd + teaching_diversity + leadership_diversity,
+               family = "binomial",
+               data = data)
+  #plot
+  plot <- tidy(mod, effects = "ran_pars", conf.int = TRUE) %>%
+  filter(term != "(Intercept)") %>%
+  mutate(estimate = exp(estimate)) %>% 
+  mutate(term = cov_labels[term]) %>% 
+  ggplot(., aes(y = fct_reorder(term, estimate), x = estimate)) +
+  geom_linerange(aes(xmin = estimate - std.error,
+                     xmax = estimate + std.error),
+                 color = "blue") +
+  geom_point() +
+  geom_vline(xintercept = 1) +
+  theme_transcend +
+  theme(panel.grid.major.y = element_blank()) +
+  labs(
+    x = "Likelihood",
+    y = "",
+    title = str_wrap(title, 60))
+  return(plot)}
+```
+
+```{r}
+log_model(variables$barrier_local_funds, "School characteristics predicting higher concern with availability of local funds")
+```
+
+```{r}
+log_model(variables$barrier_private_funds, "School characteristics predicting higher concern with availability of private funds")
+```
+
+```{r}
+log_model(variables$barrier_donations, "School characteristics predicting higher concern with changes to in-kind donations")
+```
+
+```{r}
+log_model(variables$barrier_inflation, "School characteristics predicting higher concern with inflation/increasing prices")
+```
+
+```{r}
+log_model(variables$barrier_enrollment, "School characteristics predicting higher concern with changes in school enrollment")
+```
+
+```{r}
+log_model(variables$barrier_shortage, "School characteristics predicting higher concern with staffing shortages")
+```
+
+```{r}
+log_model(variables$barrier_federal_funds, "School characteristics predicting higher concern with expiration of federal relief funds")
+```
+
+
 
 ## Future transformations  
 
 Guiding question: **Which factors do school leaders think will be most transformative for schools in the next 5 years?**  
 
+The top 3 factors school leaders cited that they expect will be most transformative for K-12 schooling in the next 5 years are teacher workforce issues, AI, and the ongoing mental health crisis. I was surprised to see politics/culture wars and pandemic learning loss so low on the list given recent conversations with leaders!  
+
+```{r}
+transform_labels <- variables %>% 
+  select(starts_with("transform"), -transform_other_text) %>% 
+  pivot_longer(cols = starts_with("transform"),
+               names_to = "factor",
+               values_to = "response") %>% 
+  select(factor) %>% 
+  unique() %>% 
+  mutate(label = case_when(
+    factor == "transform_ai" ~ "Artificial intelligence",
+    factor == "transform_mental_health" ~ "Mental health crisis",
+    factor == "transform_pandemic" ~ "Pandemic learning loss",
+    factor == "transform_workforce" ~ "Teacher workforce issues",
+    factor == "transform_enrollment" ~ "Changes in school enrollment",
+    factor == "transform_politics" ~ "Politics/culture wars",
+    factor == "transform_esa" ~ "ESAs or voucher policies",
+    factor == "transform_climate" ~ "Climate change",
+    factor == "transform_other" ~ "Some other reason"
+  ))
+```
+
+```{r}
+variables %>% 
+  select(school_id, future_resources, starts_with("transform"), -transform_other_text) %>% 
+  pivot_longer(cols = starts_with("transform"),
+               names_to = "factor",
+               values_to = "response") %>% 
+  group_by(factor) %>% 
+  summarize(n = sum(response)) %>% 
+  left_join(transform_labels, by = "factor") %>% 
+  ggplot(., aes(reorder(label, n,), n)) +
+  geom_col(fill = transcend_cols[1]) +
+  theme(legend.position = "none", 
+        panel.grid.major.y = element_blank(),
+        axis.text.y = element_text(size = 11)) +
+  scale_y_continuous(expand = c(0, 0), limits = c(0, 150)) +
+  scale_x_discrete(labels = wrap_format(35)) +
+  geom_text(aes(label = n), nudge_y = 0.5, hjust = 0, color = transcend_na, fontface = "bold", size = 5.5, family = "sans") +
+  coord_flip() +
+  labs(x = "",
+       y = "",
+       title = str_wrap("Factors school leaders think will be most transformative in the next 5 years", 60))
+```
+
+15 school leaders chose to provide an open response to the question, citing some other factor that was not on our list.  
+
+```{r}
+# Pull open response answers
+responses <- variables %>% 
+  select(transform_other_text) %>% 
+  filter(!is.na(transform_other_text))
+
+# Create a text corpus
+corpus <- Corpus(VectorSource(responses))
+
+# Text preprocessing
+corpus <- tm_map(corpus, content_transformer(tolower))  # Convert to lower case
+corpus <- tm_map(corpus, removePunctuation)             # Remove punctuation
+corpus <- tm_map(corpus, removeNumbers)                 # Remove numbers
+corpus <- tm_map(corpus, removeWords, stopwords("english"))  # Remove stopwords
+corpus <- tm_map(corpus, stripWhitespace)               # Strip whitespace
+
+# Create a document-term matrix
+dtm <- TermDocumentMatrix(corpus)
+
+# Convert the matrix to a dataframe
+matrix <- as.matrix(dtm)
+word_freqs <- sort(rowSums(matrix), decreasing=TRUE)
+data <- data.frame(word=names(word_freqs), freq=word_freqs)
+
+# Generate the wordcloud
+set.seed(1234) # For reproducibility
+wordcloud(words = data$word, freq = data$freq, min.freq = 1,
+          max.words=200, random.order=FALSE, rot.per=0.35, 
+          colors=brewer.pal(8, "Dark2"))
+```
+
+```{r}
+datatable(responses)
+```
+
+
 Guiding question: **Do the top factors school leaders think will be most transformative for schools in the next 5 years differ by school characteristics?**  
+
+Yes - there were definitely differences in the characteristics more/less likely to select certain factors, but some of these should be interpreted with caution. Maybe only focus on the top 3 reasons (teacher workforce issues, AI, mental health crisis) which had larger sample sizes.
+
+Note that I used the same logistic regression models as above. I am getting warning messages for both sets of models indicating that there is perfect separation resulting in predicted probabilities of 0 or 1. Should I apply some kind of penalty to reign in large coefficients or remove some of the predictors? Sample size is a definite issue with some of these factors that were not highly selected, which you can see easily with the large confidence intervals. Be careful with any interpretation of those findings.  
+
+Quick overview table as a reminder:
+
+```{r}
+variables %>% 
+  select(school_id, starts_with("transform"), -transform_other_text) %>% 
+  pivot_longer(cols = starts_with("transform"),
+               names_to = "factor",
+               values_to = "response") %>% 
+  group_by(factor) %>% 
+  summarize(n = sum(response)) %>% 
+  datatable()
+```
+
+
+```{r}
+log_model(variables$transform_ai, "School characteristics predicting citing AI as a factor they predict will shape K-12 education in the next 5 years")
+```
+
+*Really surprised to see PK schools here!*
+
+```{r}
+log_model(variables$transform_mental_health, "School characteristics predicting citing the mental health crisis as a factor they predict will shape K-12 education in the next 5 years")
+```
+
+```{r}
+log_model(variables$transform_pandemic, "School characteristics predicting citing pandemic learning loss as a factor they predict will shape K-12 education in the next 5 years")
+```
+
+```{r}
+log_model(variables$transform_workforce, "School characteristics predicting citing teacher workforce issues as a factor they predict will shape K-12 education in the next 5 years")
+```
+
+```{r}
+log_model(variables$transform_enrollment, "School characteristics predicting citing changes in school enrollment as a factor they predict will shape K-12 education in the next 5 years")
+```
+
+*Not super shocked by this, but interesting to see that schools with higher proportions of leaders of color and teachers of color were much more likely to cite politics/culture wars as a factor.*  
+
+```{r}
+log_model(variables$transform_politics, "School characteristics predicting citing politics/culture wars as a factor they predict will shape K-12 education in the next 5 years")
+```
+
+*Got a huge coefficient for private schools here--150x more likely to have chosen this factor! Only 22 schools selected this factor, and 14 of them were private schools.*
+
+```{r}
+log_model(variables$transform_esa, "School characteristics predicting citing Education Savings Accounts and vouchers as a factor they predict will shape K-12 education in the next 5 years")
+```
+
+```{r}
+#quick check
+variables %>% 
+  select(school_type, transform_esa) %>% 
+  group_by(school_type) %>% 
+  summarize(n = sum(transform_esa))
+```
+
+Only 10 schools selected climate change as a factor, leading to really unstable modeling results. 
+
+```{r}
+log_model(variables$transform_climate, "School characteristics predicting citing climate change as a factor they predict will shape K-12 education in the next 5 years")
+```
+
