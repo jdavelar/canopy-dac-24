@@ -76,7 +76,7 @@ Guiding question: **Are certain types of schools more/less likely to be concerne
 
 Suburban schools were least concerned about future sustainability while schools serving rural or multiple geographic regions held the highest levels of concern.  
 
-```{r}
+```{r, fig.width = 7, fig.height = 4}
 variables %>% 
   select(school_id, future_resources, school_locale) %>% 
   mutate(concern = case_when(
@@ -93,18 +93,25 @@ variables %>%
          pct = n/sum) %>% 
   ungroup() %>% 
   filter(!is.na(school_locale)) %>% 
+  mutate(school_locale = factor(school_locale, levels = c("Multiple", "Rural", "Urban", "Suburban"))) %>%
   ggplot(., aes(school_locale, pct, fill = concern)) +
   geom_col() +
   scale_fill_manual(values = c(transcend_cols[3], transcend_na, transcend_cols[1])) +
   scale_y_continuous(expand = c(0, 0), limits = c(0, 1), labels = scales::percent_format()) +
-  theme(legend.position = "bottom", legend.direction = "horizontal", panel.grid.major.y = element_blank()) +
-  labs(x = "", y = "Percent of schools", title = "School leader concern with future sustainability", fill = "Level of concern") +
+  geom_text(aes(label = scales::label_percent(accuracy = 1)(pct)), 
+            position = position_stack(vjust = .95),
+            hjust = 1,
+            color = "white", 
+            size = 4, 
+            family = "sans") +
+  theme(legend.position = "bottom", legend.direction = "horizontal", panel.grid.major.y = element_blank(), axis.text.y = element_text(size = 11)) +
+  labs(x = "", y = "Percent of schools", title = "School leader concern with \nfuture sustainability", fill = "Level of concern") +
   coord_flip()
 ```
 
 Independent schools had the least concern about future sustainability, while public charter schools had the most concern.  
 
-```{r}
+```{r, fig.width = 7, fig.height = 4}
 variables %>% 
   select(school_id, future_resources, school_type) %>% 
   mutate(concern = case_when(
@@ -121,22 +128,34 @@ variables %>%
          pct = n/sum) %>% 
   ungroup() %>% 
   filter(!is.na(school_type)) %>% 
+  mutate(school_type = factor(school_type, levels = c("Public charter school", "Public district school", "Independent (private) school"))) %>% 
   ggplot(., aes(school_type, pct, fill = concern)) +
   geom_col() +
   scale_fill_manual(values = c(transcend_cols[3], transcend_na, transcend_cols[1])) +
   scale_y_continuous(expand = c(0, 0), limits = c(0, 1), labels = scales::percent_format()) +
-  theme(legend.position = "bottom", legend.direction = "horizontal", panel.grid.major.y = element_blank()) +
-  labs(x = "", y = "Percent of schools", title = "School leader concern with future sustainability", fill = "Level of concern") +
-  scale_x_discrete(labels = wrap_format(10)) +
+  geom_text(aes(label = scales::label_percent(accuracy = 1)(pct)), 
+            position = position_stack(vjust = .95),
+            hjust = 1,
+            color = "white", 
+            size = 5, 
+            family = "sans") +
+  theme(legend.position = "bottom", legend.direction = "horizontal", panel.grid.major.y = element_blank(), axis.text.y = element_text(size = 11)) +
+  labs(x = "", y = "Percent of schools", title = "School leader concern with \nfuture sustainability", fill = "Level of concern") +
+  scale_x_discrete(labels = wrap_format(20)) +
   coord_flip()
 ```
 
 Schools leaders across grade bands reported similar levels of concern with future sustainability.  
 
-```{r}
+```{r, fig.width = 7, fig.height = 4}
 variables %>% 
   select(school_id, future_resources, grades_pk, grades_elementary, grades_middle, grades_high) %>% 
-  group_by(future_resources) %>% 
+  mutate(concern = case_when(
+    future_resources == "Yes, extremely" | future_resources == "Yes, somewhat" ~ "Concerned",
+    future_resources == "No, not at all" | future_resources == "No, not very" ~ "Not concerned",
+    TRUE ~ "Neutral"
+  )) %>% 
+  group_by(concern) %>% 
   summarize(PK = sum(grades_pk),
             Elementary = sum(grades_elementary),
             Middle = sum(grades_middle),
@@ -147,28 +166,35 @@ variables %>%
                values_to = "n") %>% 
   group_by(school_level) %>% 
   mutate(sum = sum(n),
-         pct = n/sum,
-         concern = case_when(
-    future_resources == "Yes, extremely" | future_resources == "Yes, somewhat" ~ "Concerned",
-    future_resources == "No, not at all" | future_resources == "No, not very" ~ "Not concerned",
-    TRUE ~ "Neutral"
-  )) %>% 
+         pct = n/sum) %>% 
   ungroup() %>% 
+  mutate(school_level = factor(school_level, levels = c("Elementary", "High", "Middle", "PK"))) %>% 
   ggplot(., aes(school_level, pct, fill = concern)) +
   geom_col() +
   scale_fill_manual(values = c(transcend_cols[3], transcend_na, transcend_cols[1])) +
   scale_y_continuous(expand = c(0, 0), limits = c(0, 1), labels = scales::percent_format()) +
-  theme(legend.position = "bottom", legend.direction = "horizontal", panel.grid.major.y = element_blank()) +
-  labs(x = "", y = "Percent of schools", title = "School leader concern with future sustainability", fill = "Level of concern") +
+  geom_text(aes(label = scales::label_percent(accuracy = 1)(pct)), 
+            position = position_stack(vjust = .95),
+            hjust = 1,
+            color = "white", 
+            size = 5, 
+            family = "sans") +
+  theme(legend.position = "bottom", legend.direction = "horizontal", panel.grid.major.y = element_blank(), axis.text.y = element_text(size = 11)) +
+  labs(x = "", y = "Percent of schools", title = "School leader concern with \nfuture sustainability", fill = "Level of concern") +
   coord_flip()
 ```
 
 Schools reporting additional school descriptors had higher levels of concern about future sustainability, particularly hybrid schools, virtual schools, and homeschooling cooperatives. However, the number of schools that fall into each of these categories is much less stable than for other categories. For instance, homeschooling cooperatives only describe 3 schools in our sample, thus, the proportion of concern is accurate, but we should be careful about the amount of emphasis we place on this finding as it only represents a tiny fraction of our sample.  
 
-```{r}
+```{r, fig.width = 7, fig.height = 5}
 variables %>% 
   select(school_id, future_resources, starts_with("school_desc"), -school_desc_other_text) %>% 
-  group_by(future_resources) %>% 
+  mutate(concern = case_when(
+    future_resources == "Yes, extremely" | future_resources == "Yes, somewhat" ~ "Concerned",
+    future_resources == "No, not at all" | future_resources == "No, not very" ~ "Not concerned",
+    TRUE ~ "Neutral"
+  )) %>% 
+  group_by(concern) %>% 
   summarize(`Homeschooling cooperative` = sum(school_desc_homeschool),
             `Hybrid school` = sum(school_desc_hybrid),
             Microschool = sum(school_desc_micro),
@@ -177,25 +203,27 @@ variables %>%
             `Virtual school` = sum(school_desc_virtual),
             Other = sum(school_desc_other)) %>% 
   ungroup() %>% 
-  pivot_longer(cols = !future_resources,
+  pivot_longer(cols = !concern,
                names_to = "school_desc",
                values_to = "n") %>% 
   group_by(school_desc) %>% 
   mutate(sum = sum(n),
-         pct = n/sum,
-         concern = case_when(
-    future_resources == "Yes, extremely" | future_resources == "Yes, somewhat" ~ "Concerned",
-    future_resources == "No, not at all" | future_resources == "No, not very" ~ "Not concerned",
-    TRUE ~ "Neutral"
-  )) %>% 
+         pct = n/sum) %>% 
   ungroup() %>% 
+  mutate(school_desc = factor(school_desc, levels = c("Virtual school", "Hybrid school", "Homeschooling cooperative", "Other", "Part time school", "School within school", "Microschool"))) %>% 
   ggplot(., aes(school_desc, pct, fill = concern)) +
   geom_col() +
   scale_fill_manual(values = c(transcend_cols[3], transcend_na, transcend_cols[1])) +
   scale_y_continuous(expand = c(0, 0), limits = c(0, 1), labels = scales::percent_format()) +
-  theme(legend.position = "bottom", legend.direction = "horizontal", panel.grid.major.y = element_blank()) +
-  labs(x = "", y = "Percent of schools", title = "School leader concern with future sustainability", fill = "Level of concern") +
-  scale_x_discrete(labels = wrap_format(10)) +
+  theme(legend.position = "bottom", legend.direction = "horizontal", panel.grid.major.y = element_blank(), axis.text.y = element_text(size = 11)) +
+  geom_text(aes(label = scales::label_percent(accuracy = 1)(pct)), 
+            position = position_stack(vjust = .95),
+            hjust = 1,
+            color = "white", 
+            size = 5, 
+            family = "sans") +
+  labs(x = "", y = "Percent of schools", title = "School leader concern with \nfuture sustainability", fill = "Level of concern") +
+  scale_x_discrete(labels = wrap_format(20)) +
   coord_flip()
 ```
 
@@ -250,14 +278,22 @@ cov_labels <- c(
 # plot
 tidy(mod1, effects = "ran_pars", conf.int = TRUE) %>%
   filter(term != "(Intercept)") %>%
-  mutate(estimate = exp(estimate)) %>% 
+  mutate(exp_est = exp(estimate), 
+         exp_min = exp(estimate - std.error), 
+         exp_max = exp(estimate + std.error)) %>% 
   mutate(term = cov_labels[term]) %>% 
-ggplot(., aes(y = fct_reorder(term, estimate), x = estimate)) +
-  geom_linerange(aes(xmin = estimate - std.error,
-                     xmax = estimate + std.error),
+ggplot(., aes(y = fct_reorder(term, exp_est), x = exp_est)) +
+  geom_linerange(aes(xmin = exp_min,
+                     xmax = exp_max),
                  color = "blue") +
   geom_point() +
   geom_vline(xintercept = 1) +
+  scale_x_continuous(
+    trans = "log",
+    breaks = c(.0625, .2, .5, 1, 2, 5, 16),
+    labels = str_wrap(c("1/16 as likely", "1/5 as likely", "1/2 as likely", "Even", "2x as likely", "5x as likely", "16x as likely"), 10),
+    expand = expansion(0, 0)
+  ) +
   theme_transcend +
   theme(panel.grid.major.y = element_blank()) +
   labs(
@@ -352,6 +388,9 @@ responses <- variables %>%
   filter(future_resources == "Yes, extremely" | future_resources == "Yes, somewhat") %>% 
   filter(!is.na(barrier_other_text))
 
+# Add more stop words
+custom_stopwords <- c("yes", "somewhat", "extremely", "school", "schools", "funding", "also", "will", "add", "state", "education", "community")
+
 # Create a text corpus
 corpus <- Corpus(VectorSource(responses))
 
@@ -359,7 +398,7 @@ corpus <- Corpus(VectorSource(responses))
 corpus <- tm_map(corpus, content_transformer(tolower))  # Convert to lower case
 corpus <- tm_map(corpus, removePunctuation)             # Remove punctuation
 corpus <- tm_map(corpus, removeNumbers)                 # Remove numbers
-corpus <- tm_map(corpus, removeWords, stopwords("english"))  # Remove stopwords
+corpus <- tm_map(corpus, removeWords, c(stopwords("english"), custom_stopwords))  # Remove stopwords
 corpus <- tm_map(corpus, stripWhitespace)               # Strip whitespace
 
 # Create a document-term matrix
@@ -411,18 +450,26 @@ log_model <- function(outcome, title){ #outcome needs to be dummy
   #plot
   plot <- tidy(mod, effects = "ran_pars", conf.int = TRUE) %>%
   filter(term != "(Intercept)") %>%
-  mutate(estimate = exp(estimate)) %>% 
+  mutate(exp_est = exp(estimate), 
+         exp_min = exp(estimate - std.error), 
+         exp_max = exp(estimate + std.error)) %>% 
   mutate(term = cov_labels[term]) %>% 
-  ggplot(., aes(y = fct_reorder(term, estimate), x = estimate)) +
-  geom_linerange(aes(xmin = estimate - std.error,
-                     xmax = estimate + std.error),
+  ggplot(., aes(y = fct_reorder(term, exp_est), x = exp_est)) +
+  geom_linerange(aes(xmin = exp_min,
+                     xmax = exp_max),
                  color = "blue") +
   geom_point() +
   geom_vline(xintercept = 1) +
+  scale_x_continuous(
+  trans = "log",
+  breaks = c(.0625, .25, .5, 1, 2, 4, 16),
+  labels = str_wrap(c("1/16 as likely", "1/4 as likely", "1/2 as likely", "Even", "2x as likely", "4x as likely", "16x as likely"), 10),
+  expand = expansion(0, 0)
+  ) +
   theme_transcend +
   theme(panel.grid.major.y = element_blank()) +
   labs(
-    x = "Likelihood",
+    x = "",
     y = "",
     title = str_wrap(title, 60))
   return(plot)}
@@ -523,7 +570,7 @@ corpus <- Corpus(VectorSource(responses))
 corpus <- tm_map(corpus, content_transformer(tolower))  # Convert to lower case
 corpus <- tm_map(corpus, removePunctuation)             # Remove punctuation
 corpus <- tm_map(corpus, removeNumbers)                 # Remove numbers
-corpus <- tm_map(corpus, removeWords, stopwords("english"))  # Remove stopwords
+corpus <- tm_map(corpus, removeWords, c(stopwords("english"), custom_stopwords))  # Remove stopwords
 corpus <- tm_map(corpus, stripWhitespace)               # Strip whitespace
 
 # Create a document-term matrix
