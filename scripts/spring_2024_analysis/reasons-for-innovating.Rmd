@@ -25,7 +25,9 @@ tags_wide <- import(here("data/longitudinal", "full-tags-wide.csv"))
 
 ## What is the relationship between the reasons school leaders cite for innovating and the future practices they hope to implement?
 
-2024 only
+### Correlation plot
+For this guiding question, I look only at 2024 data. Below, you'll see on the each pilot practice (what schools hope to implement in the next 1-5 years) on the left and catalyst for innovation, or the reason(s) school leaders cite for innovating, across the top.
+
 ```{r}
 # Correlations between catalyst variables and reasons for innovating
 catalysts <- full %>% 
@@ -56,15 +58,53 @@ rfdf <- data.frame(reasons_and_futures)
 corrplot::corrplot(reasons_and_futures, method = "color", tl.col = "black", tl.cex = 0.3, c1.cex = 0.3, number.cex = 0.2, diag = TRUE)
 ```
 
-Kind of clunky. I'll just display a table.
+Kind of clunky. I'm going to modify to fix the labels manually and then expand the figure to better see the correlations.
+
 ```{r}
-rfdf %>% 
-  round(2) %>% 
-  datatable(class = "cell-border stripe")
+# rename catalysts
+rename_catalyst_mapping <- setNames(
+  dictionary$clean_labels[dictionary$variable_name %in% colnames(catalysts)], 
+  dictionary$variable_name[dictionary$variable_name %in% colnames(catalysts)]
+)
+
+# rename pilots
+rename_pilot_mapping <- setNames(
+  dictionary$clean_labels[dictionary$variable_name %in% colnames(pilots)], 
+  dictionary$variable_name[dictionary$variable_name %in% colnames(pilots)]
+)
+
+# Correlations between catalyst variables and reasons for innovating
+catalysts <- full %>% 
+  select(starts_with("catalyst_")) %>% 
+  select(-starts_with("catalyst_key"), -contains("_other")) %>% 
+  rename_with(~ rename_catalyst_mapping[.x], .cols = everything())
+
+pilots <- full %>% 
+  select(starts_with("pilot_")) %>% 
+  select(-contains("_other")) %>% 
+  rename_with(~ rename_pilot_mapping[.x], .cols = everything())
+
+catalysts_clean <- remove_zero_variance(catalysts)
+pilots_clean <- remove_zero_variance(pilots) #just one removed
+
+reasons_and_futures <- cor(pilots_clean, catalysts_clean)
+rfdf <- data.frame(reasons_and_futures)
+```
+
+```{r fig.width=5, fig.height=20}
+corrplot::corrplot(reasons_and_futures, method = "color", tl.col = "black", tl.cex = 0.6, c1.cex = 0.3, number.cex = 0.2, diag = TRUE, cl.pos = "n")
 ```
 
 
-Reflections: Following are related to each catalyst. Correlations above 0.15 are noted.
+### Correlation table
+
+```{r}
+rfdf %>% 
+  round(2) %>% 
+  datatable()
+```
+
+The following are related to each catalyst. Correlations above 0.15 are noted.
 
 - External: Assessments career (0.20), MTSS academics (0.15), assessments bilingual (0.15), multi-age (0.15)
 - Student agency: student conferences (0.18) assessments agency (0.17)
@@ -91,28 +131,143 @@ catalyst_all_years_long <- catalyst_all_years %>%
                names_prefix = "catalyst_")
 ```
 
-From Cycle 2, I had created this graph.
-```{r}
+From Cycle 2, I had started to create this graph. This shows catalyst selection across schools.
+```{r fig.width= 4, fig.height=6}
 library(ggrepel)
-label_positions <- catalyst_all_years_long %>% 
-  group_by(catalyst) %>% 
-  summarize(year = 2021, selected = first(selected))
 
 catalyst_all_years_long <- catalyst_all_years_long %>% 
-  group_by(catalyst, year, selected) %>% 
-  filter(selected == 1) %>% 
-  select(-selected) %>% 
-  summarize(selected = n())
+  group_by(catalyst, year) %>% 
+  summarize(total_selected = sum(selected))
+
+label_positions <- catalyst_all_years_long %>% 
+  group_by(catalyst) %>% 
+  summarize(year = 2021, selected = first(total_selected))
 
 catalyst_all_years_long %>% 
-  ggplot(aes(x = year, y = selected, color = catalyst)) +
-  geom_line() +
-  geom_text_repel(data = label_positions, aes(label = catalyst)) +
+  ggplot(aes(x = year, y = total_selected, color = catalyst)) +
+  geom_line(linewidth = 1) +
+  geom_point(size = 3) +
+  geom_label_repel(data = label_positions, aes(y = selected, label = catalyst)) +
   scale_x_continuous(breaks = c(2021, 2024)) +
   labs(x = "Year",
        y = "Number of Times Selected",
-       title = "Catalyst Selection by Year") +
+       title = "Catalyst Selection by Year \n Across Schools") +
   theme(legend.position = "none")
+```
+
+Version using percentages is added here.
+```{r fig.width= 4, fig.height=6}
+n_2021 = 232
+n_2024 = 189
+
+catalyst_all_years_long <- catalyst_all_years_long %>% 
+  mutate(pct = case_when(year == 2021 ~ total_selected/n_2021,
+                          year == 2024 ~ total_selected/n_2024))
+
+label_positions <- catalyst_all_years_long %>% 
+  group_by(catalyst) %>% 
+  summarize(year = 2021, pct = first(pct))
+
+catalyst_all_years_long  %>% 
+  ggplot(aes(x = year, y = pct, color = catalyst)) +
+  geom_line(linewidth = 1) +
+  geom_point(size = 3) +
+  geom_label_repel(data = label_positions, aes(y = pct, label = catalyst)) +
+  scale_x_continuous(breaks = c(2021, 2024)) +
+  scale_y_continuous(labels = scales::percent_format()) +
+  labs(x = "Year",
+       y = "Percent of Times Selected",
+       title = "Catalyst Selection by Year \n Across Schools") +
+  theme(legend.position = "none")
+```
+
+What about schools who responded to the survey both years? So, looking within schools? Let's narrow the sample and check that out.
+
+```{r fig.width= 4, fig.height=6}
+catalyst_all_years_within <- catalyst_all_years %>% 
+  filter(duplicated(school_id) | duplicated(school_id, fromLast = TRUE)) %>% 
+  select(-contains("_other"), -contains("_key")) %>% 
+  pivot_longer(cols = contains("catalyst"),
+               names_to = "catalyst",
+               values_to = "selected",
+               names_prefix = "catalyst_") %>% 
+  group_by(catalyst, year) %>% 
+  summarize(total_selected = sum(selected))
+
+label_positions <- catalyst_all_years_within %>% 
+  group_by(catalyst) %>% 
+  summarize(year = 2021, selected = first(total_selected))
+
+catalyst_all_years_within %>% 
+  ggplot(aes(x = year, y = total_selected, color = catalyst)) +
+  geom_line(linewidth = 1) +
+  geom_point(size = 3) +
+  geom_label_repel(data = label_positions, aes(y = selected, label = catalyst)) +
+  scale_x_continuous(breaks = c(2021, 2024)) +
+  labs(x = "Year",
+       y = "Number of Times Selected",
+       title = "Catalyst Selection by Year \n Within Schools") +
+  theme(legend.position = "none")
+```
+
+Now, in percentage. The total value here will be different than in the `across` graph since not ever school answered every year. Only 82 did.
+```{r fig.width= 4, fig.height=6}
+n_within = 82
+
+catalyst_all_years_within <- catalyst_all_years_within %>% 
+  mutate(pct = total_selected/n_within)
+
+label_positions <- catalyst_all_years_within %>% 
+  group_by(catalyst) %>% 
+  summarize(year = 2021, pct = first(pct))
+
+catalyst_all_years_within  %>% 
+  ggplot(aes(x = year, y = pct, color = catalyst)) +
+  geom_line(linewidth = 1) +
+  geom_point(size = 3) +
+  geom_label_repel(data = label_positions, aes(y = pct, label = catalyst)) +
+  scale_x_continuous(breaks = c(2021, 2024)) +
+  scale_y_continuous(labels = scales::percent_format()) +
+  labs(x = "Year",
+       y = "Percent of Times Selected",
+       title = "Catalyst Selection by Year \n Within Schools") +
+  theme(legend.position = "none")
+```
+
+Create a version similar to the most added practices figures.
+
+```{r fig.width=10, fig.height=6}
+catalyst_all_years_within_change <- catalyst_all_years_within %>% 
+  pivot_wider(names_from = year,
+              values_from = c(total_selected, pct)) 
+
+catalyst_all_years_within_change %>% 
+  ggplot(aes(x = total_selected_2021, xend = total_selected_2024, y = reorder(catalyst, total_selected_2024), yend = catalyst)) +
+  geom_segment(color = "black", linetype = "dotted") +
+  geom_point(aes(x = total_selected_2021), color = "red") +
+  geom_point(aes(x = total_selected_2024), color = "blue") +
+  guides(col = guide_legend(nrow = 1, title = NULL)) + 
+  bar_x_scale_count +
+  geom_text(
+    aes(x = (total_selected_2021 + total_selected_2024)/2, label = paste("Δ =", total_selected_2024 - total_selected_2021), color = factor(sign(total_selected_2024 - total_selected_2021))),
+    nudge_y = .3,
+    hjust = 0,
+    show.legend = FALSE
+  ) +
+  scale_color_manual(
+    values = c("red", "blue"),
+    labels = c("2021", "2024")
+  ) +
+  labs(
+    y = "Catalysts",
+    x = "Times Selected",
+    title = "Catalyst Selection from 2021 to 2024 Within Schools"
+  ) +
+  theme(
+    panel.grid.major.y = element_blank(),
+    legend.position = "bottom",
+    axis.text.y = element_text(size = rel(0.6))
+  )
 ```
 
 How many schools selected just one catalyst in particular?
@@ -140,6 +295,38 @@ one_cat %>%
        x = "Catalyst",
        y = "Count",
        legend = "Year")
+```
+
+Also going to represent this information here in a change plot. Note, this is not going to be within schools since there is only once school that selected one catalyst each year. Also note, **covid** and **student_agency** were exclusive to 2021.
+
+```{r}
+one_cat %>% 
+  pivot_wider(names_from = "year",
+              values_from = "count") %>% 
+  ggplot(aes(x = `2021`, xend = `2024`, y = reorder(catalyst, `2024`), yend = catalyst)) +
+  geom_segment(color = "black", linetype = "dotted") +
+  geom_point(aes(x = `2021`), color = "red") +
+  geom_point(aes(x = `2024`), color = "blue") +
+  geom_point(x = 1, y = "internal", color = "purple") +
+  geom_point(x = 1, y = "external", color = "purple") +
+  guides(col = guide_legend(nrow = 1, title = NULL)) + 
+  # bar_x_scale_count +
+  geom_text(
+    aes(x = (`2021` + `2024`)/2 -1, label = paste("Δ =", `2024` - `2021`), color = factor(sign(`2024` - `2021`))),
+    nudge_y = .3,
+    hjust = 0,
+    show.legend = FALSE
+  )  +
+  labs(
+    y = "Catalysts",
+    x = "Times Selected",
+    title = "Solo-Select Catalyst Selection \nfrom 2021 to 2024 Across Schools"
+  ) +
+  theme(
+    panel.grid.major.y = element_blank(),
+    legend.position = "bottom",
+    axis.text.y = element_text(size = rel(0.6))
+  )
 ```
 
 
