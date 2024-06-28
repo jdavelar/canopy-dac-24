@@ -356,8 +356,8 @@ cat_by_year %>%
   geom_col(position = "dodge") +
   scale_fill_manual(values = transcend_cols) +
   labs(title = "Catalyst Key Selection for Schools with Both Years of Data",
-       x = "Catalyst",
-       y = "Count",
+       x = "Number of Schools Selecting",
+       y = "Catalyst",
        legend = "Status")
 ```
 
@@ -376,6 +376,23 @@ one_cat_change <- catalyst_all_years %>%
 ```
 
 Looks like there was just one school who meets this criteria. This school went from focusing on inequity to demographics.
+
+I'm continuing to explore this question, this time with a vertical barchart of adds/drops only. Note again, these are schools who responded both years.
+```{r fig.height=5, fig.width=6}
+cat_by_year %>% 
+  pivot_wider(names_from = "selected",
+              values_from = "n") %>% 
+  mutate(dropped = -1*dropped) %>% 
+  ggplot(aes(x = reorder(catalyst_key, -dropped))) +
+  geom_col(aes(y = added), fill = transcend_cols[1]) +
+  geom_col(aes(y = dropped), fill = transcend_cols[3]) +
+  geom_hline(yintercept = 0, linetype = 2) +
+  coord_flip() +
+  labs(title = "Catalyst Key Adds/Drops for \nSchools Answering Both Years",
+       y = "Drops (Negative) and Adds (Positive)",
+       x = "Catalyst")
+```
+
 
 ## For leaders who were concerned about future sustainability, what reasons did they cite for their concern and did these reasons differ across schools?
 
@@ -458,24 +475,68 @@ barriers <- barriers %>%
   select(-contains("_other")) %>% 
   pivot_longer(cols = contains("barrier"),
                names_to = "barrier",
-               values_to = "selected",
-               names_prefix = "barrier_") %>% 
+               values_to = "selected") %>% 
   filter(selected == 1) %>% 
   group_by(barrier) %>% 
   summarize(n = n())
 ```
 
-```{r}
+```{r fig.height=4, fig.width=6}
+
+#nice labels -- thanks, janette!
+barrier_labs <- variables %>% 
+  select(starts_with("barrier"), -barrier_other_text) %>% 
+  pivot_longer(cols = starts_with("barrier"),
+               names_to = "barrier",
+               values_to = "response") %>% 
+  select(barrier) %>% 
+  unique() %>% 
+  mutate(label = case_when(
+    barrier == "barrier_local_funds" ~ "Availability of local funds",
+    barrier == "barrier_private_funds" ~ "Availability of private funding from foundations or donors",
+    barrier == "barrier_donations" ~ "Changes to in-kind donations",
+    barrier == "barrier_inflation" ~ "Inflation/increasing prices",
+    barrier == "barrier_enrollment" ~ "Changes in school enrollment",
+    barrier == "barrier_shortage" ~ "Staffing shortages",
+    barrier == "barrier_federal_funds" ~ "Expiration of federal relief funds",
+    barrier == "barrier_other" ~ "Some other reason"
+  ))
+
 barriers %>% 
-  ggplot(aes(reorder(barrier, n), n)) +
-  geom_col(aes(fill = barrier)) +
+  left_join(barrier_labs, by = "barrier") %>% 
+  ggplot(aes(reorder(label, n), n)) +
+  geom_col(aes(fill = label)) +
   scale_fill_manual(values = c(transcend_cols, transcend_cols2)) +
   labs(title = "2024 Barriers to Sustainability",
        x = "Barrier",
        y = "Count") +
-  theme(legend.position = "none") +
+  theme(legend.position = "none",
+        panel.grid.major.y = element_blank(),
+        axis.text.y = element_text(size = 11)) +
+  scale_y_continuous(expand = c(0, 0), limits = c(0, 95)) +
+  scale_x_discrete(labels = wrap_format(35)) +
+    geom_text(aes(label = n), nudge_y = 0.5, hjust = 0, color = transcend_grays[2], fontface = "bold", size = 5.5, family = "sans") +
   coord_flip()
 ```
 
 
+Percentage
+```{r}
+barriers %>% 
+  left_join(barrier_labs, by = "barrier") %>% 
+  mutate(pct = n/n_2024) %>% 
+  ggplot(aes(reorder(label, pct), pct)) +
+  geom_col(aes(fill = label)) +
+  scale_fill_manual(values = c(transcend_cols, transcend_cols2)) +
+  labs(title = "2024 Barriers to Sustainability",
+       x = "Barrier",
+       y = "Percent") +
+  theme(legend.position = "none",
+        panel.grid.major.y = element_blank(),
+        axis.text.y = element_text(size = 11)) +
+  scale_y_continuous(label = scales::label_percent(), expand = c(0, 0), limits = c(0, .55)) +
+  scale_x_discrete(labels = wrap_format(35)) +
+    geom_text(aes(label = paste0(round(pct, 2)*100, "%")), nudge_y = 0.01, hjust = 0, color = transcend_grays[2], fontface = "bold", size = 5.5, family = "sans") +
+  coord_flip()
+```
 
