@@ -540,3 +540,176 @@ barriers %>%
   coord_flip()
 ```
 
+## Modifications after conclusion of Cycle 3
+
+**Task 1.** Modify wordcloud by using bigrams.
+
+### Q: For leaders who were concerned about future sustainability, what reasons did they cite for their concern and did these reasons differ across schools?
+
+```{r}
+
+barriers <- full %>% 
+  select(school_id, starts_with("barrier"))
+
+library(wordcloud)
+library(tm)
+library(tidytext)
+library(dplyr)
+
+responses <- barriers$barrier_other_text
+
+# Create a data frame from the responses
+responses_df <- data.frame(text = responses, stringsAsFactors = FALSE)
+
+# Text preprocessing using tidytext
+tidy_responses <- responses_df %>%
+  unnest_tokens(bigram, text, token = "ngrams", n = 2) %>%
+  filter(!bigram %in% stop_words$word) %>%
+  count(bigram, sort = TRUE)
+
+# Generate the wordcloud
+set.seed(1234) # For reproducibility
+wordcloud(words = tidy_responses$bigram, freq = tidy_responses$n, min.freq = 1,
+          max.words=200, random.order=FALSE, rot.per=0.35, 
+          colors=brewer.pal(8, "Dark2"))
+```
+
+Okay, so, nothing really pops out.
+
+```{r}
+library(tidytext)
+library(dplyr)
+library(ggplot2)
+
+responses <- barriers$barrier_other_text
+
+# Create a data frame from the responses
+responses_df <- data.frame(text = responses, stringsAsFactors = FALSE)
+
+# Text preprocessing and sentiment analysis using tidytext
+tidy_responses <- responses_df %>%
+  unnest_tokens(word, text) %>%
+  filter(!word %in% stop_words$word) %>%
+  inner_join(get_sentiments("bing")) %>%
+  count(word, sentiment, sort = TRUE) %>%
+  ungroup()
+
+# Aggregate sentiment scores
+sentiment_summary <- tidy_responses %>%
+  group_by(sentiment) %>%
+  summarise(count = sum(n)) %>%
+  ungroup()
+
+# Plot the sentiment summary
+ggplot(sentiment_summary, aes(x = sentiment, y = count, fill = sentiment)) +
+  geom_bar(stat = "identity", show.legend = FALSE) +
+  labs(title = "Sentiment Analysis of Responses",
+       x = "Sentiment",
+       y = "Count of Words") +
+  theme_minimal()
+
+# Print the sentiment summary
+print(sentiment_summary)
+```
+
+Nothing really here, either. 
+
+**Task 2.** Conduct correlation analysis with clusters instead of tags.
+
+### Q: What is the relationship between the reasons school leaders cite for innovating and the future practices they hope to implement?
+
+```{r}
+old_clusters <- import(here("data/clusters_through_2024.csv"))
+
+joined_dat <- dictionary %>% 
+  select(clean_labels, variable_name) %>% 
+  rename(var = variable_name) %>% 
+  right_join(., old_clusters) %>% 
+  select(-var)
+```
+
+
+```{r}
+
+catalysts <- full %>% 
+  select(starts_with("catalyst_")) %>% 
+  select(-starts_with("catalyst_key"), -contains("_other")) 
+
+pilots <- full %>% 
+  select(school_id, starts_with("pilot_")) %>% 
+  select(-contains("_other")) 
+
+# rename catalysts X
+rename_catalyst_mapping <- setNames(
+  dictionary$clean_labels[dictionary$variable_name %in% colnames(catalysts)], 
+  dictionary$variable_name[dictionary$variable_name %in% colnames(catalysts)]
+)
+
+# rename pilots
+rename_pilot_mapping <- setNames(
+  dictionary$clean_labels[dictionary$variable_name %in% colnames(pilots)], 
+  dictionary$variable_name[dictionary$variable_name %in% colnames(pilots)]
+)
+
+# Correlations between catalyst variables and reasons for innovating
+catalysts <- full %>% 
+  select(starts_with("catalyst_")) %>% 
+  select(-starts_with("catalyst_key"), -contains("_other")) %>% 
+  rename_with(~ rename_catalyst_mapping[.x], .cols = everything())
+
+pilots <- full %>% 
+  select(school_id, starts_with("pilot_")) %>% 
+  select(-contains("_other")) %>% 
+  rename_with(~ rename_pilot_mapping[.x], .cols = -school_id)
+
+
+pilots_cluster <- pilots %>%
+  pivot_longer(cols = -school_id, 
+               names_to = "clean_labels", 
+               values_to = "selection") %>%
+  left_join(., joined_dat) %>%
+  group_by(school_id, cluster) %>%
+  summarise(cluster_sum = sum(selection, na.rm = TRUE), .groups = 'drop') %>%
+  pivot_wider(names_from = cluster, values_from = cluster_sum, values_fill = list(cluster_sum = 0)) %>% 
+  select(-school_id)
+
+catalysts_clean <- remove_zero_variance(catalysts)
+pilots_clean <- remove_zero_variance(pilots_cluster) #just one removed
+
+reasons_and_futures <- cor(catalysts_clean, pilots_clean)
+rfdf <- data.frame(reasons_and_futures)
+```
+
+```{r fig.width=5, fig.height=5}
+corrplot::corrplot(reasons_and_futures, method = "color", tl.col = "black", tl.cex = 0.6, c1.cex = 0.3, number.cex = 0.2, diag = TRUE, cl.pos = "n")
+```
+
+```{r}
+rfdf %>% 
+  round(2) %>% 
+  datatable()
+```
+
+**Task 3.** Change labels and add Ns to bars.
+
+### Q: How often have schools that responded in both 2021 and 2024 changed their key catalysts?
+
+```{r}
+cat_by_year %>% 
+    mutate(catalyst_key = paste0("catalyst_", catalyst_key)) %>% 
+    mutate(catalyst_key = factor(catalyst_key, levels = names(rename_catalyst_mapping), labels = rename_catalyst_mapping)) %>% 
+  ggplot(aes(x = n, y = catalyst_key, fill = selected)) +
+  geom_col(position = position_dodge(preserve = "single"), width = 1) +
+#  geom_text(aes(label = n), position = position_dodge(preserve = "single"), width = 0.7, color = transcend_grays[2], fontface = "bold", size = 4.5, family = "sans") +
+  scale_fill_manual(values = transcend_cols) +
+  labs(title = "Catalyst Key Selection for Schools with Both Years of Data",
+       x = "Number of Schools Selecting",
+       y = "Catalyst",
+       legend = "Status") +
+  scale_y_discrete(labels = rename_catalyst_mapping) +
+  theme(
+    panel.grid.major.y = element_blank(),
+    legend.position = "bottom",
+    axis.text.y = element_text(size = rel(0.6))
+  )
+```
