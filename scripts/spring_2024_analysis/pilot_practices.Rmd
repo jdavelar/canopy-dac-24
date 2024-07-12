@@ -1,0 +1,162 @@
+---
+title: "Pilot Practices"
+author: "Janette Avelar"
+date: '2024-07-11'
+output: 
+  html_document:
+    toc: true
+    toc_float: true
+    theme: flatly
+    highlight: tango
+    code_folding: hide
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE, fig.width = 10, fig.height = 8)
+pacman::p_load(tidyverse, here, rio, DT, ggthemes, scales, broom, lme4, wordcloud, tm)
+#read in data
+load(here("data", "2024 data/complete_canopy_2024.RData"))
+labels <- import(here("data", "longitudinal/tag-labels.csv"))
+```
+
+```{r}
+#manual branding - file won't load
+transcend_cols = c("#1A4C81","#59C3B4","#EF464B","#ADE0EE")
+transcend_cols2 = c("#BC2582","#FFA630","#FFDE42","#99C24D","#218380","#D3B7D7")
+transcend_grays = c("#4D4D4F","#9D9FA2","#D1D3D4")
+transcend_na = transcend_grays[2]
+theme_transcend = theme_gdocs(base_size = 14, base_family = "Open Sans") +
+  theme(
+    plot.title = element_text(family = "Bebas Neue", color = "black"),
+    plot.background = element_blank(),
+    axis.text = element_text(colour = "black"),
+    axis.title = element_text(colour = "black"),
+    panel.border = element_rect(colour = "#4D4D4F"),
+    strip.text = element_text(size = rel(0.8)),
+    plot.margin = margin(10, 24, 10, 10, "pt")
+  )
+theme_set(theme_transcend)
+```
+
+**What do schools most want to pilot in the next 5 years?**
+
+```{r}
+tags %>% 
+  select(school_id, starts_with("pilot")) %>% 
+  pivot_longer(cols = starts_with("pilot"),
+               names_to = "variable",
+               values_to = "usage") %>% 
+  group_by(variable) %>% 
+  summarize(n = sum(usage),
+            pct = round(n/189, 2)) %>% 
+  mutate(variable = str_replace_all(variable, "pilot", "practices")) %>% 
+  left_join(labels, by = "variable") %>% 
+  arrange(-n) %>% 
+  slice_head(n = 5) %>% 
+  ggplot(., aes(pct, reorder(label, pct))) +
+  geom_col(fill = transcend_cols[1]) +
+  scale_x_continuous(expand = c(0, 0), limits = c(0, .2), labels = scales::percent_format()) +
+  scale_y_discrete(labels = wrap_format(25)) +
+  geom_text(aes(label = scales::label_percent(accuracy = 1)(pct)), 
+            hjust = 1.1,
+            vjust = 0, 
+            color = "white", 
+            fontface = "bold", 
+            size = 5.5, 
+            family = "sans") +
+  theme(panel.grid.major.y = element_blank()) +
+  labs(x = "",
+       y = "",
+       title = str_wrap("Top 5 tags Canopy schools hope to pilot in the next 5 years", 60))
+```
+
+**Are there broad patterns in the practices schools hope to implement in the next five years?**  
+
+The graph below was created by adding the number of tags a school selected within a cluster, and dividing it by the number of tags present in the cluster for 2024. The y-axis displays that percentage, on average. Postsecondary pathways was the cluster from which most schools selected practices they're interested in piloting. The "none," or miscellaneous, cluster was quite high, which may indicate we should look closer at it to tease out more differences among those 24 tags. Practices related to individualized learning were selected much less frequently.  
+
+```{r}
+#read in cluster information
+cluster <- import(here("data/longitudinal", "tag_clusters_longitudinal.csv")) %>% 
+  janitor::clean_names() %>% 
+  select(tag, cluster = proposed_cluster_for_preliminary_24_analysis) %>% 
+  mutate(cluster = case_when(
+    cluster == "Postsecondary" ~ "Postsecondary pathways",
+    cluster == "Ed justice" ~ "Educational justice",
+    cluster == "Individualized" ~ "Individualized learning",
+    cluster == "None?" ~ "None",
+    TRUE ~ as.character(cluster)
+  ))
+#link to pilot tags
+pilot_clusters <- tags %>% 
+  select(school_id, starts_with("pilot")) %>% 
+  pivot_longer(cols = starts_with("pilot"),
+               names_to = "variable",
+               values_to = "usage") %>%
+  mutate(variable = str_replace_all(variable, "pilot", "practices")) %>% 
+  left_join(labels, by = "variable") %>% 
+  select(school_id, tag = label, usage) %>% 
+  left_join(cluster, by = "tag")
+#cluster totals
+tots <- pilot_clusters %>% 
+  select(tag, cluster) %>% 
+  unique() %>% 
+  mutate(rate = 1) %>% 
+  group_by(cluster) %>% 
+  summarize(total = sum(rate))
+#weighted total for each school
+pilot_clusters %>% 
+  group_by(school_id, cluster) %>% 
+  summarize(n = sum(usage)) %>% 
+  ungroup() %>% 
+  left_join(tots, by = "cluster") %>% 
+  mutate(pct = n/total) %>% 
+  group_by(cluster) %>% 
+  summarize(wt_sum = sum(pct),
+            wt_mean = mean(pct),
+            mean = mean(n),
+            median = median(n)) %>% 
+  ggplot(., aes(reorder(cluster, -wt_mean), wt_mean)) +
+  geom_col(fill = transcend_cols[1]) +
+  scale_y_continuous(expand = c(0, 0), limits = c(0, .1), labels = scales::percent_format()) +
+  scale_x_discrete(labels = wrap_format(15)) +
+  theme(panel.grid.major.x = element_blank()) +
+  labs(y = "Average cluster percentage selected",
+       x = "",
+       title = str_wrap("Clusters Canopy schools are interested in piloting in the next 5 years", 60))
+```
+
+I think the graph above gives us some interesting information, but it's a little hard to understand, in part because the numbers turn out so small. When I transform them to make them more meaningful, it comes out to schools selecting less than 1 tag in each cluster (except for the 'none' category). I think this is because schools that did not select those tags are included in the calculation, leaving a lot of 0's that pull the numbers down. Trying to figure this out as a next step in the figure below. Here, I excluded all 0 values before calculating and mapped the mean number of tags selected, rather than the percentage. Notice that 'none' comes out as the top cluster, and postsecondary pathways is no longer the top cluster, but rather, educational justice is. Not totally sure what to make of this, beyond again indicating the need to describe that misc. cluster better.  
+
+*Update* After experimenting, I'm realizing the 0's might not be the issue, but rather, that schools were only able to select up to 5 tags even though there are more tags in each cluster, thus that percentage will never be very high. Any suggestions on how to handle this? It doesn't feel very meaningful to say that schools on average selected 1-1.6 tags in each cluster, but maybe it's just that we don't see very big differences in the type of tags selected when using our established clusters.
+
+```{r}
+pilot_clusters %>% 
+  filter(usage == 1) %>% 
+  group_by(school_id, cluster) %>% 
+  summarize(n = sum(usage)) %>% 
+  ungroup() %>% 
+  left_join(tots, by = "cluster") %>% 
+  mutate(pct = n/total) %>% 
+  group_by(cluster) %>% 
+  summarize(wt_sum = sum(pct),
+            wt_mean = mean(pct),
+            mean = mean(n),
+            median = median(n)) %>% 
+  ggplot(., aes(reorder(cluster, -mean), mean)) +
+  geom_col(fill = transcend_cols[1]) +
+  scale_y_continuous(expand = c(0, 0), limits = c(0, 2)) +
+  scale_x_discrete(labels = wrap_format(15)) +
+  geom_text(aes(label = round(mean, 2)), 
+            vjust = -.2, 
+            color = transcend_na, 
+            fontface = "bold", 
+            size = 5.5, 
+            family = "sans") +
+  theme(panel.grid.major.x = element_blank()) +
+  labs(y = "Mean tags selected",
+       x = "",
+       title = str_wrap("Clusters Canopy schools are interested in piloting in the next 5 years", 60))
+```
+
