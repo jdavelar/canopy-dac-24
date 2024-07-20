@@ -1,0 +1,288 @@
+---
+title: "Practices over Time"
+author: "Anwesha Guha"
+date: "`r Sys.Date()`"
+output: 
+  html_document:
+    toc: true
+    toc_float: true
+    theme: flatly
+    highlight: tango
+    code_folding: hide
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE)
+pacman::p_load(rio, here, tidyverse, DT, plotly)
+```
+
+Also see `core-practices-over-time.html`.
+
+```{r}
+dat <- import(here("data/longitudinal", "full-tags-wide.csv"))
+dictionary <- import(here("data/2024 data", "dictionary_2024.csv"))
+source(here("scripts/branding.R"))
+```
+
+
+## Which core practices have been implemented most over time?
+
+```{r}
+core_prac <- dat %>% 
+  select(school_id, year, starts_with("core")) %>% 
+  mutate(school_id = as.factor(school_id),
+         year = as.factor(year)) 
+
+core_prac[is.na(core_prac)] <- 0
+
+core_prac <- core_prac %>% 
+#  summarise(across(where(is.numeric), ~ sum(.x, na.rm = TRUE))) %>% 
+  pivot_longer(starts_with("core"),
+               names_to = "core_practice",
+               values_to = "times_selected") 
+
+core_prac_dat <- core_prac %>% 
+  group_by(core_practice) %>% 
+  summarise(selected = sum(times_selected)) %>% 
+              arrange(-selected)
+```
+
+First note: there are 26 practices that have never been selected as a core practice. They are the following:
+```{r}
+core_prac_dat %>% 
+  filter(selected == 0) %>% 
+  pull(core_practice)
+```
+
+These are the rest.
+
+```{r}
+datatable(core_prac_dat)
+```
+
+Let's look more closely at the top 10 on this list.
+
+```{r}
+top_core <- core_prac_dat %>% 
+  head(10) %>% 
+  pull(core_practice)
+
+top_core_dat <- core_prac %>% 
+  filter(core_practice %in% top_core) %>% 
+  group_by(core_practice, year) %>% 
+  summarise(selected = sum(times_selected))
+```
+
+```{r}
+top_core_dat %>% 
+  filter(year != 2019) %>% 
+  ggplot(aes(reorder(core_practice, selected), selected, fill = year)) +
+  geom_col() +
+  scale_fill_manual(values = transcend_cols) +
+  scale_y_continuous(expand = c(0,0)) +
+  labs(title = "Core Practices by Year Implemented",
+       x = "",
+       y = "") +
+#  scale_x_discrete(labels = label_tags()) +
+  theme(legend.position = "bottom", 
+        legend.direction = "horizontal",
+        text = element_text(size = 7),
+        axis.text.x = element_text(angle = 45, hjust = 1)) + 
+  coord_flip() +
+  theme(
+    panel.grid.major.y = element_blank(),
+    legend.position = "bottom"
+  ) 
+```
+
+It looks like 2021 was really driving the top core practices list across the years.
+
+## Have any lost popularity over the last 5 years? 
+
+Well, this is an interesting question given that 2021 seems like it was the year that schools were more liberal with their core practice selections, so I imagine this affects most practices. But let's look at them below.
+
+```{r}
+p <- core_prac %>% 
+  group_by(core_practice, year) %>% 
+  summarise(selected = sum(times_selected)) %>% 
+  filter(year != 2019) %>% 
+  mutate(year = as.numeric(year)) %>% 
+  ggplot(aes(year, selected, color = core_practice)) +
+  geom_point() +
+  geom_line() +
+  scale_fill_manual(values = transcend_cols2) +
+  scale_y_continuous(expand = c(0,0)) +
+  labs(title = "Core Practices by Year Implemented",
+       x = "",
+       y = "") +
+#  scale_x_discrete(labels = label_tags()) +
+  theme(legend.position = "none", 
+        legend.direction = "horizontal",
+        text = element_text(size = 7),
+        axis.text.x = element_text(angle = 45, hjust = 1)) + 
+  theme(
+    panel.grid.major.y = element_blank(),
+    legend.position = "none"
+  ) 
+
+ggplotly(p, tooltip = c("core_practice", "selected"))
+```
+
+
+## Which are the oldest stable core tags and newest growing tags?
+
+```{r}
+stable_prac <- core_prac %>%
+    group_by(core_practice, year) %>% 
+  summarise(selected = sum(times_selected)) %>% 
+  filter(year != 2019) %>% 
+  group_by(core_practice) %>%
+  summarise(
+    min_selected = min(selected, na.rm = TRUE),
+    max_selected = max(selected, na.rm = TRUE),
+    range_selected = max_selected - min_selected
+  ) %>%
+  filter(range_selected <= 50) %>%
+  pull(core_practice) 
+
+p <- core_prac %>% 
+  group_by(core_practice, year) %>% 
+  summarise(selected = sum(times_selected)) %>% 
+  filter(year != 2019) %>% 
+  filter(core_practice %in% stable_prac) %>% 
+  filter(selected > 20) %>% 
+  mutate(year = as.numeric(year)) %>% 
+  ggplot(aes(year, selected, color = core_practice)) +
+  geom_point() +
+  geom_line() +
+  scale_fill_manual(values = transcend_cols2) +
+  scale_y_continuous(expand = c(0,0)) +
+  labs(title = "Stable Tags (Selected >20, varied <50)",
+       x = "",
+       y = "") +
+#  scale_x_discrete(labels = label_tags()) +
+  theme(legend.position = "none", 
+        legend.direction = "horizontal",
+        text = element_text(size = 7),
+        axis.text.x = element_text(angle = 45, hjust = 1)) + 
+  theme(
+    panel.grid.major.y = element_blank(),
+    legend.position = "none"
+  ) 
+
+ggplotly(p, tooltip = c("core_practice", "selected"))
+```
+
+For newest growing tags, in my first pass, I am going to filter the practices to those that increased between 2022 and 2024. I'm omitting 2021 for the filter.
+
+```{r}
+increased_prac <- core_prac %>% 
+  group_by(core_practice, year) %>% 
+  summarise(selected = sum(times_selected)) %>% 
+  filter(year %in% c(2022, 2024)) %>% 
+  pivot_wider(names_from = year, values_from = selected, names_prefix = "year_") %>%
+  mutate(change = year_2024 - year_2022) %>%
+  filter(change > 0) %>% 
+  arrange(desc(change)) %>% 
+  pull(core_practice)
+
+p <- core_prac %>% 
+  group_by(core_practice, year) %>% 
+  summarise(selected = sum(times_selected)) %>% 
+  filter(year != 2019) %>% 
+  filter(core_practice %in% increased_prac) %>% 
+  mutate(year = as.numeric(year)) %>% 
+  ggplot(aes(year, selected, color = core_practice)) +
+  geom_point() +
+  geom_line() +
+  scale_fill_manual(values = transcend_cols2) +
+  scale_y_continuous(expand = c(0,0)) +
+  labs(title = "Tags Increasing since 2022",
+       x = "",
+       y = "") +
+#  scale_x_discrete(labels = label_tags()) +
+  theme(legend.position = "none", 
+        legend.direction = "horizontal",
+        text = element_text(size = 7),
+        axis.text.x = element_text(angle = 45, hjust = 1)) + 
+  theme(
+    panel.grid.major.y = element_blank(),
+    legend.position = "none"
+  ) 
+
+ggplotly(p, tooltip = c("core_practice", "selected"))
+```
+
+```{r}
+core_prac %>% 
+  group_by(core_practice, year) %>% 
+  summarise(selected = sum(times_selected)) %>% 
+  filter(year != 2019) %>% 
+  filter(year != 2021) %>% 
+  filter(core_practice %in% increased_prac) %>% 
+  ggplot(aes(reorder(core_practice, selected), selected, fill = year)) +
+  geom_col() +
+  scale_fill_manual(values = transcend_cols) +
+  scale_y_continuous(expand = c(0,0)) +
+  labs(title = "Practices Increasing in Selection Since 2022",
+       x = "",
+       y = "") +
+#  scale_x_discrete(labels = label_tags()) +
+  theme(legend.position = "bottom", 
+        legend.direction = "horizontal",
+        text = element_text(size = 7),
+        axis.text.x = element_text(angle = 45, hjust = 1)) + 
+  coord_flip() +
+  theme(
+    panel.grid.major.y = element_blank(),
+    legend.position = "bottom"
+  )
+```
+
+What about those with the largest change?
+```{r}
+core_prac %>% 
+  group_by(core_practice, year) %>% 
+  summarise(selected = sum(times_selected)) %>% 
+  filter(year %in% c(2022, 2024)) %>% 
+  pivot_wider(names_from = year, values_from = selected, names_prefix = "year_") %>%
+  mutate(change = year_2024 - year_2022) %>%
+  filter(change > 0) %>% 
+  arrange(desc(change)) %>% 
+  head(10) %>% 
+  ggplot(aes(x = year_2022, xend = year_2024, y = reorder(core_practice, change), yend = core_practice)) +
+  geom_segment(color = "black", linetype = "dotted") +
+  geom_point(aes(x = year_2022), color = "red") +
+  geom_point(aes(x = year_2024), color = "blue") +
+  guides(col = guide_legend(nrow = 1, title = NULL)) + 
+  geom_text(
+    aes(x = (year_2022 + year_2024)/2 -1, label = paste("Δ =", year_2024 - year_2022), color = factor(sign(year_2024 - year_2022))),
+    nudge_y = .3,
+    hjust = 0,
+    show.legend = FALSE
+  )  +
+  labs(
+    y = "Core Practice",
+    x = "Times Selected",
+    title = "Core Practices with largest increase \nfrom 2022 to 2024 Across Schools"
+  ) +
+  theme(
+    panel.grid.major.y = element_blank(),
+    legend.position = "bottom",
+    axis.text.y = element_text(size = rel(0.6))
+  )
+```
+
+
+## What is the relationship between core practices most implemented over time and practices on the horizon? (i.e., are we seeing a lot of "brand new" practices piloted, are schools more or less trying out "established" practices, or both?)
+
+```{r}
+core_prac <- dat %>% 
+  select(school_id, year, starts_with("core"))
+
+long_dat <- import(here("data/longitudinal", "longitudinal_data.csv"))
+```
+
+Hm, I don't see pilot in either dataset. Will explore later
