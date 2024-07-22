@@ -129,7 +129,7 @@ pilot_clusters %>%
 
 I think the graph above gives us some interesting information, but it's a little hard to understand, in part because the numbers turn out so small. When I transform them to make them more meaningful, it comes out to schools selecting less than 1 tag in each cluster (except for the 'none' category). I think this is because schools that did not select those tags are included in the calculation, leaving a lot of 0's that pull the numbers down. Trying to figure this out as a next step in the figure below. Here, I excluded all 0 values before calculating and mapped the mean number of tags selected, rather than the percentage. Notice that 'none' comes out as the top cluster, and postsecondary pathways is no longer the top cluster, but rather, educational justice is. Not totally sure what to make of this, beyond again indicating the need to describe that misc. cluster better.  
 
-*Update* After experimenting, I'm realizing the 0's might not be the issue, but rather, that schools were only able to select up to 5 tags even though there are more tags in each cluster, thus that percentage will never be very high. Any suggestions on how to handle this? It doesn't feel very meaningful to say that schools on average selected 1-1.6 tags in each cluster, but maybe it's just that we don't see very big differences in the type of tags selected when using our established clusters.
+*Update* After experimenting, I'm realizing the 0's might not be the issue, but rather, that schools were only able to select up to 5 tags even though there are more tags in each cluster, thus that percentage will never be very high. Any suggestions on how to handle this? It doesn't feel very meaningful to say that schools on average selected 1-1.6 tags in each cluster, but maybe it's just that we don't see very big differences in the type of tags selected when using our established clusters.  
 
 ```{r}
 pilot_clusters %>% 
@@ -158,5 +158,232 @@ pilot_clusters %>%
   labs(y = "Mean tags selected",
        x = "",
        title = str_wrap("Clusters Canopy schools are interested in piloting in the next 5 years", 60))
+```
+
+Modifying the graph to include the number of tags in each cluster schools already use:  
+
+I don't know if this graph necessarily tells us much more than the one above, but I like being able to compare how popular a given cluster is compared to the tags that are being piloted. We're seeing relatively similar rates of adoption across clusters (with Educational Justice as the highest rate), despite the fact that we don't tend to see even distribution across clusters in average tag selection. Some of this is likely related to the number of tags in each cluster, but still useful to see.  
+
+```{r}
+tags <- full %>% 
+  select(school_id, starts_with("practices")) %>% 
+  pivot_longer(cols = starts_with("practices"),
+               names_to = "variable",
+               values_to = "usage") %>% 
+  left_join(labels, by = "variable") %>% 
+  rename("tag" = label) %>% 
+  left_join(cluster, by = "tag") %>% 
+  group_by(school_id, cluster) %>% 
+  summarize(n = sum(usage)) %>% 
+  group_by(cluster) %>% 
+  summarize(mean = mean(n)) %>% 
+  mutate(type = "Practices in use")
+pilot_clusters %>% 
+  filter(usage == 1) %>% 
+  group_by(school_id, cluster) %>% 
+  summarize(n = sum(usage)) %>% 
+  group_by(cluster) %>% 
+  summarize(mean = mean(n)) %>% 
+  mutate(type = "Practices to pilot") %>% 
+  bind_rows(tags) %>% 
+  ggplot(., aes(reorder(cluster, -mean), mean, fill = type)) +
+  geom_bar(stat = "identity") +
+  scale_fill_manual(values = transcend_cols) +
+  scale_y_continuous(expand = c(0, 0), limits = c(0, 15)) +
+  scale_x_discrete(labels = wrap_format(15)) +
+  geom_text(aes(label = round(mean, 2)), 
+            position = position_stack(vjust = .5),
+            color = "white", 
+            fontface = "bold", 
+            size = 5.5, 
+            family = "sans") +
+  theme(panel.grid.major.x = element_blank(),
+        legend.position = c(.8,.9)) +
+  labs(y = "Mean tags selected",
+       x = "",
+       title = str_wrap("Clusters Canopy schools are interested in piloting in the next 5 years", 60),
+       fill = "")
+```
+
+Exploring the graph above once more, using number of schools as the denominator rather than number of tags:  
+
+More than half of Canopy schools are interested in piloting 1 or more practices related to Educational Justice, and nearly half want to pilot a practice related to Deeper Learning. Again, we see that the "None" category is the highest rated, likely if not entirely due to the size of the cluster.
+
+```{r}
+pilot_clusters %>% 
+  group_by(school_id, cluster) %>% 
+  summarize(n = sum(usage)) %>% 
+  mutate(selection = ifelse(n > 0, 1, 0)) %>% 
+  group_by(cluster) %>% 
+  summarize(pct = sum(selection)/189) %>% 
+  ggplot(., aes(reorder(cluster, -pct), pct)) +
+  geom_col(fill = transcend_cols[1]) +
+  scale_y_continuous(expand = c(0, 0), limits = c(0, 1), labels = scales::percent_format()) +
+  scale_x_discrete(labels = wrap_format(15)) +
+  theme(panel.grid.major.x = element_blank()) +
+  geom_text(aes(label = scales::label_percent(accuracy = 1)(pct)), 
+            nudge_y = 0.01, 
+            vjust = 0, 
+            color = transcend_na, 
+            fontface = "bold", 
+            size = 5.5, 
+            family = "sans") +
+  labs(y = "Average cluster percentage selected",
+       x = "",
+       title = str_wrap("Clusters Canopy schools are interested in piloting in the next 5 years", 60))
+```
+
+**To what extent do school characteristics play a role in the tags they want to pilot?**  
+
+Quick defs:  
+-Binary high/low = High if more than half the tags in that cluster are in use  
+-Tri high/average/low = High if mean+SD; low if mean-SD, average within 1 SD
+
+```{r}
+#create cluster score
+cluster_score <- full %>% 
+  select(school_id, starts_with("practices")) %>% 
+  pivot_longer(cols = starts_with("practices"),
+                 names_to = "variable",
+                 values_to = "usage") %>% 
+  left_join(labels, by = "variable") %>% 
+  rename("tag" = label) %>% 
+  left_join(cluster, by = "tag") %>% 
+  group_by(school_id, cluster) %>% 
+  summarize(n = sum(usage)) %>% 
+  left_join(tots, by = "cluster") %>% 
+  mutate(pct = n/total,
+         mean = mean(pct),
+         sd = sd(pct),
+         engagement_bi = case_when(
+           pct >= 0.5 ~ "High",
+           TRUE ~ "Low"
+         ),
+         engagement_tri = case_when(
+           pct > mean + sd ~ "High",
+           pct < mean - sd ~ "Low",
+           TRUE ~ "Average"
+         )) %>% 
+  #add outcome 
+  left_join(pilot_clusters, by = c("school_id", "cluster")) %>% 
+  group_by(school_id, cluster) %>% 
+  mutate(pilot_score = sum(usage),
+         pilot_score = ifelse(pilot_score >= 1, 1, 0)) %>% 
+  select(-c(usage,tag)) %>% 
+  unique()
+#prep base data
+mod_dat <- full %>% 
+    select(school_id, school_locale, school_type, grades_pk, grades_elementary, grades_middle, grades_high, school_enrollment, pct_bipoc, pct_ell, pct_frpl, pct_swd, leadership_diversity) %>% 
+    mutate(leadership_diversity = gsub("people", "leaders", leadership_diversity),
+           school_locale = factor(school_locale, levels = c("Urban", "Suburban", "Rural", "Multiple")),
+           school_type = factor(school_type, levels = c("Public district school", "Public charter school", "Independent (private) school")),
+           leadership_diversity = factor(leadership_diversity, levels = c("0 - 24% leaders of color", "25 - 49% leaders of color", "50 - 74% leaders of color", "75 - 100% leaders of color")),
+           school_enrollment = as.numeric(scale(school_enrollment, center = TRUE, scale = TRUE))) %>% 
+    mutate(across(starts_with("pct"), ~as.numeric(scale(., center = TRUE, scale = TRUE)))) %>% 
+  drop_na()
+      
+# model function
+log_model <- function(outcome, data, title){ #outcome needs to be dummy
+  #model
+  mod <- glm(as.formula(paste(outcome, "~ school_locale + school_type + grades_pk + grades_elementary + grades_middle + grades_high + school_enrollment + pct_bipoc + pct_ell + pct_frpl + pct_swd + leadership_diversity + engagement_tri")),
+             family = "binomial",
+             data = data)
+  # set labels
+  cov_labels <- c(
+    "school_typeIndependent (private) school" = "Independent (private) school",
+    "school_typePublic charter school" = "Public charter school",
+    "grades_pk" = "PreK",
+    "grades_elementary" = "Elementary",
+    "grades_middle" = "Middle",
+    "grades_high" = "High",
+    "school_enrollment" = "School Enrollment",
+    "pct_bipoc" = "% BIPOC students",
+    "pct_ell" = "% EL-designated students",
+    "pct_frpl" = "% FRPL-eligible",
+    "pct_swd" = "% Students with disabilities",
+    "school_localeMultiple" = "Multiple locales",
+    "school_localeSuburban" = "Suburban",
+    "school_localeRural" = "Rural",
+    "leadership_diversity25 - 49% leaders of color" = "25-49% leaders of color",
+    "leadership_diversity50 - 74% leaders of color" = "50-74% leaders of color",
+    "leadership_diversity75 - 100% leaders of color" = "75-100% leaders of color",
+    "engagement_triHigh" = "High engagement with cluster",
+    "engagement_triAverage" = "Average engagement with cluster",
+    "engagement_triLow" = "Low engagement with cluster"
+  )
+  #plot
+  plot <- tidy(mod, effects = "ran_pars", conf.int = TRUE) %>%
+  filter(term != "(Intercept)") %>%
+  mutate(exp_est = exp(estimate), 
+         exp_min = exp(estimate - std.error), 
+         exp_max = exp(estimate + std.error)) %>% 
+  mutate(term = cov_labels[term]) %>% 
+  ggplot(., aes(y = fct_reorder(term, exp_est), x = exp_est)) +
+  geom_linerange(aes(xmin = exp_min,
+                     xmax = exp_max),
+                 color = "blue") +
+  geom_point() +
+  geom_vline(xintercept = 1) +
+  scale_x_continuous(
+  trans = "log",
+  breaks = c(.0625, .25, .5, 1, 2, 4, 16),
+  labels = str_wrap(c("1/16 as likely", "1/4 as likely", "1/2 as likely", "Even", "2x as likely", "4x as likely", "16x as likely"), 10),
+  expand = expansion(0, 0)
+  ) +
+  theme_transcend +
+  theme(panel.grid.major.y = element_blank()) +
+  labs(
+    x = "",
+    y = "",
+    title = str_wrap(title, 60))
+  return(plot)}
+```
+
+**Postsecondary pathways**
+
+Starting with Postsecondary pathways to see if we get expected results (high schools more likely to adopt).  
+
+As expected, high schools are much more likely (nearly 4x) to select 1 or more tags related to postsecondary pathways as a tag they want to implement in the next 5 years. Schools with higher-than-average populations of students with disabilities were also more likely to select a postsecondary pathway tag. Middle schools and schools serving students from mixed locales were less likely (about half) to select one of these tags.  
+
+In the original model I ran (not included), I used a count of the number of tags schools already implemented in this cluster as a predictor. This count variable was negatively associated with likelihood to select a pilot tag in this cluster. I think it might have been due to ceiling effects? (i.e., you can't choose a Postsecondary Pathway tag if you're already using all of them). In this version, I'm using a different version of this predictor presented as Low/Average/High engagement with cluster (+/- or within 1 SD of the mean), with average engagement as the reference. We find that schools with low engagement are more likely to select one of these tags while high engagement schools were less likely to select one.
+
+```{r}
+dat <- mod_dat %>% 
+  left_join(cluster_score, by = "school_id") %>% 
+  filter(cluster == "Postsecondary pathways")
+log_model("pilot_score", dat, "School characteristics predicting piloting 1 or more tags related to Postsecondary Pathways")
+```
+
+**Educational Justice**  
+
+Elementary schools, schools serving students from mixed locales, and schools with higher-than-average populations of EL-designated students are more likely (roughly 2x for each category) to select a tag in the Educational Justice cluster, while schools with large student populations and private schools were less likely to select one.  
+
+```{r}
+dat <- mod_dat %>% 
+  left_join(cluster_score, by = "school_id") %>% 
+  filter(cluster == "Educational justice")
+log_model("pilot_score", dat, "School characteristics predicting piloting 1 or more tags related to Educational Justice")
+```
+
+**Deeper Learning**  
+
+Rural schools (3x) and schools with higher-than-average BIPOC student populations (2x) were each more likely to select 1 or more tags related to Deeper Learning while schools that were already implementing many Deeper Learning tags and those with predominantly BIPOC leadership (75-100%) were about 4x less likely to select one.
+
+```{r}
+dat <- mod_dat %>% 
+  left_join(cluster_score, by = "school_id") %>% 
+  filter(cluster == "Deeper learning")
+log_model("pilot_score", dat, "School characteristics predicting piloting 1 or more tags related to Deeper Learning")
+```
+
+**Individualized Learning**  
+
+Schools that offer Pre-K services were 4x more likely to select 1 or more tags related to Individualized Learning while middle schools, suburban schools, and schools with 50-74% BIPOC leadership were each about 1/4x less likely to select one.
+
+```{r}
+dat <- mod_dat %>% 
+  left_join(cluster_score, by = "school_id") %>% 
+  filter(cluster == "Individualized learning")
+log_model("pilot_score", dat, "School characteristics predicting piloting 1 or more tags related to Individualized Learning")
 ```
 
