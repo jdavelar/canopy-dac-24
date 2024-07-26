@@ -15,7 +15,7 @@ editor_options:
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE)
-pacman::p_load(rio, here, tidyverse, DT, plotly)
+pacman::p_load(rio, here, tidyverse, DT, plotly, ggcorrplot, forcats, ggtext)
 ```
 
 Also see `core-practices-over-time.html`.
@@ -51,9 +51,12 @@ core_prac_dat <- core_prac %>%
 
 First note: there are 26 practices that have never been selected as a core practice. They are the following:
 ```{r}
-core_prac_dat %>% 
+no_core <- core_prac_dat %>% 
   filter(selected == 0) %>% 
+  mutate(core_practice = sub("core_", "", core_practice)) %>% 
   pull(core_practice)
+
+no_core
 ```
 
 These are the rest.
@@ -99,6 +102,85 @@ top_core_dat %>%
 
 It looks like 2021 was really driving the top core practices list across the years.
 
+### Update -- look more closely at tag sample
+
+```{r}
+full_tags_long <- import(here("data/longitudinal/full-tags-long.csv"))
+```
+
+```{r}
+tags_2019 <- full_tags_long %>% 
+  filter(year == 2019) %>% 
+  group_by(var) %>% 
+  summarise(`2019` = sum(usage), .groups = "drop") #173 schools
+
+tags_2021 <- full_tags_long %>% 
+  filter(year == 2021) %>% 
+  group_by(var) %>% 
+  summarise(`2021` = sum(usage), .groups = "drop")  #232 schools
+
+tags_2022 <- full_tags_long %>% 
+  filter(year == 2022) %>% 
+  group_by(var) %>% 
+  summarise(`2022` = sum(usage), .groups = "drop") #161 schools
+
+tags_2023 <- full_tags_long %>% 
+  filter(year == 2023) %>% 
+  group_by(var) %>% 
+  summarise(`2023` = sum(usage), .groups = "drop") #251 schools
+
+tags_2024 <- full_tags_long %>% 
+  filter(year == 2024) %>% 
+  group_by(var) %>% 
+  summarise(`2024` = sum(usage), .groups = "drop") #189 schools
+
+```
+
+```{r}
+# Create a dataframe with variables and their years
+tags_list <- list(
+  `2019` = tags_2019 %>% pull(var) %>% unique(),
+  `2021` = tags_2021 %>% pull(var) %>% unique(),
+  `2022` = tags_2022 %>% pull(var) %>% unique(),
+  `2023` = tags_2023 %>% pull(var) %>% unique(),
+  `2024` = tags_2024 %>% pull(var) %>% unique()
+)
+
+# Combine the list into a long dataframe
+tags_df <- bind_rows(
+  lapply(names(tags_list), function(year) {
+    data.frame(variable = tags_list[[year]], year = as.integer(year))
+  })
+)
+
+# Summarize the number of years each variable is used and list the years used
+variable_usage <- tags_df %>%
+  group_by(variable) %>%
+  summarise(
+    number_of_years_used = n_distinct(year),
+    years_used = paste(sort(unique(year)), collapse = ", ")
+  )
+```
+
+Now, let's look more closely at the tags that have never been selected as core.
+```{r}
+variable_usage %>% 
+  mutate(variable = sub("practices_", "", variable)) %>%  
+  filter(variable %in% no_core) %>% 
+  datatable()
+```
+
+Looks like all are from 2019 except `other_leaders`, which is from 2023.
+
+Here is the rest of them.
+
+```{r}
+variable_usage %>% 
+  mutate(variable = sub("practices_", "", variable)) %>%  
+  filter(!variable %in% no_core) %>% 
+  datatable()
+```
+
 ## Have any lost popularity over the last 5 years? 
 
 Well, this is an interesting question given that 2021 seems like it was the year that schools were more liberal with their core practice selections, so I imagine this affects most practices. But let's look at them below.
@@ -129,6 +211,37 @@ p <- core_prac %>%
 
 ggplotly(p, tooltip = c("core_practice", "selected"))
 ```
+
+### Update -- tag count breakdown by year
+
+```{r}
+clean_labels <- import(here("data/longitudinal", "tag-labels.csv"))
+
+variable_usage_by_year <- tags_2019 %>%
+  full_join(tags_2021, by = "var") %>%
+  full_join(tags_2022, by = "var") %>%
+  full_join(tags_2023, by = "var") %>%
+  full_join(tags_2024, by = "var") %>% 
+  left_join(clean_labels, by = c("var" = "variable"))
+```
+
+```{r}
+variable_usage_by_year %>% 
+  select(label, everything(), -var) %>% 
+  datatable()
+```
+
+Filter to tags that have been used at least 4 years.
+
+```{r}
+vars_4plus <- variable_usage %>% filter(number_of_years_used >= 4) %>% pull(variable)
+
+variable_usage_by_year %>% 
+  filter(var %in% vars_4plus) %>% 
+  select(label, everything(), -var) %>% 
+  datatable()
+```
+
 
 
 ## Which are the oldest stable core tags and newest growing tags?
@@ -276,13 +389,141 @@ core_prac %>%
 ```
 
 
-## What is the relationship between core practices most implemented over time and practices on the horizon? (i.e., are we seeing a lot of "brand new" practices piloted, are schools more or less trying out "established" practices, or both?)
+## What is the relationship between core practices most implemented over time and practices on the horizon? 
+
+**Are we seeing a lot of "brand new" practices piloted, are schools more or less trying out "established" practices, or both?**
 
 ```{r}
-core_prac <- dat %>% 
-  select(school_id, year, starts_with("core"))
+load(here("data/2024 data", "complete_canopy_2024.RData"))
 
-long_dat <- import(here("data/longitudinal", "longitudinal_data.csv"))
+old_clusters <- import(here("data/clusters_through_2024.csv"))
 ```
 
-Hm, I don't see pilot in either dataset. Will explore later
+```{r}
+pilot_prac <- tags %>% 
+  select(starts_with("pilot")) %>% 
+  pivot_longer(everything(),
+               names_to = "practice",
+               values_to = "N",
+               names_prefix = "pilot_") %>% 
+  group_by(practice) %>% 
+  summarise(selected = sum(N))
+```
+
+
+These are the practices by time implemented:
+```{r}
+implementation_time <- tags %>% 
+  select(starts_with("time_")) %>% 
+  pivot_longer(everything(),
+               names_to = "practice",
+               values_to = "N") %>% 
+  mutate(`Not sure` = case_when(N == "Not sure" ~ 1, 
+                                TRUE ~ 0),
+         `Less than a year` = case_when(N == "Less than a year" ~ 1, 
+                                 TRUE ~ 0),
+         `1-2 years` = case_when(N == "1-2 years" ~ 1, 
+                                 TRUE ~ 0),
+         `3-4 years` = case_when(N == "3-4 years" ~ 1, 
+                                 TRUE ~ 0),
+         `5+ years` = case_when(N == "5+ years" ~ 1, 
+                                TRUE ~ 0),
+         practice = sub("time_", "", practice)) %>%
+  select(!N) %>% 
+  group_by(practice) %>% 
+  summarise(across(where(is.numeric), ~ sum(.x, na.rm = TRUE)))
+
+# Plot dat setup
+implementation_time_plot <- implementation_time %>% 
+  pivot_longer(cols = c(`Less than a year`, `1-2 years`, `3-4 years`, `5+ years`),
+               names_to = "time",
+               values_to = "N") %>% 
+  mutate(time = factor(time, levels = c(
+    "Less than a year",
+    "1-2 years",
+    "3-4 years",
+    "5+ years"
+  )))
+
+# Practice axes setup
+cluster_colors <- unique(old_clusters$cluster) %>%
+  setNames(object = c(transcend_cols2[c(1, 2, 4, 5)], "#000000"))
+
+clusters <- old_clusters %>% 
+  mutate(practice = sub("practices_", "", var)) %>% 
+  select(-var)
+  
+implementation_with_color <- left_join(implementation_time_plot, clusters, by = "practice") %>% 
+  mutate(
+    color = cluster_colors[cluster],
+    practice = fct_inorder(glue("<i style='color:{color}'>{practice}</i>"))
+  )
+
+# Plot (referenced Gregor's code)
+ggplot(implementation_with_color, aes(reorder(practice, N), N, fill = time)) +
+  geom_col() +
+  scale_fill_manual(values = transcend_cols) +
+  scale_y_continuous(limits=c(0, 85), expand = c(0,0)) +
+  labs(title = "Core Practices by Time Implemented",
+       x = "",
+       y = "") +
+  scale_x_discrete(labels = label_tags()) +
+  theme(legend.position = "bottom", 
+        legend.direction = "horizontal",
+        text = element_text(size = 7),
+        axis.text.x = element_text(angle = 45, hjust = 1)) + 
+  coord_flip() +
+  theme(
+    panel.grid.major.y = element_blank(),
+    legend.position = "bottom",
+    axis.text.y = element_markdown()
+  )
+
+```
+
+
+```{r}
+time_pilot <- left_join(implementation_time, pilot_prac)
+```
+
+Now let's sort by pilot practice selection (descending).
+```{r}
+# Plot dat setup
+implementation_time_plot <- time_pilot %>% 
+  pivot_longer(cols = c(`Less than a year`, `1-2 years`, `3-4 years`, `5+ years`),
+               names_to = "time",
+               values_to = "N") %>% 
+  mutate(time = factor(time, levels = c(
+    "Less than a year",
+    "1-2 years",
+    "3-4 years",
+    "5+ years"
+  )))
+
+implementation_with_color <- left_join(implementation_time_plot, clusters, by = "practice") %>% 
+  mutate(
+    color = cluster_colors[cluster],
+    practice = fct_inorder(glue("<i style='color:{color}'>{practice}</i>"))
+  )
+
+ggplot(implementation_with_color, aes(reorder(practice, selected), N, fill = time)) +
+  geom_col() +
+  scale_fill_manual(values = transcend_cols) +
+  scale_y_continuous(limits=c(0, 85), expand = c(0,0)) +
+  labs(title = "Core Practices by Time Implemented, From Most to Least Selected to Pilot",
+       x = "",
+       y = "") +
+  scale_x_discrete(labels = label_tags()) +
+  theme(legend.position = "bottom", 
+        legend.direction = "horizontal",
+        text = element_text(size = 7),
+        axis.text.x = element_text(angle = 45, hjust = 1)) + 
+  coord_flip() +
+  theme(
+    panel.grid.major.y = element_blank(),
+    legend.position = "bottom",
+    axis.text.y = element_markdown()
+  )
+```
+
+
