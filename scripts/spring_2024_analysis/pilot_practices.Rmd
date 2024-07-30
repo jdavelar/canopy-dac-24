@@ -15,7 +15,7 @@ editor_options:
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE, fig.width = 10, fig.height = 8)
-pacman::p_load(tidyverse, here, rio, DT, ggthemes, scales, broom, lme4, wordcloud, tm)
+pacman::p_load(tidyverse, here, rio, DT, ggthemes, scales, broom, lme4, wordcloud, tm, mgcv)
 #read in data
 load(here("data", "2024 data/complete_canopy_2024.RData"))
 labels <- import(here("data", "longitudinal/tag-labels.csv"))
@@ -205,6 +205,38 @@ pilot_clusters %>%
        fill = "")
 ```
 
+Alternate version, using `facet` instead of stacking the bars:
+
+```{r}
+pilot_clusters %>% 
+  filter(usage == 1) %>% 
+  group_by(school_id, cluster) %>% 
+  summarize(n = sum(usage)) %>% 
+  group_by(cluster) %>% 
+  summarize(mean = mean(n)) %>% 
+  mutate(type = "Avg. number of pilot practices selected") %>% 
+  bind_rows(tags) %>% 
+  mutate(type = ifelse(type == "Practices in use", "Avg. number of practices already in use", as.character(type))) %>% 
+  ggplot(., aes(mean, reorder(cluster, -mean))) +
+  geom_bar(stat = "identity", fill = transcend_cols[1]) +
+  scale_x_continuous(expand = c(0, 0), limits = c(0, 15)) +
+  scale_y_discrete(labels = wrap_format(15)) +
+  geom_text(aes(label = round(mean, 2)), 
+            vjust = .5,
+            hjust = -0.1,
+            color = transcend_na, 
+            fontface = "bold", 
+            size = 5.5, 
+            family = "sans") +
+  theme(panel.grid.major.y = element_blank()) +
+  labs(x = "",
+       y = "",
+       title = str_wrap("What Canopy schools are interested in piloting in the next 5 years", 66),
+       fill = "") +
+  facet_wrap(~type)
+```
+
+
 Exploring the graph above once more, using number of schools as the denominator rather than number of tags:  
 
 More than half of Canopy schools are interested in piloting 1 or more practices related to Educational Justice, and nearly half want to pilot a practice related to Deeper Learning. Again, we see that the "None" category is the highest rated, likely if not entirely due to the size of the cluster.
@@ -232,6 +264,73 @@ pilot_clusters %>%
        x = "",
        title = str_wrap("Clusters Canopy schools are interested in piloting in the next 5 years", 60))
 ```
+
+**When we're dividing pilot tags into clusters, which tags are selected the most?**  
+
+The individualized learning cluster here is interesting, and seems to support the theory we talked about 7/26 that when school leaders select a tag from this cluster, they tend to select specific ones (students access their own data), with a steep drop-off in selection within the cluster. This is very different than, e.g., educational justice, where the distribution of the top tags is close, ranging from 14-18 schools selecting each top tag.
+
+```{r}
+pilot_clusters %>% 
+  group_by(cluster, tag) %>% 
+  summarize(n = sum(usage, na.rm = TRUE)) %>% 
+  ungroup() %>% 
+  group_by(cluster) %>% 
+  arrange(-n) %>% 
+  slice_head(n = 5) %>% 
+  ggplot(., aes(n, reorder(tag, n))) +
+  geom_col(fill = transcend_cols[1]) +
+  scale_x_continuous(expand = c(0, 0), limits = c(0, 32)) +
+  scale_y_discrete(labels = wrap_format(20)) +
+  theme(panel.grid.major.y = element_blank(),
+        axis.text.y = element_text(size = 10)) +
+  geom_text(aes(label = n), 
+            vjust = .5,
+            hjust = -0.1,
+            color = transcend_na, 
+            fontface = "bold", 
+            size = 4.5, 
+            family = "sans") +
+  facet_wrap(~cluster, scales = "free_y", labeller = label_wrap_gen(width = 20)) +
+  labs(y = "",
+       x = "",
+       title = str_wrap("What Canopy schools are most interested in piloting in the next 5 years", 75))
+```
+
+**When we're dividing pilot tags into clusters, which tags are selected the least?**  
+
+The lowest selected tags for deeper learning and postsecondary pathways are selected at slightly higher rates (max 9) than the other clusters, but some notable takeaways include:  
+- no schools selected `accommodations provided to all students`, which is surprising because this was one of the tags with the highest increase in selection as a core tag  
+- in general, tags related to designing around marginalized students were among the least selected (e.g., accommodations provided to all students, design to meet needs of students who have been marginalized, reallocation of resources for those most in need, all courses designed for inclusion, MTSS)  
+- blended learning related tags were among the least popular pilot tags (e.g., blended learning, flex model, flipped classroom)  
+- tags related to language support were among the least popular pilot tags (e.g., bilingual assessments, dual language programming, translanguaging) - this is not totally surprising as these are much "higher investment" changes that require a lot of resources and expertise  
+
+```{r}
+pilot_clusters %>% 
+  group_by(cluster, tag) %>% 
+  summarize(n = sum(usage, na.rm = TRUE)) %>% 
+  ungroup() %>% 
+  group_by(cluster) %>% 
+  arrange(-n) %>% 
+  slice_tail(n = 5) %>% 
+  ggplot(., aes(n, reorder(tag, n))) +
+  geom_col(fill = transcend_cols[1]) +
+  scale_x_continuous(expand = c(0, 0), limits = c(0, 32)) +
+  scale_y_discrete(labels = wrap_format(20)) +
+  theme(panel.grid.major.y = element_blank(),
+        axis.text.y = element_text(size = 10)) +
+  geom_text(aes(label = n), 
+            vjust = .5,
+            hjust = -0.1,
+            color = transcend_na, 
+            fontface = "bold", 
+            size = 4.5, 
+            family = "sans") +
+  facet_wrap(~cluster, scales = "free_y", labeller = label_wrap_gen(width = 20)) +
+  labs(y = "",
+       x = "",
+       title = str_wrap("What Canopy schools are most interested in piloting in the next 5 years", 75))
+```
+
 
 **To what extent do school characteristics play a role in the tags they want to pilot?**  
 
@@ -385,5 +484,62 @@ dat <- mod_dat %>%
   left_join(cluster_score, by = "school_id") %>% 
   filter(cluster == "Individualized learning")
 log_model("pilot_score", dat, "School characteristics predicting piloting 1 or more tags related to Individualized Learning")
+```
+
+**ATTEMPT 2: USING GAM MODELS**
+
+The set of models below do not assume that the relationship between our school characteristics and tags is linear, allowing for a more complicated relationship between engagement with a cluster and the pilot tags selected (i.e., deals with some of the issues that may come from ceiling effects, or whatnot).  
+
+**Deeper learning**  
+
+This looks about how we expected. Predicted pilot tags within the cluster are relatively stable for schools who already have deeper learning tags implemented, until we get around 60% or higher. Around this point we dip toward 0 and then have a negative relationship at 100%, which makes sense because there are no more deeper learning tags for them to select from. Those most likely to select deeper learning pilot tags were schools who already had some investment in deeper learning (not starting from 0 or fully invested).
+
+```{r}
+dat <- mod_dat %>% 
+  left_join(cluster_score, by = "school_id") %>% 
+  filter(cluster == "Deeper learning")
+gam_model <- gam(pilot_score ~ school_locale + school_type + grades_pk + grades_elementary + grades_middle + grades_high + school_enrollment + pct_bipoc + pct_ell + pct_frpl + pct_swd + leadership_diversity + s(pct),
+                 data = dat)
+#note to self: wrapping in s() stands for smoothing - does not assume linear relationship and instead allows model to take on the shape that makes the most sense
+plot(gam_model)
+```
+
+**Educational justice**  
+
+We expected more of a horseshoe shape here, where low engagement with educational justice indicating low likelihood to pilot educational justice (relying on some assumptions about motivation for trying it out or not). Instead, we see a  linear relationship/decay with low engagement related to higher likelihood to try educational justice practices, and this going down the higher their existing engagement with educational justice.  
+
+```{r}
+dat <- mod_dat %>% 
+  left_join(cluster_score, by = "school_id") %>% 
+  filter(cluster == "Educational justice")
+gam_model <- gam(pilot_score ~ school_locale + school_type + grades_pk + grades_elementary + grades_middle + grades_high + school_enrollment + pct_bipoc + pct_ell + pct_frpl + pct_swd + leadership_diversity + s(pct),
+                 data = dat)
+plot(gam_model)
+```
+
+**Individualized learning**  
+
+Another linear relationship, this time slightly positive, nearly stagnant? Schools who are not using individualized learning practices already are less likely to select a pilot tag within this cluster, and moderate engagement did not increase likelihood very much (it's still hovering very close to 0). We see this increase slightly with higher engagement, but not by much.  
+
+```{r}
+dat <- mod_dat %>% 
+  left_join(cluster_score, by = "school_id") %>% 
+  filter(cluster == "Individualized learning")
+gam_model <- gam(pilot_score ~ school_locale + school_type + grades_pk + grades_elementary + grades_middle + grades_high + school_enrollment + pct_bipoc + pct_ell + pct_frpl + pct_swd + leadership_diversity + s(pct),
+                 data = dat)
+plot(gam_model)
+```
+
+**Postsecondary pathways**  
+
+Fairly stable, with some slightly higher likelihood at the lower end, and slightly lower likelihood at the higher end of engagement.
+
+```{r}
+dat <- mod_dat %>% 
+  left_join(cluster_score, by = "school_id") %>% 
+  filter(cluster == "Postsecondary pathways")
+gam_model <- gam(pilot_score ~ school_locale + school_type + grades_pk + grades_elementary + grades_middle + grades_high + school_enrollment + pct_bipoc + pct_ell + pct_frpl + pct_swd + leadership_diversity + s(pct),
+                 data = dat)
+plot(gam_model)
 ```
 
