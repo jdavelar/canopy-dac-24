@@ -100,7 +100,7 @@ top_core_dat %>%
   ) 
 ```
 
-It looks like 2021 was really driving the top core practices list across the years.
+It looks like 2021 was really driving the top core practices list across the years. Is that true?
 
 ### Update -- look more closely at tag sample
 
@@ -181,6 +181,61 @@ variable_usage %>%
   datatable()
 ```
 
+### Update for Aug 2
+
+I want to look at the top 10 core practices by year implemented stacked bar chart by also looking at the years the tag was offered.
+
+```{r}
+top_core_dat <- top_core_dat %>% 
+  mutate(core_practice = gsub("core_", "", core_practice))
+
+
+top_by_use <- variable_usage %>% 
+  mutate(variable = gsub("practices_", "", variable)) %>% 
+  right_join(., top_core_dat, by = c("variable" = "core_practice")) 
+
+total_select <- top_by_use %>% 
+  group_by(variable) %>% 
+  summarise(total_select = sum(selected)) %>% 
+  ungroup()
+
+top_by_use <- left_join(top_by_use, total_select)
+```
+
+```{r fig.width=17, fig.height=7}
+tag_labels <- import(here("data/longitudinal", "tag-labels.csv"))
+
+top_by_use %>% 
+  filter(year != 2019) %>% 
+  left_join(., tag_labels) %>% 
+  ggplot() +
+  geom_text(aes(label = years_used, x = label, y = total_select + 2), hjust = 0, size = 3, color = "gray") +
+  geom_col(aes(reorder(label, selected), selected, fill = year)) +
+  scale_fill_manual(values = transcend_cols) +
+  scale_y_continuous(expand = c(0,0), limits = c(0, 340)) +
+  labs(title = "Core Practices by Year Implemented",
+       x = "",
+       y = "") +
+#  scale_x_discrete(labels = label_tags()) +
+  theme(legend.position = "bottom", 
+        legend.direction = "horizontal",
+        text = element_text(size = 8.5),
+        axis.text.x = element_text(angle = 45, hjust = 1)) + 
+  coord_flip() +
+  theme(
+    panel.grid.major.y = element_blank(),
+    legend.position = "bottom"
+  ) 
+```
+
+```{r}
+top_by_use %>% 
+  left_join(., tag_labels) %>% 
+  select(label, number_of_years_used, years_used, year, selected, total_select) %>% 
+  datatable()
+```
+
+
 ## Have any lost popularity over the last 5 years? 
 
 Well, this is an interesting question given that 2021 seems like it was the year that schools were more liberal with their core practice selections, so I imagine this affects most practices. But let's look at them below.
@@ -228,6 +283,7 @@ variable_usage_by_year <- tags_2019 %>%
 ```{r}
 variable_usage_by_year %>% 
   select(label, everything(), -var) %>% 
+  mutate(total = rowSums(select(.,`2019`:`2024`), na.rm = TRUE)) %>% 
   datatable()
 ```
 
@@ -239,6 +295,7 @@ vars_4plus <- variable_usage %>% filter(number_of_years_used >= 4) %>% pull(vari
 variable_usage_by_year %>% 
   filter(var %in% vars_4plus) %>% 
   select(label, everything(), -var) %>% 
+  mutate(total = rowSums(select(.,`2019`:`2024`), na.rm = TRUE)) %>% 
   datatable()
 ```
 
@@ -287,6 +344,7 @@ p <- core_prac %>%
 
 ggplotly(p, tooltip = c("core_practice", "selected"))
 ```
+
 
 For newest growing tags, in my first pass, I am going to filter the practices to those that increased between 2022 and 2024. I'm omitting 2021 for the filter.
 
@@ -380,6 +438,322 @@ core_prac %>%
     y = "Core Practice",
     x = "Times Selected",
     title = "Core Practices with largest increase \nfrom 2022 to 2024 Across Schools"
+  ) +
+  theme(
+    panel.grid.major.y = element_blank(),
+    legend.position = "bottom",
+    axis.text.y = element_text(size = rel(0.6))
+  )
+```
+
+### Update for Aug 2
+```{r}
+n_2019 <- 173
+n_2021 <- 232
+n_2022 <- 161
+n_2023 <- 251
+n_2024 <- 189
+
+var_prop_use <- variable_usage_by_year %>% 
+  select(label, everything(), -var) %>% 
+  mutate(prop_2019 = `2019`/n_2019,
+         prop_2021 = `2021`/n_2021,
+         prop_2022 = `2022`/n_2022,
+         prop_2023 = `2023`/n_2023,
+         prop_2024 = `2024`/n_2024)
+
+stable_var_prop <- var_prop_use %>% 
+  select(label, starts_with("prop")) %>% 
+  pivot_longer(cols = starts_with("prop"),
+               names_to = "year",
+               values_to = "prop",
+               names_prefix = "prop_") %>% 
+  group_by(label) %>% 
+  summarise(
+    min_prop = min(prop, na.rm = TRUE),
+    max_prop = max(prop, na.rm = TRUE),
+    range_prop = max_prop - min_prop
+  ) %>% 
+  filter(range_prop < .1) %>% 
+  filter(range_prop > 0) %>% 
+  pull(label)
+  
+p <- var_prop_use %>% 
+  select(label, starts_with("prop")) %>% 
+  pivot_longer(cols = starts_with("prop"),
+               names_to = "year",
+               values_to = "prop",
+               names_prefix = "prop_") %>% 
+  group_by(label, year) %>% 
+  filter(label %in% stable_var_prop) %>% 
+  mutate(year = as.numeric(year)) %>% 
+  ggplot(aes(year, prop, color = label)) +
+  geom_point() +
+  geom_line() +
+  scale_fill_manual(values = transcend_cols2) +
+  scale_y_continuous(expand = c(0,0)) +
+  labs(title = "Stable Tags (varied < 10%)",
+       x = "",
+       y = "") +
+  theme(legend.position = "none", 
+        legend.direction = "horizontal",
+        text = element_text(size = 7),
+        axis.text.x = element_text(angle = 45, hjust = 1)) + 
+  theme(
+    panel.grid.major.y = element_blank(),
+    legend.position = "none"
+  ) 
+
+ggplotly(p, tooltip = c("label", "prop"))
+```
+
+Now let's look at tags that have been growing for the last 2 years.
+
+```{r}
+p <- var_prop_use %>% 
+  select(label, starts_with("prop")) %>% 
+  mutate(growth = prop_2024 - prop_2022) %>% 
+  filter(growth > 0) %>% 
+  select(-growth) %>% 
+  pivot_longer(cols = starts_with("prop"),
+               names_to = "year",
+               values_to = "prop",
+               names_prefix = "prop_") %>% 
+  filter(year != 2019) %>% 
+  filter(year != 2021) %>% 
+  mutate(year = as.integer(year)) %>% 
+  ggplot(aes(year, prop, color = label)) +
+  geom_point() +
+  geom_line() +
+  scale_fill_manual(values = transcend_cols2) +
+  scale_y_continuous(expand = c(0,0)) +
+  labs(title = "Tags Growing since 2022",
+       x = "",
+       y = "") +
+  theme(legend.position = "none", 
+        legend.direction = "horizontal",
+        text = element_text(size = 7),
+        axis.text.x = element_text(angle = 45, hjust = 1)) + 
+  theme(
+    panel.grid.major.y = element_blank(),
+    legend.position = "none"
+  ) 
+
+ggplotly(p, tooltip = c("label", "prop"))
+```
+
+Look more closely at additions: within schools, these are the tags that have been most frequently added in the last two years.
+
+```{r}
+growing_tags <- var_prop_use %>% 
+  select(label, starts_with("prop")) %>% 
+  mutate(growth = prop_2024 - prop_2022) %>% 
+  filter(growth > 0) %>% 
+  select(-growth) %>% 
+  pivot_longer(cols = starts_with("prop"),
+               names_to = "year",
+               values_to = "prop",
+               names_prefix = "prop_") %>% 
+  filter(year != 2019) %>% 
+  filter(year != 2021) %>% 
+  group_by(label) %>% 
+  summarize(n = n()) %>% 
+  pull(label)
+  
+
+
+full_tags_long %>% 
+  select(-core, -time) %>% 
+  filter(year != 2021) %>% 
+  filter(year != 2019) %>% 
+  pivot_wider(names_from = "year",
+              values_from = "usage") %>% 
+  left_join(clean_labels, by = c("var" = "variable")) %>% 
+  select(-var) %>% 
+  filter(label %in% growing_tags) %>% 
+  mutate(added = `2024` - `2022`) %>% 
+  filter(added >0) %>% 
+  group_by(label) %>% 
+  summarise(schools_added = sum(added)) %>% 
+  arrange(-schools_added) %>% 
+  head(10) %>% 
+  ggplot(aes(reorder(label, schools_added), schools_added)) +
+  geom_col(fill = transcend_cols[2]) +
+  scale_y_continuous(expand = c(0,0)) +
+  labs(title = "Tags Added by Schools in the Last Two Years",
+       x = "",
+       y = "") +
+  theme(legend.position = "none", 
+        legend.direction = "horizontal",
+        text = element_text(size = 9),
+        axis.text.x = element_text(angle = 45, hjust = 1)) + 
+  theme(
+    panel.grid.major.y = element_blank(),
+    legend.position = "none"
+  ) +
+  coord_flip()
+  
+```
+
+Largest change graph redone with percentages:
+
+Increase -- 
+```{r fig.width= 8, fig.height=8}
+core_prac %>% 
+  mutate(core_practice = gsub("core_", "practices_", core_practice)) %>% 
+  group_by(core_practice, year) %>% 
+  summarise(selected = sum(times_selected)) %>% 
+  filter(year %in% c(2022, 2024)) %>% 
+  pivot_wider(names_from = year, values_from = selected, names_prefix = "year_") %>%
+  mutate(prop_2022 = (year_2022/n_2022)*100,
+         prop_2024 = (year_2024/n_2024)*100,
+         change = prop_2024 - prop_2022) %>%
+  filter(change > 0) %>% 
+  arrange(desc(change)) %>% 
+  head(10) %>% 
+  left_join(., clean_labels, by = c("core_practice" = "variable")) %>% 
+  ggplot(aes(x = prop_2022, xend = prop_2024, y = reorder(label, change), yend = label)) +
+  geom_segment(color = "black", linetype = "dotted") +
+  geom_point(aes(x = prop_2022), color = "red") +
+  geom_point(aes(x = prop_2024), color = "blue") +
+  guides(col = guide_legend(nrow = 1, title = NULL)) + 
+  geom_text(
+    aes(x = (prop_2022 + prop_2024)/2 -1, label = paste0("Δ = ", round(prop_2024 - prop_2022), "%"), color = factor(sign(prop_2024 - prop_2022))),
+    nudge_y = .3,
+    hjust = 0,
+    show.legend = FALSE
+  )  +
+  labs(
+    y = "Core Practice",
+    x = "%Times Selected",
+    title = "Core Practices with largest increase \nfrom 2022 to 2024 Across Schools"
+  ) +
+  theme(
+    panel.grid.major.y = element_blank(),
+    legend.position = "bottom",
+    axis.text.y = element_text(size = rel(0.6))
+  )
+```
+
+
+Decrease --
+```{r fig.width= 8, fig.height=8}
+core_prac %>% 
+  mutate(core_practice = gsub("core_", "practices_", core_practice)) %>% 
+  group_by(core_practice, year) %>% 
+  summarise(selected = sum(times_selected)) %>% 
+  filter(year %in% c(2022, 2024)) %>% 
+  pivot_wider(names_from = year, values_from = selected, names_prefix = "year_") %>%
+  mutate(prop_2022 = (year_2022/n_2022)*100,
+         prop_2024 = (year_2024/n_2024)*100,
+         change = prop_2024 - prop_2022) %>%
+  filter(year_2024 > 0) %>% 
+  filter(change < 0) %>% 
+  arrange(change) %>% 
+  head(10) %>% 
+  left_join(., clean_labels, by = c("core_practice" = "variable")) %>% 
+  ggplot(aes(x = prop_2022, xend = prop_2024, y = reorder(label, -change), yend = label)) +
+  geom_segment(color = "black", linetype = "dotted") +
+  geom_point(aes(x = prop_2022), color = "red") +
+  geom_point(aes(x = prop_2024), color = "blue") +
+  guides(col = guide_legend(nrow = 1, title = NULL)) + 
+  geom_text(
+    aes(x = (prop_2022 + prop_2024)/2 -1, label = paste0("Δ = ", round(prop_2024 - prop_2022), "%"), color = factor(sign(prop_2024 - prop_2022))),
+    nudge_y = .3,
+    hjust = 0,
+    show.legend = FALSE
+  )  +
+  labs(
+    y = "Core Practice",
+    x = "%Times Selected",
+    title = "Core Practices with largest decrease \nfrom 2022 to 2024 Across Schools"
+  ) +
+  theme(
+    panel.grid.major.y = element_blank(),
+    legend.position = "bottom",
+    axis.text.y = element_text(size = rel(0.6))
+  )
+```
+9-12:30
+1:30-
+
+Restrict to tags available for all of these years.
+```{r}
+used_22_24 <- variable_usage_by_year %>% 
+  select(label, `2022`, `2023`, `2024`) %>% 
+  remove_missing() %>% 
+  pull(label)
+
+core_prac %>% 
+  mutate(core_practice = gsub("core_", "practices_", core_practice)) %>% 
+  group_by(core_practice, year) %>% 
+  summarise(selected = sum(times_selected)) %>% 
+  filter(year %in% c(2022, 2024)) %>% 
+  pivot_wider(names_from = year, values_from = selected, names_prefix = "year_") %>%
+  mutate(prop_2022 = (year_2022/n_2022)*100,
+         prop_2024 = (year_2024/n_2024)*100,
+         change = prop_2024 - prop_2022) %>%
+  filter(year_2024 > 0) %>% 
+  filter(change < 0) %>% 
+  arrange(change) %>% 
+  left_join(., clean_labels, by = c("core_practice" = "variable")) %>% 
+  filter(label %in% used_22_24) %>% 
+  head(10) %>% 
+  ggplot(aes(x = prop_2022, xend = prop_2024, y = reorder(label, -change), yend = label)) +
+  geom_segment(color = "black", linetype = "dotted") +
+  geom_point(aes(x = prop_2022), color = "red") +
+  geom_point(aes(x = prop_2024), color = "blue") +
+  guides(col = guide_legend(nrow = 1, title = NULL)) + 
+  geom_text(
+    aes(x = (prop_2022 + prop_2024)/2 -1, label = paste0("Δ = ", round(prop_2024 - prop_2022), "%"), color = factor(sign(prop_2024 - prop_2022))),
+    nudge_y = .3,
+    hjust = 0,
+    show.legend = FALSE
+  )  +
+  labs(
+    y = "Core Practice",
+    x = "%Times Selected",
+    title = "Core Practices with largest decrease \nfrom 2022 to 2024 Across Schools",
+    subtitle = "Tags were available for selection all years."
+  ) +
+  theme(
+    panel.grid.major.y = element_blank(),
+    legend.position = "bottom",
+    axis.text.y = element_text(size = rel(0.6))
+  )
+```
+
+```{r}
+core_prac %>% 
+  mutate(core_practice = gsub("core_", "practices_", core_practice)) %>% 
+  group_by(core_practice, year) %>% 
+  summarise(selected = sum(times_selected)) %>% 
+  filter(year %in% c(2022, 2024)) %>% 
+  pivot_wider(names_from = year, values_from = selected, names_prefix = "year_") %>%
+  mutate(prop_2022 = (year_2022/n_2022)*100,
+         prop_2024 = (year_2024/n_2024)*100,
+         change = prop_2024 - prop_2022) %>%
+  filter(change > 0) %>% 
+  arrange(desc(change)) %>% 
+  left_join(., clean_labels, by = c("core_practice" = "variable")) %>% 
+  filter(label %in% used_22_24) %>% 
+  head(10) %>% 
+  ggplot(aes(x = prop_2022, xend = prop_2024, y = reorder(label, change), yend = label)) +
+  geom_segment(color = "black", linetype = "dotted") +
+  geom_point(aes(x = prop_2022), color = "red") +
+  geom_point(aes(x = prop_2024), color = "blue") +
+  guides(col = guide_legend(nrow = 1, title = NULL)) + 
+  geom_text(
+    aes(x = (prop_2022 + prop_2024)/2 -1, label = paste0("Δ = ", round(prop_2024 - prop_2022), "%"), color = factor(sign(prop_2024 - prop_2022))),
+    nudge_y = .3,
+    hjust = 0,
+    show.legend = FALSE
+  )  +
+  labs(
+    y = "Core Practice",
+    x = "%Times Selected",
+    title = "Core Practices with largest increase \nfrom 2022 to 2024 Across Schools",
+    subtitle = "Tags were available for selection all years."
   ) +
   theme(
     panel.grid.major.y = element_blank(),
@@ -525,5 +899,66 @@ ggplot(implementation_with_color, aes(reorder(practice, selected), N, fill = tim
     axis.text.y = element_markdown()
   )
 ```
+
+### Update for Aug 2
+```{r}
+implementation_with_color %>% 
+  group_by(cluster, time) %>% 
+  summarise(total = sum(N))
+```
+
+Note, cluster counts are different. What is the best way to represent these cluster selections by time given these differences?
+```{r}
+implementation_with_color %>% 
+  group_by(cluster) %>% 
+  summarise(count = n_distinct(practice))
+```
+
+```{r fig.height=6, fig.width=15}
+core_prac %>% 
+  filter(times_selected >0) %>% 
+  mutate(core_practice = gsub("core_", "practices_", core_practice)) %>% 
+  left_join(., clean_labels, by = c("core_practice" = "variable")) %>% 
+  left_join(., old_clusters, by = c("core_practice" = "var")) %>% 
+  group_by(cluster, year) %>% 
+  summarise(n = n()) %>% 
+  filter(!is.na(cluster)) %>% 
+  ggplot(aes(fill = cluster)) +
+  geom_col(aes(year, n)) +
+  facet_grid(~cluster) +
+  scale_y_continuous(expand = c(0,0)) +
+  theme(panel.grid.major.x = element_blank(),
+        legend.position = "none",
+        axis.text.x = element_text(angle = 45, hjust = 1, size = 7)) +
+  scale_fill_manual(values = transcend_cols2) +
+  labs(title = "Cluster Selection by Year",
+       x = "",
+       y = "")
+```
+
+
+```{r}
+implementation_with_color %>% 
+  group_by(cluster, time) %>% 
+  summarise(total = sum(N)) %>% 
+  ggplot(aes(reorder(cluster, total), total, fill = time)) +
+  geom_col() +
+  scale_fill_manual(values = transcend_cols) +
+  scale_y_continuous(expand = c(0,0)) +
+  labs(title = "Practice Clusters by Time Implemented",
+       x = "",
+       y = "") +
+  theme(legend.position = "bottom", 
+        legend.direction = "horizontal",
+        text = element_text(size = 7),
+        axis.text.x = element_text(angle = 45, hjust = 1)) + 
+  coord_flip() +
+  theme(
+    panel.grid.major.y = element_blank(),
+    legend.position = "bottom",
+    axis.text.y = element_markdown()
+  )
+```
+
 
 
