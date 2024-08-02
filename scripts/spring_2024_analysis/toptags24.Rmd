@@ -131,7 +131,8 @@ labels <- setNames(tag_name$clean_labels, tag_name$variable_name)
 ```{r fig.width=13, fig.height=4}
 top_10_time <- left_join(top_10, time_tags) %>% 
   mutate(pct = n/189) %>% 
-  filter(!is.na(frequency))
+  filter(!is.na(frequency)) %>% 
+  mutate(frequency = factor(frequency, levels = c("Less than a year", "1-2 years", "3-4 years", "5+ years")))
 
 top_10_time %>% 
   mutate(practice = fct_rev(factor(practice, levels = desired_order))) %>% 

@@ -393,6 +393,34 @@ cat_by_year %>%
        x = "Catalyst")
 ```
 
+### Update for Aug 2
+
+```{r}
+var_labels <- import(here("data", "var_labels.csv")) %>% 
+  select(all, label)
+
+cat_by_year %>% 
+  mutate(catalyst_key = paste0("catalyst_", catalyst_key)) %>% 
+  pivot_wider(names_from = "selected",
+              values_from = "n") %>% 
+  mutate(dropped = -1*dropped) %>% 
+  left_join(., var_labels, by = c("catalyst_key" = "all")) %>% 
+  ggplot(aes(x = reorder(label, -dropped))) +
+  geom_col(aes(y = added), fill = transcend_cols[1]) +
+  geom_text(aes(label = added, y = added + 2), color = transcend_grays[2]) +
+  geom_col(aes(y = dropped), fill = transcend_cols[3]) +
+  geom_text(aes(label = abs(dropped), y = dropped - 2), color = transcend_grays[2]) +
+  geom_hline(yintercept = 0, linetype = 2) +
+  coord_flip() +
+  labs(title = "Catalyst Key Adds/Drops for \nSchools Answering Both Years",
+       y = "Drops and Adds",
+       x = "Catalyst") +
+  theme(
+    panel.grid.major.y = element_blank(),
+    axis.text.y = element_text(size = rel(0.6))
+  ) 
+```
+
 
 ## For leaders who were concerned about future sustainability, what reasons did they cite for their concern and did these reasons differ across schools?
 
