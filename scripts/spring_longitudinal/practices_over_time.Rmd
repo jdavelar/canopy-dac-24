@@ -23,6 +23,7 @@ Also see `core-practices-over-time.html`.
 ```{r}
 dat <- import(here("data/longitudinal", "full-tags-wide.csv"))
 dictionary <- import(here("data/2024 data", "dictionary_2024.csv"))
+clean_labels <- import(here("data/longitudinal", "tag-labels.csv"))
 source(here("scripts/branding.R"))
 ```
 
@@ -202,24 +203,24 @@ total_select <- top_by_use %>%
 top_by_use <- left_join(top_by_use, total_select)
 ```
 
-```{r fig.width=17, fig.height=7}
+```{r fig.width=24, fig.height=10}
 tag_labels <- import(here("data/longitudinal", "tag-labels.csv"))
 
 top_by_use %>% 
   filter(year != 2019) %>% 
   left_join(., tag_labels) %>% 
   ggplot() +
-  geom_text(aes(label = years_used, x = label, y = total_select + 2), hjust = 0, size = 3, color = "gray") +
+  geom_text(aes(label = years_used, x = label, y = total_select + 2), hjust = 0, size = 5, color = "gray") +
   geom_col(aes(reorder(label, selected), selected, fill = year)) +
   scale_fill_manual(values = transcend_cols) +
-  scale_y_continuous(expand = c(0,0), limits = c(0, 340)) +
+  scale_y_continuous(expand = c(0,0), limits = c(0, 342)) +
   labs(title = "Core Practices by Year Implemented",
        x = "",
        y = "") +
 #  scale_x_discrete(labels = label_tags()) +
   theme(legend.position = "bottom", 
         legend.direction = "horizontal",
-        text = element_text(size = 8.5),
+        text = element_text(size = 20),
         axis.text.x = element_text(angle = 45, hjust = 1)) + 
   coord_flip() +
   theme(
@@ -234,6 +235,48 @@ top_by_use %>%
   select(label, number_of_years_used, years_used, year, selected, total_select) %>% 
   datatable()
 ```
+
+### Also update core practices by number of years that tags were implemented
+
+```{r fig.height=8, fig.width=12}
+# times practices are selected each year needed for sorting
+core_prac_dat <- core_prac_dat %>% 
+  mutate(core_practice = gsub("core_", "practices_", core_practice)) %>% 
+  rename(times_selected = selected)
+
+core_prac %>% 
+  group_by(core_practice, year) %>% 
+  summarise(selected = sum(times_selected)) %>% 
+  mutate(core_practice = gsub("core_", "practices_", core_practice)) %>% 
+  left_join(., variable_usage, by = c("core_practice" = "variable")) %>% 
+  filter(year != 2019) %>% 
+  left_join(., core_prac_dat) %>% 
+  select(-years_used) %>% 
+  arrange(-times_selected) %>% 
+  group_by(core_practice) %>% 
+  left_join(., clean_labels, by = c("core_practice" = "variable")) %>% 
+  filter(number_of_years_used > 4) %>% 
+  filter(times_selected > 104) %>% 
+  ggplot() +
+    geom_col(aes(reorder(label, times_selected), selected, fill = year)) +
+    scale_fill_manual(values = transcend_cols) +
+    scale_y_continuous(expand = c(0,0)) +
+  labs(title = "Most selected core practices (4+ years)",
+       x = "",
+       y = "") +
+#  scale_x_discrete(labels = label_tags()) +
+  theme(legend.position = "bottom", 
+        legend.direction = "horizontal",
+  #      text = element_text(size = 20),
+        axis.text.x = element_text(angle = 45, hjust = 1)) + 
+  coord_flip() +
+  theme(
+    panel.grid.major.y = element_blank(),
+    legend.position = "bottom"
+  ) 
+```
+
+
 
 
 ## Have any lost popularity over the last 5 years? 
@@ -270,7 +313,6 @@ ggplotly(p, tooltip = c("core_practice", "selected"))
 ### Update -- tag count breakdown by year
 
 ```{r}
-clean_labels <- import(here("data/longitudinal", "tag-labels.csv"))
 
 variable_usage_by_year <- tags_2019 %>%
   full_join(tags_2021, by = "var") %>%
@@ -674,8 +716,6 @@ core_prac %>%
     axis.text.y = element_text(size = rel(0.6))
   )
 ```
-9-12:30
-1:30-
 
 Restrict to tags available for all of these years.
 ```{r}
