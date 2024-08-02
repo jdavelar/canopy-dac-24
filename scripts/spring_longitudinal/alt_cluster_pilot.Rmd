@@ -1,0 +1,560 @@
+---
+title: "Pilot Practices w/ Alt Clusters"
+author: "Janette Avelar"
+date: '2024-08-01'
+output: 
+  html_document:
+    toc: true
+    toc_float: true
+    theme: flatly
+    highlight: tango
+    code_folding: hide
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE, fig.width = 10, fig.height = 8)
+pacman::p_load(tidyverse, here, rio, DT, ggthemes, scales, broom, lme4, wordcloud, tm, mgcv)
+#read in data
+load(here("data", "2024 data/complete_canopy_2024.RData"))
+labels <- import(here("data", "longitudinal/tag-labels.csv"))
+```
+
+```{r}
+#manual branding - file won't load
+transcend_cols = c("#1A4C81","#59C3B4","#EF464B","#ADE0EE")
+transcend_cols2 = c("#BC2582","#FFA630","#FFDE42","#99C24D","#218380","#D3B7D7")
+transcend_grays = c("#4D4D4F","#9D9FA2","#D1D3D4")
+transcend_na = transcend_grays[2]
+theme_transcend = theme_gdocs(base_size = 14, base_family = "Open Sans") +
+  theme(
+    plot.title = element_text(family = "Bebas Neue", color = "black"),
+    plot.background = element_blank(),
+    axis.text = element_text(colour = "black"),
+    axis.title = element_text(colour = "black"),
+    panel.border = element_rect(colour = "#4D4D4F"),
+    strip.text = element_text(size = rel(0.8)),
+    plot.margin = margin(10, 24, 10, 10, "pt")
+  )
+theme_set(theme_transcend)
+```
+
+**What do schools most want to pilot in the next 5 years?**
+
+```{r}
+tags %>% 
+  select(school_id, starts_with("pilot")) %>% 
+  pivot_longer(cols = starts_with("pilot"),
+               names_to = "variable",
+               values_to = "usage") %>% 
+  group_by(variable) %>% 
+  summarize(n = sum(usage),
+            pct = round(n/189, 2)) %>% 
+  mutate(variable = str_replace_all(variable, "pilot", "practices")) %>% 
+  left_join(labels, by = "variable") %>% 
+  arrange(-n) %>% 
+  slice_head(n = 5) %>% 
+  ggplot(., aes(pct, reorder(label, pct))) +
+  geom_col(fill = transcend_cols[1]) +
+  scale_x_continuous(expand = c(0, 0), limits = c(0, .2), labels = scales::percent_format()) +
+  scale_y_discrete(labels = wrap_format(25)) +
+  geom_text(aes(label = scales::label_percent(accuracy = 1)(pct)), 
+            hjust = 1.1,
+            vjust = 0, 
+            color = "white", 
+            fontface = "bold", 
+            size = 5.5, 
+            family = "sans") +
+  theme(panel.grid.major.y = element_blank()) +
+  labs(x = "",
+       y = "",
+       title = str_wrap("Top 5 tags Canopy schools hope to pilot in the next 5 years", 60))
+```
+
+**Are there broad patterns in the practices schools hope to implement in the next five years?**  
+
+
+```{r}
+#read in cluster information
+cluster <- import(here("data", "mixed-methods-clusters-24.csv")) %>% 
+  janitor::clean_names() %>% 
+  select(tag, cluster = proposed_cluster_for_preliminary_24_analysis) %>% 
+  mutate(cluster = case_when(
+    cluster == "Postsecondary" ~ "Postsecondary pathways",
+    cluster == "Ed justice" ~ "Educational justice",
+    cluster == "Individualized" ~ "Individualized learning",
+    TRUE ~ as.character(cluster)
+  ))
+#link to pilot tags
+pilot_clusters <- tags %>% 
+  select(school_id, starts_with("pilot")) %>% 
+  pivot_longer(cols = starts_with("pilot"),
+               names_to = "variable",
+               values_to = "usage") %>%
+  mutate(variable = str_replace_all(variable, "pilot", "practices")) %>% 
+  left_join(labels, by = "variable") %>% 
+  select(school_id, tag = label, usage) %>% 
+  left_join(cluster, by = "tag")
+#cluster totals
+tots <- pilot_clusters %>% 
+  select(tag, cluster) %>% 
+  unique() %>% 
+  mutate(rate = 1) %>% 
+  group_by(cluster) %>% 
+  summarize(total = sum(rate))
+#weighted total for each school
+pilot_clusters %>% 
+  group_by(school_id, cluster) %>% 
+  summarize(n = sum(usage)) %>% 
+  ungroup() %>% 
+  left_join(tots, by = "cluster") %>% 
+  mutate(pct = n/total) %>% 
+  group_by(cluster) %>% 
+  summarize(wt_sum = sum(pct),
+            wt_mean = mean(pct),
+            mean = mean(n),
+            median = median(n)) %>% 
+  ggplot(., aes(reorder(cluster, -wt_mean), wt_mean)) +
+  geom_col(fill = transcend_cols[1]) +
+  scale_y_continuous(expand = c(0, 0), limits = c(0, .1), labels = scales::percent_format()) +
+  scale_x_discrete(labels = wrap_format(15)) +
+  theme(panel.grid.major.x = element_blank()) +
+  labs(y = "Average cluster percentage selected",
+       x = "",
+       title = str_wrap("Clusters Canopy schools are interested in piloting in the next 5 years", 60))
+```
+
+
+```{r}
+pilot_clusters %>% 
+  filter(usage == 1) %>% 
+  group_by(school_id, cluster) %>% 
+  summarize(n = sum(usage)) %>% 
+  ungroup() %>% 
+  left_join(tots, by = "cluster") %>% 
+  mutate(pct = n/total) %>% 
+  group_by(cluster) %>% 
+  summarize(wt_sum = sum(pct),
+            wt_mean = mean(pct),
+            mean = mean(n),
+            median = median(n)) %>% 
+  ggplot(., aes(reorder(cluster, -mean), mean)) +
+  geom_col(fill = transcend_cols[1]) +
+  scale_y_continuous(expand = c(0, 0), limits = c(0, 2)) +
+  scale_x_discrete(labels = wrap_format(15)) +
+  geom_text(aes(label = round(mean, 2)), 
+            vjust = -.2, 
+            color = transcend_na, 
+            fontface = "bold", 
+            size = 5.5, 
+            family = "sans") +
+  theme(panel.grid.major.x = element_blank()) +
+  labs(y = "Mean tags selected",
+       x = "",
+       title = str_wrap("Clusters Canopy schools are interested in piloting in the next 5 years", 60))
+```
+
+Modifying the graph to include the number of tags in each cluster schools already use:  
+
+
+```{r}
+tags <- full %>% 
+  select(school_id, starts_with("practices")) %>% 
+  pivot_longer(cols = starts_with("practices"),
+               names_to = "variable",
+               values_to = "usage") %>% 
+  left_join(labels, by = "variable") %>% 
+  rename("tag" = label) %>% 
+  left_join(cluster, by = "tag") %>% 
+  group_by(school_id, cluster) %>% 
+  summarize(n = sum(usage)) %>% 
+  group_by(cluster) %>% 
+  summarize(mean = mean(n)) %>% 
+  mutate(type = "Practices in use")
+pilot_clusters %>% 
+  filter(usage == 1) %>% 
+  group_by(school_id, cluster) %>% 
+  summarize(n = sum(usage)) %>% 
+  group_by(cluster) %>% 
+  summarize(mean = mean(n)) %>% 
+  mutate(type = "Practices to pilot") %>% 
+  bind_rows(tags) %>% 
+  ggplot(., aes(reorder(cluster, -mean), mean, fill = type)) +
+  geom_bar(stat = "identity") +
+  scale_fill_manual(values = transcend_cols) +
+  scale_y_continuous(expand = c(0, 0), limits = c(0, 15)) +
+  scale_x_discrete(labels = wrap_format(15)) +
+  geom_text(aes(label = round(mean, 2)), 
+            position = position_stack(vjust = .5),
+            color = "white", 
+            fontface = "bold", 
+            size = 5.5, 
+            family = "sans") +
+  theme(panel.grid.major.x = element_blank(),
+        legend.position = c(.8,.9)) +
+  labs(y = "Mean tags selected",
+       x = "",
+       title = str_wrap("Clusters Canopy schools are interested in piloting in the next 5 years", 60),
+       fill = "")
+```
+
+Alternate version, using `facet` instead of stacking the bars:
+
+```{r}
+pilot_clusters %>% 
+  filter(usage == 1) %>% 
+  group_by(school_id, cluster) %>% 
+  summarize(n = sum(usage)) %>% 
+  group_by(cluster) %>% 
+  summarize(mean = mean(n)) %>% 
+  mutate(type = "Avg. number of pilot practices selected") %>% 
+  bind_rows(tags) %>% 
+  mutate(type = ifelse(type == "Practices in use", "Avg. number of practices already in use", as.character(type))) %>% 
+  ggplot(., aes(mean, reorder(cluster, -mean))) +
+  geom_bar(stat = "identity", fill = transcend_cols[1]) +
+  scale_x_continuous(expand = c(0, 0), limits = c(0, 15)) +
+  scale_y_discrete(labels = wrap_format(15)) +
+  geom_text(aes(label = round(mean, 2)), 
+            vjust = .5,
+            hjust = -0.1,
+            color = transcend_na, 
+            fontface = "bold", 
+            size = 5.5, 
+            family = "sans") +
+  theme(panel.grid.major.y = element_blank()) +
+  labs(x = "",
+       y = "",
+       title = str_wrap("What Canopy schools are interested in piloting in the next 5 years", 66),
+       fill = "") +
+  facet_wrap(~type)
+```
+
+
+Exploring the graph above once more, using number of schools as the denominator rather than number of tags:  
+
+
+```{r}
+pilot_clusters %>% 
+  group_by(school_id, cluster) %>% 
+  summarize(n = sum(usage)) %>% 
+  mutate(selection = ifelse(n > 0, 1, 0)) %>% 
+  group_by(cluster) %>% 
+  summarize(pct = sum(selection)/189) %>% 
+  ggplot(., aes(reorder(cluster, -pct), pct)) +
+  geom_col(fill = transcend_cols[1]) +
+  scale_y_continuous(expand = c(0, 0), limits = c(0, 1), labels = scales::percent_format()) +
+  scale_x_discrete(labels = wrap_format(15)) +
+  theme(panel.grid.major.x = element_blank()) +
+  geom_text(aes(label = scales::label_percent(accuracy = 1)(pct)), 
+            nudge_y = 0.01, 
+            vjust = 0, 
+            color = transcend_na, 
+            fontface = "bold", 
+            size = 5.5, 
+            family = "sans") +
+  labs(y = "Average cluster percentage selected",
+       x = "",
+       title = str_wrap("Clusters Canopy schools are interested in piloting in the next 5 years", 60))
+```
+
+**When we're dividing pilot tags into clusters, which tags are selected the most?**  
+
+
+```{r}
+pilot_clusters %>% 
+  group_by(cluster, tag) %>% 
+  summarize(n = sum(usage, na.rm = TRUE)) %>% 
+  ungroup() %>% 
+  group_by(cluster) %>% 
+  arrange(-n) %>% 
+  slice_head(n = 5) %>% 
+  ggplot(., aes(n, reorder(tag, n))) +
+  geom_col(fill = transcend_cols[1]) +
+  scale_x_continuous(expand = c(0, 0), limits = c(0, 32)) +
+  scale_y_discrete(labels = wrap_format(20)) +
+  theme(panel.grid.major.y = element_blank(),
+        axis.text.y = element_text(size = 10)) +
+  geom_text(aes(label = n), 
+            vjust = .5,
+            hjust = -0.1,
+            color = transcend_na, 
+            fontface = "bold", 
+            size = 4.5, 
+            family = "sans") +
+  facet_wrap(~cluster, scales = "free_y", labeller = label_wrap_gen(width = 20)) +
+  labs(y = "",
+       x = "",
+       title = str_wrap("What Canopy schools are most interested in piloting in the next 5 years", 75))
+```
+
+**When we're dividing pilot tags into clusters, which tags are selected the least?**  
+
+
+```{r}
+pilot_clusters %>% 
+  group_by(cluster, tag) %>% 
+  summarize(n = sum(usage, na.rm = TRUE)) %>% 
+  ungroup() %>% 
+  group_by(cluster) %>% 
+  arrange(-n) %>% 
+  slice_tail(n = 5) %>% 
+  ggplot(., aes(n, reorder(tag, n))) +
+  geom_col(fill = transcend_cols[1]) +
+  scale_x_continuous(expand = c(0, 0), limits = c(0, 32)) +
+  scale_y_discrete(labels = wrap_format(20)) +
+  theme(panel.grid.major.y = element_blank(),
+        axis.text.y = element_text(size = 10)) +
+  geom_text(aes(label = n), 
+            vjust = .5,
+            hjust = -0.1,
+            color = transcend_na, 
+            fontface = "bold", 
+            size = 4.5, 
+            family = "sans") +
+  facet_wrap(~cluster, scales = "free_y", labeller = label_wrap_gen(width = 20)) +
+  labs(y = "",
+       x = "",
+       title = str_wrap("What Canopy schools are most interested in piloting in the next 5 years", 75))
+```
+
+
+**To what extent do school characteristics play a role in the tags they want to pilot?**  
+
+Quick defs:  
+-Binary high/low = High if more than half the tags in that cluster are in use  
+-Tri high/average/low = High if mean+SD; low if mean-SD, average within 1 SD
+
+```{r}
+#create cluster score
+cluster_score <- full %>% 
+  select(school_id, starts_with("practices")) %>% 
+  pivot_longer(cols = starts_with("practices"),
+                 names_to = "variable",
+                 values_to = "usage") %>% 
+  left_join(labels, by = "variable") %>% 
+  rename("tag" = label) %>% 
+  left_join(cluster, by = "tag") %>% 
+  group_by(school_id, cluster) %>% 
+  summarize(n = sum(usage)) %>% 
+  left_join(tots, by = "cluster") %>% 
+  mutate(pct = n/total,
+         mean = mean(pct),
+         sd = sd(pct),
+         engagement_bi = case_when(
+           pct >= 0.5 ~ "High",
+           TRUE ~ "Low"
+         ),
+         engagement_tri = case_when(
+           pct > mean + sd ~ "High",
+           pct < mean - sd ~ "Low",
+           TRUE ~ "Average"
+         )) %>% 
+  #add outcome 
+  left_join(pilot_clusters, by = c("school_id", "cluster")) %>% 
+  group_by(school_id, cluster) %>% 
+  mutate(pilot_score = sum(usage),
+         pilot_score = ifelse(pilot_score >= 1, 1, 0)) %>% 
+  select(-c(usage,tag)) %>% 
+  unique()
+#prep base data
+mod_dat <- full %>% 
+    select(school_id, school_locale, school_type, grades_pk, grades_elementary, grades_middle, grades_high, school_enrollment, pct_bipoc, pct_ell, pct_frpl, pct_swd, leadership_diversity) %>% 
+    mutate(leadership_diversity = gsub("people", "leaders", leadership_diversity),
+           school_locale = factor(school_locale, levels = c("Urban", "Suburban", "Rural", "Multiple")),
+           school_type = factor(school_type, levels = c("Public district school", "Public charter school", "Independent (private) school")),
+           leadership_diversity = factor(leadership_diversity, levels = c("0 - 24% leaders of color", "25 - 49% leaders of color", "50 - 74% leaders of color", "75 - 100% leaders of color")),
+           school_enrollment = as.numeric(scale(school_enrollment, center = TRUE, scale = TRUE))) %>% 
+    mutate(across(starts_with("pct"), ~as.numeric(scale(., center = TRUE, scale = TRUE)))) %>% 
+  drop_na()
+      
+# model function
+log_model <- function(outcome, data, title){ #outcome needs to be dummy
+  #model
+  mod <- glm(as.formula(paste(outcome, "~ school_locale + school_type + grades_pk + grades_elementary + grades_middle + grades_high + school_enrollment + pct_bipoc + pct_ell + pct_frpl + pct_swd + leadership_diversity + engagement_tri")),
+             family = "binomial",
+             data = data)
+  # set labels
+  cov_labels <- c(
+    "school_typeIndependent (private) school" = "Independent (private) school",
+    "school_typePublic charter school" = "Public charter school",
+    "grades_pk" = "PreK",
+    "grades_elementary" = "Elementary",
+    "grades_middle" = "Middle",
+    "grades_high" = "High",
+    "school_enrollment" = "School Enrollment",
+    "pct_bipoc" = "% BIPOC students",
+    "pct_ell" = "% EL-designated students",
+    "pct_frpl" = "% FRPL-eligible",
+    "pct_swd" = "% Students with disabilities",
+    "school_localeMultiple" = "Multiple locales",
+    "school_localeSuburban" = "Suburban",
+    "school_localeRural" = "Rural",
+    "leadership_diversity25 - 49% leaders of color" = "25-49% leaders of color",
+    "leadership_diversity50 - 74% leaders of color" = "50-74% leaders of color",
+    "leadership_diversity75 - 100% leaders of color" = "75-100% leaders of color",
+    "engagement_triHigh" = "High engagement with cluster",
+    "engagement_triAverage" = "Average engagement with cluster",
+    "engagement_triLow" = "Low engagement with cluster"
+  )
+  #plot
+  plot <- tidy(mod, effects = "ran_pars", conf.int = TRUE) %>%
+  filter(term != "(Intercept)") %>%
+  mutate(exp_est = exp(estimate), 
+         exp_min = exp(estimate - std.error), 
+         exp_max = exp(estimate + std.error)) %>% 
+  mutate(term = cov_labels[term]) %>% 
+  ggplot(., aes(y = fct_reorder(term, exp_est), x = exp_est)) +
+  geom_linerange(aes(xmin = exp_min,
+                     xmax = exp_max),
+                 color = "blue") +
+  geom_point() +
+  geom_vline(xintercept = 1) +
+  scale_x_continuous(
+  trans = "log",
+  breaks = c(.0625, .25, .5, 1, 2, 4, 16),
+  labels = str_wrap(c("1/16 as likely", "1/4 as likely", "1/2 as likely", "Even", "2x as likely", "4x as likely", "16x as likely"), 10),
+  expand = expansion(0, 0)
+  ) +
+  theme_transcend +
+  theme(panel.grid.major.y = element_blank()) +
+  labs(
+    x = "",
+    y = "",
+    title = str_wrap(title, 60))
+  return(plot)}
+```
+
+**Postsecondary pathways**
+
+Starting with Postsecondary pathways to see if we get expected results (high schools more likely to adopt).  
+
+
+```{r}
+dat <- mod_dat %>% 
+  left_join(cluster_score, by = "school_id") %>% 
+  filter(cluster == "Postsecondary pathways")
+log_model("pilot_score", dat, "School characteristics predicting piloting 1 or more tags related to Postsecondary Pathways")
+```
+
+**Educational Justice**  
+
+
+```{r}
+dat <- mod_dat %>% 
+  left_join(cluster_score, by = "school_id") %>% 
+  filter(cluster == "Educational justice")
+log_model("pilot_score", dat, "School characteristics predicting piloting 1 or more tags related to Educational Justice")
+```
+
+**Deeper Learning**  
+
+```{r}
+dat <- mod_dat %>% 
+  left_join(cluster_score, by = "school_id") %>% 
+  filter(cluster == "Deeper learning")
+log_model("pilot_score", dat, "School characteristics predicting piloting 1 or more tags related to Deeper Learning")
+```
+
+**Individualized Learning**  
+
+```{r}
+dat <- mod_dat %>% 
+  left_join(cluster_score, by = "school_id") %>% 
+  filter(cluster == "Individualized learning")
+log_model("pilot_score", dat, "School characteristics predicting piloting 1 or more tags related to Individualized Learning")
+```
+
+**Increasing access & supports**  
+
+```{r}
+dat <- mod_dat %>% 
+  left_join(cluster_score, by = "school_id") %>% 
+  filter(cluster == "Increasing access & supports")
+log_model("pilot_score", dat, "School characteristics predicting piloting 1 or more tags related to Increasing access & supports")
+```
+
+**Student-driven learning**  
+
+```{r}
+dat <- mod_dat %>% 
+  left_join(cluster_score, by = "school_id") %>% 
+  filter(cluster == "Student-driven learning")
+log_model("pilot_score", dat, "School characteristics predicting piloting 1 or more tags related to Student-driven learning")
+```
+
+**ATTEMPT 2: USING GAM MODELS**
+
+The set of models below do not assume that the relationship between our school characteristics and tags is linear, allowing for a more complicated relationship between engagement with a cluster and the pilot tags selected (i.e., deals with some of the issues that may come from ceiling effects, or whatnot).  
+
+**Deeper learning**  
+
+```{r}
+dat <- mod_dat %>% 
+  left_join(cluster_score, by = "school_id") %>% 
+  filter(cluster == "Deeper learning")
+gam_model <- gam(pilot_score ~ school_locale + school_type + grades_pk + grades_elementary + grades_middle + grades_high + school_enrollment + pct_bipoc + pct_ell + pct_frpl + pct_swd + leadership_diversity + s(pct),
+                 data = dat)
+#note to self: wrapping in s() stands for smoothing - does not assume linear relationship and instead allows model to take on the shape that makes the most sense
+plot(gam_model)
+```
+
+**Educational justice**  
+
+```{r}
+dat <- mod_dat %>% 
+  left_join(cluster_score, by = "school_id") %>% 
+  filter(cluster == "Educational justice")
+gam_model <- gam(pilot_score ~ school_locale + school_type + grades_pk + grades_elementary + grades_middle + grades_high + school_enrollment + pct_bipoc + pct_ell + pct_frpl + pct_swd + leadership_diversity + s(pct),
+                 data = dat)
+plot(gam_model)
+```
+
+**Individualized learning**  
+
+```{r}
+dat <- mod_dat %>% 
+  left_join(cluster_score, by = "school_id") %>% 
+  filter(cluster == "Individualized learning")
+gam_model <- gam(pilot_score ~ school_locale + school_type + grades_pk + grades_elementary + grades_middle + grades_high + school_enrollment + pct_bipoc + pct_ell + pct_frpl + pct_swd + leadership_diversity + s(pct),
+                 data = dat)
+plot(gam_model)
+```
+
+**Postsecondary pathways**  
+
+```{r}
+dat <- mod_dat %>% 
+  left_join(cluster_score, by = "school_id") %>% 
+  filter(cluster == "Postsecondary pathways")
+gam_model <- gam(pilot_score ~ school_locale + school_type + grades_pk + grades_elementary + grades_middle + grades_high + school_enrollment + pct_bipoc + pct_ell + pct_frpl + pct_swd + leadership_diversity + s(pct),
+                 data = dat)
+plot(gam_model)
+```
+
+**Increasing access & supports**  
+
+Error: A term has fewer unique covariate combinations than specified maximum degrees of freedom
+
+```{r include = FALSE, eval = FALSE}
+dat <- mod_dat %>% 
+  left_join(cluster_score, by = "school_id") %>% 
+  filter(cluster == "Increasing access & supports")
+gam_model <- gam(pilot_score ~ school_locale + school_type + grades_pk + grades_elementary + grades_middle + grades_high + school_enrollment + pct_bipoc + pct_ell + pct_frpl + pct_swd + leadership_diversity + s(pct),
+                 data = dat)
+plot(gam_model)
+```
+
+**Student-driven learning**  
+
+Error: A term has fewer unique covariate combinations than specified maximum degrees of freedom
+
+```{r include = FALSE, eval = FALSE}
+dat <- mod_dat %>% 
+  left_join(cluster_score, by = "school_id") %>% 
+  filter(cluster == "Student-driven learning")
+gam_model <- gam(pilot_score ~ school_locale + school_type + grades_pk + grades_elementary + grades_middle + grades_high + school_enrollment + pct_bipoc + pct_ell + pct_frpl + pct_swd + leadership_diversity + s(pct),
+                 data = dat)
+plot(gam_model)
+```
+
