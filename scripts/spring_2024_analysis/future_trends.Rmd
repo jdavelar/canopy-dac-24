@@ -99,13 +99,15 @@ variables %>%
   scale_fill_manual(values = c(transcend_cols[3], transcend_na, transcend_cols[1])) +
   scale_y_continuous(expand = c(0, 0), limits = c(0, 1), labels = scales::percent_format()) +
   geom_text(aes(label = scales::label_percent(accuracy = 1)(pct)), 
-            position = position_stack(vjust = .95),
-            hjust = 1,
+            position = position_stack(vjust = .5), #vjust = .95 before
+            #hjust = 1,
             color = "white", 
             size = 4, 
             family = "sans") +
   theme(legend.position = "bottom", legend.direction = "horizontal", panel.grid.major.y = element_blank(), axis.text.y = element_text(size = 11)) +
-  labs(x = "", y = "Percent of schools", title = "School leader concern with \nfuture sustainability", fill = "Level of concern") +
+  labs(x = "", y = "Percent of schools", title = str_wrap("School leader concern with future sustainability", 60), 
+       fill = "Level of concern") +
+  guides(fill = guide_legend(reverse = T)) +
   coord_flip()
 ```
 
@@ -134,14 +136,15 @@ variables %>%
   scale_fill_manual(values = c(transcend_cols[3], transcend_na, transcend_cols[1])) +
   scale_y_continuous(expand = c(0, 0), limits = c(0, 1), labels = scales::percent_format()) +
   geom_text(aes(label = scales::label_percent(accuracy = 1)(pct)), 
-            position = position_stack(vjust = .95),
-            hjust = 1,
+            position = position_stack(vjust = .5),
+            #hjust = 1,
             color = "white", 
             size = 5, 
             family = "sans") +
   theme(legend.position = "bottom", legend.direction = "horizontal", panel.grid.major.y = element_blank(), axis.text.y = element_text(size = 11)) +
   labs(x = "", y = "Percent of schools", title = "School leader concern with \nfuture sustainability", fill = "Level of concern") +
   scale_x_discrete(labels = wrap_format(20)) +
+  guides(fill = guide_legend(reverse = T)) +
   coord_flip()
 ```
 
@@ -174,12 +177,13 @@ variables %>%
   scale_fill_manual(values = c(transcend_cols[3], transcend_na, transcend_cols[1])) +
   scale_y_continuous(expand = c(0, 0), limits = c(0, 1), labels = scales::percent_format()) +
   geom_text(aes(label = scales::label_percent(accuracy = 1)(pct)), 
-            position = position_stack(vjust = .95),
-            hjust = 1,
+            position = position_stack(vjust = .5),
+            #hjust = 1,
             color = "white", 
             size = 5, 
             family = "sans") +
   theme(legend.position = "bottom", legend.direction = "horizontal", panel.grid.major.y = element_blank(), axis.text.y = element_text(size = 11)) +
+  guides(fill = guide_legend(reverse = T)) +
   labs(x = "", y = "Percent of schools", title = "School leader concern with \nfuture sustainability", fill = "Level of concern") +
   coord_flip()
 ```
@@ -217,13 +221,14 @@ variables %>%
   scale_y_continuous(expand = c(0, 0), limits = c(0, 1), labels = scales::percent_format()) +
   theme(legend.position = "bottom", legend.direction = "horizontal", panel.grid.major.y = element_blank(), axis.text.y = element_text(size = 11)) +
   geom_text(aes(label = scales::label_percent(accuracy = 1)(pct)), 
-            position = position_stack(vjust = .95),
-            hjust = 1,
+            position = position_stack(vjust = .5),
+            #hjust = 1,
             color = "white", 
             size = 5, 
             family = "sans") +
   labs(x = "", y = "Percent of schools", title = "School leader concern with \nfuture sustainability", fill = "Level of concern") +
   scale_x_discrete(labels = wrap_format(20)) +
+  guides(fill = guide_legend(reverse = T)) +
   coord_flip()
 ```
 
@@ -278,6 +283,7 @@ cov_labels <- c(
 # plot
 tidy(mod1, effects = "ran_pars", conf.int = TRUE) %>%
   filter(term != "(Intercept)") %>%
+  #filter(p.value >= .5) %>% 
   mutate(exp_est = exp(estimate), 
          exp_min = exp(estimate - std.error), 
          exp_max = exp(estimate + std.error)) %>% 
@@ -431,7 +437,7 @@ Note that for this set of models I used a logistic regression model to calculate
 
 ```{r}
 # model function
-log_model <- function(outcome, title){ #outcome needs to be dummy
+log_model <- function(outcome){ #outcome needs to be dummy
   #prep data
   data <-  variables %>% 
     select({{outcome}}, school_id, school_locale, school_type, grades_pk, grades_elementary, grades_middle, grades_high, school_enrollment, pct_bipoc, pct_ell, pct_frpl, pct_swd, teaching_diversity, leadership_diversity) %>% 
@@ -447,8 +453,11 @@ log_model <- function(outcome, title){ #outcome needs to be dummy
   mod <- glm({{outcome}} ~ school_locale + school_type + grades_pk + grades_elementary + grades_middle + grades_high + school_enrollment + pct_bipoc + pct_ell + pct_frpl + pct_swd + teaching_diversity + leadership_diversity,
                family = "binomial",
                data = data)
+  return(mod)
+}
   #plot
-  plot <- tidy(mod, effects = "ran_pars", conf.int = TRUE) %>%
+plot_model <- function(title, data){
+  plot <- tidy(data, effects = "ran_pars", conf.int = TRUE) %>%
   filter(term != "(Intercept)") %>%
   mutate(exp_est = exp(estimate), 
          exp_min = exp(estimate - std.error), 
@@ -473,34 +482,89 @@ log_model <- function(outcome, title){ #outcome needs to be dummy
     y = "",
     title = str_wrap(title, 60))
   return(plot)}
+tidy_model <- function(data){
+  data <- tidy(data, effects = "ran_pars", conf.int = TRUE) %>%
+  filter(term != "(Intercept)") %>%
+  mutate(exp_est = exp(estimate), 
+         exp_min = exp(estimate - std.error), 
+         exp_max = exp(estimate + std.error)) %>% 
+  mutate(term = cov_labels[term])
+  return(data)
+}
 ```
 
 ```{r}
-log_model(variables$barrier_local_funds, "School characteristics predicting higher concern with availability of local funds")
+local_funds <- log_model(variables$barrier_local_funds)
+plot_model("School characteristics predicting higher concern with availability of local funds", local_funds)
+local_funds <- tidy_model(local_funds) %>% 
+  mutate(factor = "Availability of local funds")
 ```
 
 ```{r}
-log_model(variables$barrier_private_funds, "School characteristics predicting higher concern with availability of private funds")
+private_funds <- log_model(variables$barrier_private_funds)
+plot_model("School characteristics predicting higher concern with availability of private funds", private_funds)
+private_funds <- tidy_model(private_funds) %>% 
+  mutate(factor = "Availability of private funds")
 ```
 
 ```{r}
-log_model(variables$barrier_donations, "School characteristics predicting higher concern with changes to in-kind donations")
+donations <- log_model(variables$barrier_donations)
+plot_model("School characteristics predicting higher concern with changes to in-kind donations", donations)
+donations <- tidy_model(donations) %>% 
+  mutate(factor = "Changes to in-kind donations")
 ```
 
 ```{r}
-log_model(variables$barrier_inflation, "School characteristics predicting higher concern with inflation/increasing prices")
+inflation <- log_model(variables$barrier_inflation)
+plot_model("School characteristics predicting higher concern with inflation/increasing prices", inflation)
+inflation <- tidy_model(inflation) %>% 
+  mutate(factor = "Inflation or increasing prices")
 ```
 
 ```{r}
-log_model(variables$barrier_enrollment, "School characteristics predicting higher concern with changes in school enrollment")
+enrollment <- log_model(variables$barrier_enrollment)
+plot_model("School characteristics predicting higher concern with changes in school enrollment", enrollment)
+enrollment <- tidy_model(enrollment) %>% 
+  mutate(factor = "Changes in school enrollment")
 ```
 
 ```{r}
-log_model(variables$barrier_shortage, "School characteristics predicting higher concern with staffing shortages")
+staffing <- log_model(variables$barrier_shortage)
+plot_model("School characteristics predicting higher concern with staffing shortages", staffing)
+staffing <- tidy_model(staffing) %>% 
+  mutate(factor = "Staffing shortages")
 ```
 
 ```{r}
-log_model(variables$barrier_federal_funds, "School characteristics predicting higher concern with expiration of federal relief funds")
+fiscal_cliff <- log_model(variables$barrier_federal_funds)
+plot_model("School characteristics predicting higher concern with expiration of federal relief funds", fiscal_cliff)
+fiscal_cliff <- tidy_model(fiscal_cliff) %>% 
+  mutate(factor = "Loss of federal relief funds")
+```
+
+
+Combined version:
+
+```{r}
+#merge tidy data
+transformative_factors <- bind_rows(local_funds, private_funds, donations, inflation, enrollment, staffing, fiscal_cliff) %>% 
+  filter(term == "Suburban"| term == "Rural"| term == "Multiple locales"| term == "25-49% leaders of color"| term == "50-74% leaders of color"| term == "75-100% leaders of color") #%>% 
+  # mutate(fill_color = ifelse(p.value >= 0.5, transcend_na, 
+  #                       ifelse(exp_est < 1, scales::gradient_n_pal(c(transcend_cols[2], "white"))(exp_est / min(exp_est)),
+  #                              scales::gradient_n_pal(c("white", transcend_cols[1]))((exp_est - 1) / (max(exp_est) - 1)))))
+#rm(local_funds, private_funds, donations, inflation, enrollment, staffing, fiscal_cliff)
+#create heatmap
+ggplot(transformative_factors, aes(factor, term, fill = exp_est)) + #fill = fill_color
+  geom_tile() +
+  scale_fill_gradient(low = transcend_cols[3], high = transcend_cols[1]) +
+  #scale_fill_identity() +
+  scale_x_discrete(expand = c(0,0), labels = wrap_format(13)) +
+  labs(title = str_wrap("School characteristics predicting future factors of concern", 60),
+       subtitle = str_wrap("Darker blue indicates that characteristic made a school more likely to select the factor as something that will be transformative in the next 5 years, and a lighter blue made a school less likely to select that factor.", 80),
+       x = "",
+       y = "") +
+  theme(legend.position = "none",
+        axis.text.x = element_text(size = 12))
 ```
 
 
@@ -545,14 +609,14 @@ variables %>%
   geom_col(fill = transcend_cols[1]) +
   theme(legend.position = "none", 
         panel.grid.major.y = element_blank(),
-        axis.text.y = element_text(size = 11)) +
+        axis.text.y = element_text(size = 13)) +
   scale_y_continuous(expand = c(0, 0), limits = c(0, 150)) +
-  scale_x_discrete(labels = wrap_format(35)) +
+  scale_x_discrete(labels = wrap_format(25)) +
   geom_text(aes(label = n), nudge_y = 0.5, hjust = 0, color = transcend_na, fontface = "bold", size = 5.5, family = "sans") +
   coord_flip() +
   labs(x = "",
-       y = "",
-       title = str_wrap("Factors school leaders think will be most transformative in the next 5 years", 60))
+       y = "Number of schools",
+       title = str_wrap("Factors Canopy school leaders think will be most transformative in the next 5 years", 60))
 ```
 
 15 school leaders chose to provide an open response to the question, citing some other factor that was not on our list.  
@@ -614,37 +678,58 @@ variables %>%
 
 
 ```{r}
-log_model(variables$transform_ai, "School characteristics predicting citing AI as a factor they predict will shape K-12 education in the next 5 years")
+ai <- log_model(variables$transform_ai)
+plot_model("School characteristics predicting citing AI as a factor they predict will shape K-12 education in the next 5 years", ai)
+ai <- tidy_model(ai) %>% 
+  mutate(factor = "Artificial intelligence")
 ```
 
 *Really surprised to see PK schools here!*
 
 ```{r}
-log_model(variables$transform_mental_health, "School characteristics predicting citing the mental health crisis as a factor they predict will shape K-12 education in the next 5 years")
+mental_health <- log_model(variables$transform_mental_health)
+plot_model("School characteristics predicting citing the mental health crisis as a factor they predict will shape K-12 education in the next 5 years", mental_health)
+mental_health <- tidy_model(mental_health) %>% 
+  mutate(factor = "Mental health crisis")
 ```
 
 ```{r}
-log_model(variables$transform_pandemic, "School characteristics predicting citing pandemic learning loss as a factor they predict will shape K-12 education in the next 5 years")
+pandemic <- log_model(variables$transform_pandemic)
+plot_model("School characteristics predicting citing pandemic learning loss as a factor they predict will shape K-12 education in the next 5 years", pandemic)
+pandemic <- tidy_model(pandemic) %>% 
+  mutate(factor = "Pandemic learning loss")
 ```
 
 ```{r}
-log_model(variables$transform_workforce, "School characteristics predicting citing teacher workforce issues as a factor they predict will shape K-12 education in the next 5 years")
+workforce <- log_model(variables$transform_workforce)
+plot_model("School characteristics predicting citing teacher workforce issues as a factor they predict will shape K-12 education in the next 5 years", workforce)
+workforce <- tidy_model(workforce) %>% 
+  mutate(factor = "Teacher workforce issues")
 ```
 
 ```{r}
-log_model(variables$transform_enrollment, "School characteristics predicting citing changes in school enrollment as a factor they predict will shape K-12 education in the next 5 years")
+enrollment <- log_model(variables$transform_enrollment)
+plot_model("School characteristics predicting citing changes in school enrollment as a factor they predict will shape K-12 education in the next 5 years", enrollment)
+enrollment <- tidy_model(enrollment) %>% 
+  mutate(factor = "Changes in school enrollment")
 ```
 
 *Not super shocked by this, but interesting to see that schools with higher proportions of leaders of color and teachers of color were much more likely to cite politics/culture wars as a factor.*  
 
 ```{r}
-log_model(variables$transform_politics, "School characteristics predicting citing politics/culture wars as a factor they predict will shape K-12 education in the next 5 years")
+politics <- log_model(variables$transform_politics)
+plot_model("School characteristics predicting citing politics/culture wars as a factor they predict will shape K-12 education in the next 5 years", politics)
+politics <- tidy_model(politics) %>% 
+  mutate(factor = "Politics/culture wars")
 ```
 
 *Got a huge coefficient for private schools here--150x more likely to have chosen this factor! Only 22 schools selected this factor, and 14 of them were private schools.*
 
 ```{r}
-log_model(variables$transform_esa, "School characteristics predicting citing Education Savings Accounts and vouchers as a factor they predict will shape K-12 education in the next 5 years")
+esa <- log_model(variables$transform_esa)
+plot_model("School characteristics predicting citing Education Savings Accounts and vouchers as a factor they predict will shape K-12 education in the next 5 years", esa)
+esa <- tidy_model(esa) %>% 
+  mutate(factor = "ESAs or voucher policies")
 ```
 
 ```{r}
@@ -658,6 +743,28 @@ variables %>%
 Only 10 schools selected climate change as a factor, leading to really unstable modeling results. 
 
 ```{r}
-log_model(variables$transform_climate, "School characteristics predicting citing climate change as a factor they predict will shape K-12 education in the next 5 years")
+climate <- log_model(variables$transform_climate)
+plot_model("School characteristics predicting citing climate change as a factor they predict will shape K-12 education in the next 5 years", climate)
+climate <- tidy_model(climate) %>% 
+  mutate(factor = "Climate change")
+```
+
+
+Combined:
+
+```{r}
+#combine tidy data
+transformative_factors <- bind_rows(ai, mental_health, workforce)
+rm(ai, mental_health, pandemic, workforce, enrollment, politics, esa)
+#plot
+ggplot(transformative_factors, aes(factor, reorder(term, exp_est), fill = exp_est)) +
+  geom_tile() +
+  scale_fill_gradient(low = transcend_cols[4], high = transcend_cols[1]) +
+  scale_x_discrete(expand = c(0,0)) +
+  labs(title = "School characteristics predicting future transformative factors",
+       subtitle = str_wrap("Darker blue indicates that characteristic made a school more likely to select the factor as something that will be transformative in the next 5 years, and a lighter blue made a school less likely to select that factor.", 80),
+       x = "",
+       y = "") +
+  theme(legend.position = "none")
 ```
 
