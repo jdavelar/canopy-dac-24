@@ -207,7 +207,7 @@ The figure above is kind of a lot to take in at once, so I next explored which p
 By far, the availability of philanthropic funds are what schools report is helping support innovation work the most, followed by availability of public revenue. This isn't terribly surprising, as financial support is necessary to maintain innovation work. More surprising is that interactions with public service providers (e.g., social services, law enforcement, etc.) was in the top 3 reported ecosystem factors supporting innovation work.  
 
 ```{r}
-variables %>% 
+helps <- variables %>% 
   select(school_id, starts_with("policy")) %>% 
   pivot_longer(cols = starts_with("policy"),
                names_to = "policy",
@@ -218,8 +218,9 @@ variables %>%
   ungroup() %>% 
   left_join(policy_labs, by = "policy") %>% 
   filter(response == "Really helps" | response == "Somewhat helps") %>% 
-  mutate(response = factor(response, levels = c("Somewhat helps", "Really helps"))) %>% 
-  ggplot(., aes(reorder(short_label, n), n, fill = response)) +
+  mutate(response = factor(response, levels = c("Somewhat helps", "Really helps")))
+#plot
+ggplot(helps, aes(reorder(short_label, n), n, fill = response)) +
   geom_col() +
   scale_fill_manual(values = transcend_cols, breaks = c("Really helps", "Somewhat helps")) +
   theme(legend.position = "top", 
@@ -283,7 +284,7 @@ Which policies/ecosystem factors are **hindering** innovation work?
 Accountability systems most hindered innovation work for these school leaders, followed by policies that establish requirements for schools to follow, including course progression/seat time/graduation, credentialing/evaluation of teachers, calendar/scheduling requirements, and admission requirements. The extent to which they hindered work seems to differ across factors, but generally around a quarter or more of schools that responded said these type of requirements at least somewhat hinder innovation work.  
 
 ```{r}
-variables %>% 
+hinders <- variables %>% 
   select(school_id, starts_with("policy")) %>% 
   pivot_longer(cols = starts_with("policy"),
                names_to = "policy",
@@ -294,8 +295,9 @@ variables %>%
   ungroup() %>% 
   left_join(policy_labs, by = "policy") %>% 
   filter(response == "Really hinders" | response == "Somewhat hinders") %>% 
-  mutate(response = factor(response, levels = c("Somewhat hinders", "Really hinders"))) %>% 
-  ggplot(., aes(reorder(short_label, n), n, fill = response)) +
+  mutate(response = factor(response, levels = c("Somewhat hinders", "Really hinders")))
+#plot  
+ggplot(hinders, aes(reorder(short_label, n), n, fill = response)) +
   geom_col() +
   scale_fill_manual(values = c(transcend_cols[3], transcend_cols2[2]), breaks = c("Really hinders", "Somewhat hinders")) +
   theme(legend.position = "top", 
@@ -353,6 +355,36 @@ variables %>%
        title = "How do existing policies and ecosystem factors \naffect your innovation work?",
        fill = "Response")
 ```
+
+Combined helps/hinders plot:
+
+```{r}
+combined_factors <- bind_rows(helps, hinders) %>% 
+  mutate(n = ifelse(response == "Really hinders" | response == "Somewhat hinders", n*-1, n*1),
+         response = factor(response, levels = c("Really hinders", "Somewhat hinders", "Really helps", "Somewhat helps")))
+
+ggplot(combined_factors, aes(n, reorder(short_label, n), fill = response)) +
+  geom_col() +
+  scale_fill_manual(values = c(
+      "Really hinders" = transcend_cols[3], 
+      "Somewhat hinders" = transcend_cols2[2], 
+      "Somewhat helps" = transcend_cols[2], 
+      "Really helps" = transcend_cols[1])) +
+  theme(legend.position = "top", 
+        legend.direction = "horizontal",
+        panel.grid.major.x = element_blank(),
+        axis.text.y = element_text(size = 13)) +
+  # guides(fill = guide_legend(override.aes = 
+  #                              list(fill = c(transcend_cols[3], transcend_cols2[2], transcend_cols[2], transcend_cols[1])))) +
+  scale_x_continuous(expand = c(0, 0)) +
+  scale_y_discrete(labels = wrap_format(25)) +
+  geom_text(aes(label = abs(n), x = n), position = position_stack(vjust = 1), hjust = 1.2, color = "white", size = 5.5, family = "sans") +
+  labs(x = "Number of schools",
+       y = "",
+       title = "How do existing policies and ecosystem factors affect Canopy schools' work?",
+       fill = "Response")
+```
+
 
 Which policies/ecosystem factors are not having an effect?  
 
