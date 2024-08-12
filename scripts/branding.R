@@ -39,7 +39,7 @@ label_tags = function(capitalize = "none", wrap = Inf) {
       labels = str_to_sentence(labels)
     }
     if(is.finite(wrap)) {
-      labels = str_wrap(labels, width = wrap)
+      labels = str_wrap(labels, width = wrap, whitespace_only = FALSE)
     }
     return(labels)
   }
