@@ -205,6 +205,8 @@ time_vars %>%
   theme_bw() +
   theme(legend.position = "none") +
   labs(x = "",
+       subtitle = "In the 2024 survey, Canopy schools answered that the following practices \nwere used 5+ years.",
+       y = "Percentage of Schools",
        title = "Practices Used Longest and Most Often") +
   scale_fill_manual(values = c(transcend_cols2, transcend_na, transcend_cols[1])) +
     theme(
@@ -213,12 +215,12 @@ time_vars %>%
     axis.text = element_text(colour = "black"),
     axis.title = element_text(colour = "black"),
     panel.border = element_rect(colour = "#4D4D4F"),
-    strip.text = element_text(size = rel(0.8)),
+    strip.text = element_text(size = rel(0.9)),
     plot.margin = margin(10, 24, 10, 10, "pt"),
     legend.position = "none",
     panel.grid.major.y = element_blank()
   ) +
-  scale_y_continuous(expand = c(0,0), labels = scales::percent_format(scale = 1))
+  scale_y_continuous(expand = c(0,0), limits = c(0, 28), labels = scales::percent_format(scale = 1))
   
 ```
 
@@ -638,6 +640,37 @@ dis_agg_all %>%
     strip.text = element_text(size = rel(0.8)),
     plot.margin = margin(10, 24, 10, 10, "pt")
   )
+```
+
+```{r}
+dis_agg_all %>% 
+  mutate(label = ifelse(practice == "inclusion", "inclusion", label),
+         pct = round(n/189*100)) %>% 
+  head(5) %>% 
+  ggplot(., aes(x = reorder(label, pct), y = pct)) +
+  geom_col(fill = transcend_cols[1]) +
+  geom_text(aes(label = paste0(pct, "%")), nudge_y = 0.5, hjust = 0, color = transcend_na, fontface = "bold", size = 4, family = "sans") +
+  coord_flip() +
+  theme_bw() +
+  scale_y_continuous(expand = c(0,0),
+                     limits = c(0, 100),
+                     labels = percent_format(scale = 1)) +
+  theme(legend.position = "none",
+        panel.grid.major.y = element_blank()) +
+  labs(x = "",
+       y = "Percentage of Schools Selecting",
+       title = "Practices Most Frequently Selected by Canopy schools in 2024") +
+#  scale_fill_manual(values = c(transcend_cols2[2], transcend_na, transcend_cols[1])) +
+  theme(
+    plot.title = element_text(family = "Bebas Neue", color = "black"),
+    plot.background = element_blank(),
+    axis.text = element_text(colour = "black"),
+    axis.title = element_text(colour = "black"),
+    panel.border = element_rect(colour = "#4D4D4F"),
+    strip.text = element_text(size = rel(0.8)),
+    plot.margin = margin(10, 24, 10, 10, "pt")
+  ) +
+  scale_x_discrete(labels = scales::label_wrap(20))
 ```
 
 

@@ -427,3 +427,13 @@ list_plot$public_charter + list_plot$public_district + list_plot$independent_pri
 )
 
 ```
+
+
+# Models longitudinal
+
+```{r}
+labels <- import(here("data", "longitudinal/tag-labels.csv"))
+dat <- import(here("data/longitudinal", "tags-long.csv"))
+```
+
+

@@ -21,6 +21,7 @@ load(here("data/2024 data", "complete_canopy_2024.RData"))
 source(here("scripts/branding.R"))
 
 tags_wide <- import(here("data/longitudinal", "full-tags-wide.csv"))
+branding_labels <- import(here("data", "branding_labels.csv"))
 ```
 
 ## What is the relationship between the reasons school leaders cite for innovating and the future practices they hope to implement?
@@ -478,31 +479,6 @@ length(unique(how_many_dat$school_id)) #82
 
 
 ```{r}
-cat_by_year %>% 
-  mutate(catalyst_key = paste0("catalyst_", catalyst_key)) %>% 
-  pivot_wider(names_from = "selected",
-              values_from = "n") %>% 
-  mutate(dropped = -1*dropped) %>% 
-  left_join(., var_labels, by = c("catalyst_key" = "all")) %>% 
-  ggplot(aes(x = reorder(label, -dropped))) +
-  geom_col(aes(y = added), fill = transcend_cols[1]) +
-  geom_text(aes(label = added, y = added + 2), color = transcend_grays[2]) +
-  geom_col(aes(y = dropped), fill = transcend_cols[3]) +
-  geom_text(aes(label = abs(dropped), y = dropped - 2), color = transcend_grays[2]) +
-  geom_hline(yintercept = 0, linetype = 2) +
-  coord_flip() +
-  labs(title = "How have Canopy schools' central motivation \nfor innovating changed since 2021?",
-       y = "",
-       x = "Catalyst",
-       caption = "Data presented is for schools that responded in both 2021 \nand 2024 (N = 82). Red indicates a drop in selection and \nblue indicates an addition.") +
-  theme(
-    panel.grid.major.y = element_blank(),
-    axis.text.y = element_text(size = rel(0.6))
-  ) +
-  scale_y_continuous(labels = NULL, breaks = NULL)
-```
-
-```{r}
 catalyst_counts_21 <- how_many_dat %>% 
   group_by(school_id) %>% 
   summarise(tot_2021 = sum(`2021`))
@@ -515,6 +491,35 @@ catalyst_counts_24 <- how_many_dat %>%
 
 table(catalyst_counts_24$tot_2024)
 ```
+
+Across schools
+```{r}
+
+catalyst_all_years_long %>% 
+  mutate(catalyst = paste0("catalyst_", catalyst)) %>% 
+  select(-total_selected) %>% 
+  pivot_wider(names_from = year,
+              values_from = pct) %>% 
+  mutate(difference = round((`2024` - `2021`)*100)) %>% 
+  left_join(., var_labels, by = c("catalyst" = "all")) %>% 
+  ggplot(aes(x = difference, y = label, fill = factor(sign(difference)))) +
+  geom_col() +
+  geom_vline(xintercept = 0, linetype = 2) +
+  scale_fill_manual(values = c(transcend_cols[3], transcend_cols[1])) +
+#  geom_text(aes(label = difference), color = transcend_grays[2])
+  labs(title = "Catalyst Key Adds/Drops Across Schools",
+       subtitle = "Blue represents an add from 2021 to 2024. Red represents a drop.",
+       y = "",
+       x = "Percentage Difference in Selection") +
+  theme(
+    panel.grid.major.y = element_blank(),
+    legend.position = "none",
+    axis.text.y = element_text(size = rel(0.6))
+  ) +
+  scale_x_continuous(labels = percent_format(scale = 1)) +
+  scale_y_discrete(labels = scales::label_wrap(15))
+```
+
 
 
 ## For leaders who were concerned about future sustainability, what reasons did they cite for their concern and did these reasons differ across schools?
