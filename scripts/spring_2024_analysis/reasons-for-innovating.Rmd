@@ -10,7 +10,7 @@ output:
     highlight: tango
     code_folding: hide
 editor_options: 
-  chunk_output_type: console
+  chunk_output_type: inline
 ---
 
 ```{r setup, include=FALSE}
@@ -180,6 +180,45 @@ catalyst_all_years_long  %>%
        title = "Catalyst Selection by Year \n Across Schools") +
   theme(legend.position = "none")
 ```
+
+
+```{r}
+catalyst_all_years_long %>% 
+  mutate(catalyst = paste0("catalyst_", catalyst)) %>% 
+  left_join(., var_labels, by = c("catalyst" = "all")) %>% 
+  select(-catalyst, -total_selected) %>% 
+  pivot_wider(names_from = year,
+              values_from = pct) %>% 
+  mutate(change = `2024` - `2021`) %>% 
+  arrange(change) %>% 
+  ggplot(aes(x = `2021`, xend = `2024`, y = reorder(label, -change), xend = label)) +
+  geom_segment(color = "black", linetype = "dotted") +
+  geom_point(aes(x = `2021`), color = transcend_cols[1], size = 2) +
+  geom_point(aes(x = `2024`), color = transcend_cols[2], size = 2) +
+  guides(col = guide_legend(nrow = 1, title = NULL)) + 
+  geom_text(
+    aes(y = label, x = (`2021` + `2024`)/2, label = paste0("Δ = ", round((`2024` - `2021`)*100), "%"), color = factor(sign(`2024` - `2021`))),
+    nudge_y = .1,
+    hjust = 0,
+    show.legend = FALSE,
+    size = 6
+  ) +
+  labs(
+    y = "",
+    x = "Percentage of Canopy schools selecting",
+    title = "How have Reasons for Innovating Changed from 2021 to 2024?"
+  ) +
+  theme(
+#    panel.grid.major.x = element_blank(),
+    legend.position = "bottom"
+  ) +
+  scale_x_continuous(labels = scales::percent,  limits = c(0, .9)) +
+  scale_y_discrete(labels = scales::label_wrap(10)) +
+  coord_flip()
+  
+```
+
+
 
 What about schools who responded to the survey both years? So, looking within schools? Let's narrow the sample and check that out.
 
@@ -461,6 +500,20 @@ cat_by_year %>%
     axis.text.y = element_text(size = rel(0.6))
   ) +
   scale_y_continuous(labels = NULL, breaks = NULL)
+```
+
+```{r}
+catalyst_counts_21 <- how_many_dat %>% 
+  group_by(school_id) %>% 
+  summarise(tot_2021 = sum(`2021`))
+
+table(catalyst_counts_21$tot_2021)
+
+catalyst_counts_24 <- how_many_dat %>% 
+  group_by(school_id) %>% 
+  summarise(tot_2024 = sum(`2024`))
+
+table(catalyst_counts_24$tot_2024)
 ```
 
 

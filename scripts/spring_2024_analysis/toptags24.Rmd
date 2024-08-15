@@ -10,7 +10,7 @@ output:
     highlight: tango
     code_folding: hide
 editor_options: 
-  chunk_output_type: console
+  chunk_output_type: inline
 ---
 
 ```{r setup, include=FALSE}
@@ -18,7 +18,8 @@ knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE)
 pacman::p_load(tidyverse, here, rio, DT, ggcorrplot, psych, parameters, ggthemes, broom)
 
 load(here("data/2024 data", "complete_canopy_2024.RData"))
-# source(here("scripts/branding.R"))
+source(here("scripts/branding.R"))
+transcend_na <- transcend_grays[2]
 ```
 
 ```{r}
@@ -188,27 +189,37 @@ time_vars %>% datatable()
 ```
 
 ```{r}
+branding_labels <- import(here("data/branding_labels.csv"))
+
 time_vars %>% 
   arrange(-`5+ years`) %>% 
   head() %>% 
-  ggplot(aes(x = reorder(practice, `5+ years`), y = `5+ years`)) +
-  geom_col(aes(fill = practice)) +
-  geom_text(aes(label = `5+ years`), nudge_y = 0.5, hjust = 0, color = transcend_na, fontface = "bold", family = "sans") +
+  mutate(practice = paste0("practices_", practice)) %>% 
+  mutate(practice = ifelse(practice == "practices_inclusion", "practices_all_courses_designed_for_inclusion", practice)) %>% 
+  left_join(., branding_labels, by = c("practice" = "tag")) %>% 
+  mutate(pct = round((`5+ years`/189)*100)) %>% 
+  ggplot(aes(x = reorder(label, pct), y = pct)) +
+  geom_col(aes(fill = label)) +
+  geom_text(aes(label = paste0(pct, "%")), nudge_y = 0.5, hjust = 0, color = transcend_na) +
   coord_flip() +
   theme_bw() +
   theme(legend.position = "none") +
-  labs(x = "Top Practices",
+  labs(x = "",
        title = "Practices Used Longest and Most Often") +
   scale_fill_manual(values = c(transcend_cols2, transcend_na, transcend_cols[1])) +
-  theme(
+    theme(
     plot.title = element_text(family = "Bebas Neue", color = "black"),
     plot.background = element_blank(),
     axis.text = element_text(colour = "black"),
     axis.title = element_text(colour = "black"),
     panel.border = element_rect(colour = "#4D4D4F"),
     strip.text = element_text(size = rel(0.8)),
-    plot.margin = margin(10, 24, 10, 10, "pt")
-  )
+    plot.margin = margin(10, 24, 10, 10, "pt"),
+    legend.position = "none",
+    panel.grid.major.y = element_blank()
+  ) +
+  scale_y_continuous(expand = c(0,0), labels = scales::percent_format(scale = 1))
+  
 ```
 
 
@@ -580,6 +591,44 @@ dis_agg_all %>%
   labs(x = "Top Practices",
        title = "Practices Most Frequently Selected") +
   scale_fill_manual(values = c(transcend_cols2, transcend_na, transcend_cols[1])) +
+  theme(
+    plot.title = element_text(family = "Bebas Neue", color = "black"),
+    plot.background = element_blank(),
+    axis.text = element_text(colour = "black"),
+    axis.title = element_text(colour = "black"),
+    panel.border = element_rect(colour = "#4D4D4F"),
+    strip.text = element_text(size = rel(0.8)),
+    plot.margin = margin(10, 24, 10, 10, "pt")
+  )
+```
+
+#### Update for 8/9
+```{r}
+dis_agg_all <- dis_agg_all %>% 
+  filter(frequency == 1) %>% 
+  group_by(practice) %>% 
+  summarise(n = n()) %>% 
+  arrange(desc(n)) %>% 
+  head(12) %>% 
+  mutate(variable = paste0("practices_", practice)) %>% 
+  left_join(., branding_labels, by = c("variable" = "tag"))
+
+dis_agg_all %>% 
+  mutate(label = ifelse(practice == "inclusion", "inclusion", label),
+         pct = round(n/189*100)) %>% 
+  ggplot(., aes(x = reorder(label, pct), y = pct)) +
+  geom_col(aes(fill = label)) +
+  geom_text(aes(label = paste0(pct, "%")), nudge_y = 0.5, hjust = 0, color = transcend_na, fontface = "bold", size = 3, family = "sans") +
+  coord_flip() +
+  theme_bw() +
+  scale_y_continuous(expand = c(0,0),
+                     limits = c(0, 100)) +
+  theme(legend.position = "none",
+        panel.grid.major.y = element_blank()) +
+  labs(x = "Top Practices",
+       y = "Percentage of Schools Selecting",
+       title = "Practices Most Frequently Selected by Canopy schools in 2024") +
+#  scale_fill_manual(values = c(transcend_cols2[2], transcend_na, transcend_cols[1])) +
   theme(
     plot.title = element_text(family = "Bebas Neue", color = "black"),
     plot.background = element_blank(),

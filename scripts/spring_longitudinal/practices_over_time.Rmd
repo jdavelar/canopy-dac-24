@@ -277,6 +277,41 @@ core_prac %>%
   ) 
 ```
 
+```{r}
+core_prac %>% 
+  group_by(core_practice, year) %>% 
+  summarise(selected = sum(times_selected)) %>% 
+  mutate(core_practice = gsub("core_", "practices_", core_practice)) %>% 
+  left_join(., variable_usage, by = c("core_practice" = "variable")) %>% 
+  filter(year != 2019) %>% 
+  left_join(., core_prac_dat) %>% 
+  select(-years_used) %>% 
+  arrange(-times_selected) %>% 
+  group_by(core_practice) %>% 
+  left_join(., clean_labels, by = c("core_practice" = "variable")) %>% 
+  filter(number_of_years_used > 4) %>% 
+  filter(times_selected > 104) %>% 
+  mutate(label = ifelse(label == "competency/mastery-based education", "competency/ mastery-based education", label)) %>% 
+  ggplot() +
+    geom_col(aes(reorder(label, times_selected), selected, fill = year), position = "dodge") +
+    scale_fill_manual(values = transcend_cols) +
+    scale_y_continuous(expand = c(0,0)) +
+  scale_x_discrete(labels = scales::label_wrap(10), guide = guide_axis(n.dodge = 1)) +
+  labs(title = "Most selected core practices (4+ years)",
+       x = "",
+       y = "") +
+#  scale_x_discrete(labels = label_tags()) +
+  theme(legend.position = "bottom", 
+        legend.direction = "horizontal",
+        text = element_text(size = 9),
+        axis.text.x = element_text()) + 
+  theme(
+    panel.grid.major.x = element_blank(),
+    legend.position = "bottom"
+  ) 
+```
+
+
 ### Update for 8/9
 
 ```{r}
@@ -326,6 +361,104 @@ core_prac_plot_dat %>%
   coord_flip() +
   tidytext::scale_x_reordered()
 ```
+
+```{r}
+core_prac_plot_dat %>% 
+  mutate(label = reorder_within(label, pct, year)) %>% 
+  ggplot(aes(label, pct, fill = year)) +
+    geom_col() +
+    scale_fill_manual(values = transcend_cols) +
+    scale_y_continuous(expand = c(0,0), labels = scales::percent_format()) +
+  labs(title = "Most selected core practices (4+ years)",
+       x = "",
+       y = "") +
+  theme(legend.position = "none", 
+        legend.direction = "horizontal",
+        text = element_text(size = 8),
+        panel.grid.major.y = element_blank(),
+        axis.text.x = element_text(angle = 45, hjust = 1),
+        strip.placement = "outside") + 
+  scale_x_discrete(labels = scales::label_wrap(10), guide = guide_axis(n.dodge = 1)) +
+  tidytext::scale_x_reordered()
+
+
+core_prac %>% 
+  group_by(core_practice, year) %>% 
+  summarise(selected = sum(times_selected)) %>% 
+  mutate(core_practice = gsub("core_", "practices_", core_practice)) %>% 
+  left_join(., variable_usage, by = c("core_practice" = "variable")) %>% 
+  filter(year != 2019) %>% 
+  left_join(., core_prac_dat) %>% 
+  select(-years_used) %>% 
+  arrange(-times_selected) %>% 
+  group_by(core_practice) %>% 
+  left_join(., clean_labels, by = c("core_practice" = "variable")) %>% 
+  filter(number_of_years_used > 4) %>% 
+  filter(times_selected > 104) %>% 
+  mutate(label = ifelse(label == "competency/mastery-based education", "competency/ mastery-based education", label)) %>% 
+  mutate(pct = case_when(year == 2021 ~ selected/n_2021,
+                         year == 2022 ~ selected/n_2022,
+                         year == 2023 ~ selected/n_2023,
+                         year == 2024 ~ selected/n_2024)) %>% 
+  ggplot() +
+    geom_col(aes(reorder(label, times_selected), pct, fill = year), position = "dodge") +
+    scale_fill_manual(values = transcend_cols) +
+    scale_y_continuous(expand = c(0,0), limits = c(0, .8), labels = scales::percent) +
+  scale_x_discrete(labels = scales::label_wrap(10), guide = guide_axis(n.dodge = 1)) +
+  labs(title = "Most selected core practices",
+       subtitle = "These core practices have been around for at least 4 years.",
+       x = "",
+       y = "") +
+#  scale_x_discrete(labels = label_tags()) +
+  theme(legend.position = "bottom", 
+        legend.direction = "horizontal",
+        text = element_text(size = 9),
+        axis.text.x = element_text()) + 
+  theme(
+    panel.grid.major.x = element_blank(),
+    legend.position = "bottom"
+  ) 
+```
+
+```{r}
+core_prac %>% 
+  group_by(core_practice, year) %>% 
+  summarise(selected = sum(times_selected)) %>% 
+  mutate(core_practice = gsub("core_", "practices_", core_practice)) %>% 
+  left_join(., variable_usage, by = c("core_practice" = "variable")) %>% 
+  filter(year != 2019) %>% 
+  left_join(., core_prac_dat) %>% 
+  select(-years_used) %>% 
+  arrange(-times_selected) %>% 
+  group_by(core_practice) %>% 
+  left_join(., clean_labels, by = c("core_practice" = "variable")) %>% 
+  filter(number_of_years_used > 4) %>% 
+  filter(times_selected > 139) %>% 
+  mutate(label = ifelse(label == "competency/mastery-based education", "competency/ mastery-based education", label)) %>% 
+  mutate(pct = case_when(year == 2021 ~ selected/n_2021,
+                         year == 2022 ~ selected/n_2022,
+                         year == 2023 ~ selected/n_2023,
+                         year == 2024 ~ selected/n_2024)) %>% 
+  ggplot() +
+    geom_col(aes(reorder(label, times_selected), pct, fill = year), position = "dodge") +
+    scale_fill_manual(values = transcend_cols) +
+    scale_y_continuous(expand = c(0,0), limits = c(0, .8), labels = scales::percent) +
+  scale_x_discrete(labels = scales::label_wrap(10), guide = guide_axis(n.dodge = 1)) +
+  labs(title = "Most selected core practices",
+       subtitle = "These core practices have been around for at least 4 years.",
+       x = "",
+       y = "") +
+#  scale_x_discrete(labels = label_tags()) +
+  theme(legend.position = "bottom", 
+        legend.direction = "horizontal",
+        text = element_text(size = 9),
+        axis.text.x = element_text()) + 
+  theme(
+    panel.grid.major.x = element_blank(),
+    legend.position = "bottom"
+  ) 
+```
+
 
 And without 2021 year
 
@@ -903,17 +1036,17 @@ increase_plot <- core_prac %>%
     show.legend = FALSE
   )  +
   labs(
-    y = "",
-    x = "Percentage of Canopy Schools",
-    title = "Core Practices with largest increase",
-    subtitle = "These tags increased from 2022 to 2024 across schools."
+    y = "Increase",
+    x = ""
   ) +
   theme(
     panel.grid.major.y = element_blank(),
     legend.position = "bottom",
-    axis.text.y = element_text(size = rel(0.6))
+    axis.text.y = element_text(size = rel(0.6)),
+    axis.text.x = element_blank()
   ) +
-  scale_x_continuous(labels = scales::percent_format(scale = 1))
+  scale_x_continuous(labels = scales::percent_format(scale = 1), limits = c(0, 28)) +
+  scale_y_discrete(labels = scales::label_wrap(30))
 
 decrease_plot <- core_prac %>% 
   mutate(core_practice = gsub("core_", "practices_", core_practice)) %>% 
@@ -942,17 +1075,16 @@ decrease_plot <- core_prac %>%
     show.legend = FALSE
   )  +
   labs(
-    y = "",
-    x = "Percentage of Canopy Schools",
-    title = "Core Practices with largest decrease",
-    subtitle = "These tags decreased from 2022 to 2024 across schools."
+    y = "Decrease",
+    x = "Percentage of Canopy Schools"
   ) +
   theme(
     panel.grid.major.y = element_blank(),
     legend.position = "bottom",
     axis.text.y = element_text(size = rel(0.6))
   ) +
-  scale_x_continuous(labels = scales::percent_format(scale = 1))
+  scale_x_continuous(labels = scales::percent_format(scale = 1),  limits = c(0, 28)) +
+  scale_y_discrete(labels = scales::label_wrap(30))
 
 increase_plot
 decrease_plot
@@ -960,7 +1092,10 @@ decrease_plot
 
 ```{r}
 library(patchwork)
-increase_plot + decrease_plot + plot_layout(ncol = 1)
+increase_plot + decrease_plot + plot_layout(ncol = 1) + plot_annotation(title = "Core Practices with Largest Increase/Decrease",
+                                                                        subtitle = "These tags increased or decreased between 2022 and 2024 across schools.",
+                  theme = theme(plot.title = element_text(hjust = 0.5),
+                                plot.subtitle = element_text(hjust = 0.5)))
 ```
 
 
@@ -1161,3 +1296,29 @@ implementation_with_color %>%
     axis.text.y = element_markdown()
   )
 ```
+
+```{r}
+implementation_with_color %>% 
+  group_by(cluster, time) %>% 
+  summarise(total = sum(N)) %>% 
+  filter(cluster != "None") %>% 
+  ggplot() +
+  geom_col(aes(x = reorder(cluster, total), y = total, fill = time)) +
+#  geom_text(aes(x = reorder(cluster, total), y = total, label = total), position = "fill") +
+  scale_fill_manual(values = transcend_cols) +
+  scale_y_continuous(expand = c(0,0)) +
+  labs(title = "Practice Clusters by Time Implemented",
+       x = "",
+       y = "") +
+  theme(legend.position = "bottom", 
+        legend.direction = "horizontal",
+        axis.text.x = element_text(angle = 45, hjust = 1)) + 
+  coord_flip() +
+  theme(
+    panel.grid.major.y = element_blank(),
+    legend.position = "bottom",
+    legend.title = element_blank(),
+    axis.text.y = element_markdown()
+  ) 
+```
+

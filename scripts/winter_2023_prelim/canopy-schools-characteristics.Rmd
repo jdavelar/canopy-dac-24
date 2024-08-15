@@ -10,7 +10,7 @@ output:
     highlight: tango
     code_folding: hide
 editor_options: 
-  chunk_output_type: console
+  chunk_output_type: inline
 ---
 
 ```{r setup, include=FALSE}
@@ -260,11 +260,13 @@ enrollment_viz <- enrollment_dat %>%
   geom_line(color = transcend_cols[1], alpha = 0.4) +  
   annotate(
     "text", label = "Note: The Virtual Learning Academy in Exeter, NH \nhas reported jumping up to 10,000 students \nin 2023 from 298 enrolled the year before.",
-    x = 2021, y = 7350, size = 4.5, colour = "red"
+    x = 2021, y = 7350, size = 4.3, colour = "red"
   ) +
-  labs(title = "School Enrollment by Wave with 4+ years of data",
-       x = "Wave Number",
-       y = "School Enrollment") 
+  labs(title = "Number of Students Enrolled in Canopy schools",
+       subtitle = "Each line maps one school's enrollment over time. \nVisual is restricted to schools with 4+ years of data.",
+       x = "",
+       y = "Number of students enrolled") +
+  scale_y_continuous(expand = c(0,0), limits = c(0, 10200))
 enrollment_viz
 ```
 
@@ -289,6 +291,26 @@ library(patchwork)
 enrollment_viz + enrollment_sans_out_viz + ncol(2)
 ```
 
+```{r}
+enrollment_viz2 <- enrollment_dat %>%
+  group_by(school_id) %>% 
+  filter(n()>3) %>% 
+  ungroup() %>% 
+  group_by(year) %>% 
+  summarise(median = median(school_enrollment)) %>% 
+  ggplot(aes(x = as.factor(year), y = median)) + 
+  geom_col(fill = transcend_cols[1], alpha = 0.8) + 
+  labs(title = "Median Number of Students Enrolled in Canopy schools",
+       subtitle = "Schools in this sample have 4+ years of data.",
+       x = "",
+       y = "Median number of students enrolled") +
+  scale_y_continuous(expand = c(0,0), limits = c(0, 400)) +
+  theme(panel.grid.major.x = element_blank())
+  
+
+enrollment_viz2
+```
+
 
 ## How have student demographics changed?
 
@@ -300,38 +322,36 @@ dat <- long_dat %>%
 
 ### English Language Learners 
 
-```{r fig.width=7, fig.height=7}
-dat %>%
+```{r}
+el_viz <- dat %>%
   group_by(school_id) %>% 
   filter(n()>3) %>% 
   ungroup() %>% 
   ggplot(aes(x = year, y = pct_ell)) + 
-  geom_smooth(alpha = 0.3, color = "darkgray", se = FALSE) +
+  geom_smooth(color = transcend_grays[1], se = FALSE) +
   geom_point(aes(group = school_id), color = transcend_cols2[1], alpha = 0.6) +
-  geom_line(aes(group = school_id), color = transcend_cols2[1], alpha = 0.4) + 
-  scale_y_continuous(labels = scales::percent_format(scale = 100)) + 
-  labs(title = "Pct. English Language Learner \nClassification by Wave",
-       subtitle = "Restricted to Schools with 4+ years of data",
-       x = "Wave Number",
-       y = "Pct. ELL") 
+  geom_line(aes(group = school_id), color = transcend_cols2[1], alpha = 0.6) + 
+  scale_y_continuous(labels = scales::percent_format(scale = 100), expand = c(0,0), limits = c(0, 1.1)) + 
+  theme(panel.grid.major.y = element_blank()) +
+  labs(y = "Percent with English Language Learner Classification",
+       x = "")
 ```
 
 ### Students with Disabilities
 
-```{r fig.width=7, fig.height=7}
-dat %>%
+```{r}
+swd_viz <- dat %>%
   group_by(school_id) %>% 
   filter(n()>3) %>% 
   ungroup() %>% 
   ggplot(aes(x = year, y = pct_swd)) + 
-  geom_smooth(alpha = 0.3, color = "darkgray", se = FALSE) +
+  geom_smooth(color = transcend_grays[1], se = FALSE) +
   geom_point(aes(group = school_id), color = transcend_cols[2], alpha = 0.6) +
-  geom_line(aes(group = school_id), color = transcend_cols[2], alpha = 0.4) + 
-  scale_y_continuous(labels = scales::percent_format(scale = 100)) + 
-  labs(title = "Pct. Students with Disabilities \nClassification by Wave",
-       subtitle = "Restricted to Schools with 4+ years of data",       
-       x = "Wave Number",
-       y = "Pct. SWD") 
+  geom_line(aes(group = school_id), color = transcend_cols[2], alpha = 0.6) + 
+  scale_y_continuous(labels = scales::percent_format(scale = 100), expand = c(0,0), limits = c(0, 1.1)) + 
+  theme(panel.grid.major.y = element_blank()) +
+  labs(y = "Percent with Disability Classification",
+       x = "") 
 ```
 
 
@@ -341,7 +361,7 @@ dat %>%
 
 Source: [Click here for more information.](https://www.urban.org/data-tools/measuring-student-poverty-dishing-alternatives-free-and-reduced-price-lunch?s)
 
-```{r fig.width=7, fig.height=7}
+```{r}
 dat %>%
   group_by(school_id) %>% 
   filter(n()>3) %>% 
@@ -359,7 +379,7 @@ dat %>%
 
 ### Race
 
-```{r fig.width=7, fig.height=7}
+```{r}
 dat %>%
   group_by(school_id) %>% 
   filter(n()>3) %>% 
@@ -377,20 +397,26 @@ dat %>%
 
 Looks like school ID 105 is doing this weird jump where it goes from less than 1% BIPOC to 100% BIPOC. This is Juab High School in Nephi, Utah. Upon looking at the race breakdown, this looks like a coding error. I will just omit from the analysis for now.
 
-```{r fig.width=7, fig.height=7}
-dat %>%
+```{r}
+poc_viz <- dat %>%
   group_by(school_id) %>% 
   filter(n()>3) %>% 
   ungroup() %>% 
   filter(school_id != 105) %>% 
   ggplot(aes(x = year, y = pct_bipoc)) + 
-  geom_smooth(alpha = 0.3, color = "darkgray", se = FALSE) +
+  geom_smooth(color = transcend_grays[1], se = FALSE) +
   geom_point(aes(group = school_id), color = transcend_cols[3], alpha = 0.6) +
-  geom_line(aes(group = school_id), color = transcend_cols[3], alpha = 0.4) + 
-  scale_y_continuous(labels = scales::percent_format(scale = 100)) + 
-  labs(title = "Pct. Black, Indigenous, and People of Color \nClassification by Wave",
-       subtitle = "Restricted to Schools with 4+ years of data",       
-       x = "Wave Number",
-       y = "Pct. BIPOC") 
+  geom_line(aes(group = school_id), color = transcend_cols[3], alpha = 0.6) + 
+  scale_y_continuous(labels = scales::percent_format(scale = 100), expand = c(0,0), limits = c(0, 1.1)) + 
+  theme(panel.grid.major.y = element_blank()) +
+  labs(x = "",
+       y = "Percent Classified as Black, Indigenous, \nor Person of Color") 
+```
+
+
+```{r}
+library(patchwork)
+
+el_viz + swd_viz + poc_viz + plot_annotation(title = "Special Population Classifications over Time", subtitle = "These are restricted to Canopy schools with at least 4 years of data.")
 ```
 

@@ -10,7 +10,7 @@ output:
     highlight: tango
     code_folding: hide
 editor_options: 
-  chunk_output_type: console
+  chunk_output_type: inline
 ---
 
 ```{r setup, include=FALSE}
@@ -201,8 +201,7 @@ most_added %>%
   ) +
   theme(
     panel.grid.major.y = element_blank(),
-    legend.position = "bottom",
-    axis.text.y = element_text(size = rel(0.6))
+    legend.position = "bottom"
   )
 ```
 
@@ -233,7 +232,85 @@ most_removed %>%
   ) +
   theme(
     panel.grid.major.y = element_blank(),
-    legend.position = "bottom",
-    axis.text.y = element_text(size = rel(0.6))
+    legend.position = "bottom"
   )
 ```
+
+```{r}
+most_added <- tag_changes %>% 
+  arrange(desc(added)) %>% 
+  head(5)
+
+most_removed <- tag_changes %>% 
+  arrange(desc(dropped)) %>% 
+  head(5)
+
+adds <- most_added %>% 
+  left_join(labels, by = "var") %>% 
+  ggplot(aes(x = dropped, xend = added, y = reorder(label, added), yend = label)) +
+  geom_segment(color = "black", linetype = "dotted") +
+  geom_point(aes(x = dropped), color = "red") +
+  geom_point(aes(x = added), color = "blue") +
+  guides(col = guide_legend(nrow = 1, title = NULL)) + 
+  bar_x_scale_count +
+  geom_text(
+    aes(x = pmax(added, dropped) + 1, label = paste("Δ =", net_adds), color = factor(sign(net_adds))),
+    nudge_y = 0,
+    hjust = 0,
+    show.legend = FALSE
+  ) +
+  scale_color_manual(
+    values = c("red", "blue"),
+    labels = c("Drops", "Adds")
+  ) +
+  labs(
+    y = "Most Added",
+    x = ""
+  ) +
+  theme(
+    panel.grid.major.y = element_blank(),
+    legend.position = "bottom",
+    axis.text.x = element_blank()
+  ) +
+  scale_y_discrete(labels = scales::label_wrap(30)) +
+  scale_x_continuous(limits = c(10,85))
+
+
+drops <- most_removed %>% 
+  left_join(labels, by = "var") %>% 
+  ggplot(aes(x = dropped, xend = added, y = reorder(label, dropped), yend = label)) +
+  geom_segment(color = "black", linetype = "dotted") +
+  geom_point(aes(x = dropped), color = "red") +
+  geom_point(aes(x = added), color = "blue") +
+  guides(col = guide_legend(nrow = 1, title = NULL)) + 
+  bar_x_scale_count +
+  geom_text(
+    aes(x = pmax(added, dropped) + 1, label = paste("Δ =", net_adds), color = factor(sign(net_adds))),
+    nudge_y = 0,
+    hjust = 0,
+    show.legend = FALSE
+  ) +
+  scale_color_manual(
+    values = c("red", "blue"),
+    labels = c("Drops", "Adds")
+  ) +
+  labs(
+    y = "Most Removed",
+    x = ""
+  ) +
+  theme(
+    panel.grid.major.y = element_blank(),
+    legend.position = "bottom"
+  ) +
+  scale_y_discrete(labels = scales::label_wrap(30)) +
+  scale_x_continuous(limits = c(10,85))
+
+```
+
+```{r}
+library(patchwork)
+
+adds + drops + plot_layout(ncol = 1) + plot_annotation(title = "Top 5 Most Added & Removed Practices Within Schools",
+                                                       subtitle = "Restricted to Canopy schools with at least 2 years of data.")
+```
+

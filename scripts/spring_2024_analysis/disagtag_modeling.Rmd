@@ -8,9 +8,9 @@ output: html_document
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 
-pacman::p_load(here, purrr, tidyverse, ggcorrplot, proxy, plotly, patchwork, psych, GPArotation, parameters, DT, nFactors, broom, scales, rstanarm, broom.mixed, gmodels, ggthemes, tidytext)
+pacman::p_load(here, purrr, tidyverse, ggcorrplot, proxy, plotly, patchwork, psych, GPArotation, parameters, DT, nFactors, broom, scales, rstanarm, broom.mixed, gmodels, ggthemes, tidytext, rio)
 
-# source(here("scripts/branding.R"))
+source(here("scripts/branding.R"))
 load(here("data/2024 data", "complete_canopy_2024.RData"))
 # load(here("data/demo_models_for_findings.RData"))
 ```
@@ -142,16 +142,23 @@ load(here("data/2024 data", "bayesmods.rda"))
 ### Step 3. Make plots.
 
 ```{r}
+branding_labels <- import(here("data", "branding_labels.csv"))
+
 bayes_facet_dat = bayes_tidy %>% 
   group_by(term) %>%
   arrange(desc(abs(estimate))) %>%
-  slice(1:10)  
-#   left_join(tag_labels, by = c("response" = "tag"))
+  slice(1:10) %>% 
+  left_join(branding_labels, by = c("response" = "tag")) %>% 
+  mutate(label = case_when(response == "practices_no_tracking" ~ "no tracked classes",
+                           response == "practices_learner_profiles" ~ "learner profiles",
+                           response == "practices_colead_teachers" ~ "teachers as co-leaders",
+                           response == "practices_colead_students" ~ "students as co-leaders",    
+                           .default = label))
 
 list_plot <- bayes_facet_dat %>% 
   split(.$term) %>% 
   map(~ggplot(., aes(y = exp(estimate), 
-             x = reorder_within(response, estimate, within = term, fun = mean)
+             x = reorder_within(label, estimate, within = term, fun = mean)
              )) +
   geom_col(fill = transcend_cols[1]) + 
   labs(y = "",
@@ -162,15 +169,76 @@ list_plot <- bayes_facet_dat %>%
     labels = c("1/16 as likely", "1/4 as likely", "1/2 as likely", "Even", "2x as likely", "4x as likely", "16x as likely"),
     expand = expansion(0, 0)
   ) +
-#  scale_x_reordered() + 
+  tidytext::scale_x_reordered() + 
   geom_hline(yintercept = 1, color = transcend_grays[1]) +
   coord_flip() +
   guides(fill = "none") +
-  theme(axis.text = element_text(size = rel(1)), strip.text = element_text(size = rel(0.6)),
+  theme(axis.text = element_text(size = rel(0.7)), strip.text = element_text(size = rel(0.6)),
         panel.grid.major.y = element_blank(),
-        axis.text.x = element_text(angle = -45, size = rel(0.5), vjust = 0.5, hjust = 0))
+        axis.text.x = element_text(angle = -45, size = rel(0.6), vjust = 0.5, hjust = 0))
   )
 ```
+
+Add titles to each of them manually.
+```{r}
+list_plot$grades_pk <- list_plot$grades_pk + labs(title = "Pre-K Schools")
+list_plot$grades_elementary <- list_plot$grades_elementary + labs(title = "Elementary Schools")
+list_plot$grades_middle <- list_plot$grades_middle + labs(title = "Middle Schools")
+list_plot$grades_high <- list_plot$grades_high + labs(title = "High Schools")
+
+library(patchwork)
+
+list_plot$grades_pk + list_plot$grades_elementary + list_plot$grades_middle + list_plot$grades_high + plot_annotation(
+  title = 'Top 10 Practices Most/Least Likely to be Selected',
+  subtitle = 'Note: Practices used by less than 20% of schools are omitted.',
+  theme=theme(plot.title=element_text(hjust=0.5),
+              plot.subtitle = element_text(hjust=0.5))
+)
+```
+
+```{r}
+list_plot$public_charter <- list_plot$public_charter + labs(title = "Public Charter")  + geom_col(fill = transcend_cols[2])
+list_plot$public_district <- list_plot$public_district + labs(title = "Public District") + geom_col(fill = transcend_cols[2]) 
+list_plot$independent_private <- list_plot$independent_private + labs(title = "Independent/Private") + geom_col(fill = transcend_cols[2])
+
+list_plot$public_charter + list_plot$public_district + list_plot$independent_private + plot_layout(ncol = 1) + plot_annotation(
+  title = 'Top 10 Practices Most/Least Likely to be Selected',
+  subtitle = 'Note: Practices used by less than 20% of schools are omitted.',
+  theme=theme(plot.title=element_text(hjust=0.5),
+              plot.subtitle = element_text(hjust=0.5))
+)
+
+```
+```{r}
+list_plot$school_locale_Rural <- list_plot$school_locale_Rural + labs(title = "Rural")  + geom_col(fill = transcend_cols[3])
+list_plot$school_locale_Suburban <- list_plot$school_locale_Suburban + labs(title = "Suburban")  + geom_col(fill = transcend_cols[3])
+list_plot$school_locale_Urban <- list_plot$school_locale_Urban + labs(title = "Urban")  + geom_col(fill = transcend_cols[3])
+list_plot$school_locale_Multiple <- list_plot$school_locale_Multiple + labs(title = "Multiple")  + geom_col(fill = transcend_cols[3])
+
+list_plot$school_locale_Rural +list_plot$school_locale_Suburban +list_plot$school_locale_Urban + list_plot$school_locale_Multiple + plot_annotation(
+  title = 'Top 10 Practices Most/Least Likely to be Selected',
+  subtitle = 'Note: Practices used by less than 20% of schools are omitted.',
+  theme=theme(plot.title=element_text(hjust=0.5),
+              plot.subtitle = element_text(hjust=0.5))
+)
+```
+
+```{r}
+list_plot$pct_bipoc <- list_plot$pct_bipoc + labs(title = "Higher-than-average % \nstudents classified as BIPOC") + geom_col(fill = transcend_cols[4])
+list_plot$pct_ell <- list_plot$pct_ell + labs(title = "Higher-than-average % \nstudents classified as ELL") + geom_col(fill = transcend_cols[4])
+list_plot$pct_frpl <- list_plot$pct_frpl + labs(title = "Higher-than-average % \nstudents classified FRPL") + geom_col(fill = transcend_cols[4])
+list_plot$pct_swd <- list_plot$pct_swd + labs(title = "Higher-than-average % \nstudents with disabilities") + geom_col(fill = transcend_cols[4])
+
+list_plot$pct_bipoc + list_plot$pct_ell + list_plot$pct_frpl + list_plot$pct_swd + plot_annotation(
+  title = 'Top 10 Practices Most/Least Likely to be Selected',
+  subtitle = 'Note: Practices used by less than 20% of schools are omitted.',
+  theme=theme(plot.title=element_text(hjust=0.5),
+              plot.subtitle = element_text(hjust=0.5))
+)
+
+
+```
+
 
 ```{r}
 file_names <- stringr::str_c(names(list_plot), ".png")
@@ -185,8 +253,177 @@ pwalk(list(file_names, list_plot), ggsave, path = "disagtag_modeling")
 list_plot
 ```
 
-Notes from meeting:
-place-based learning - grade level dive
-pct predominantly black, latinx, indigenous
+# Models for core practices
 
-clean up files
+### Step 1. Data cleaning
+```{r}
+mod_prep <- full %>% 
+  select(school_id, school_type, school_locale, school_enrollment, pct_bipoc, pct_ell, pct_frpl, pct_swd, grades_pk, grades_elementary, grades_middle, grades_high, starts_with("core")) %>% 
+  pivot_longer(cols = c(starts_with("core")),
+               names_to = "tag",
+               values_to = "value")
+
+# create categorical dummy vars
+library(fastDummies)
+mod_prep <- mod_prep %>% 
+  dummy_cols(select_columns = c("school_type", "school_locale")) %>% 
+  select(-c(school_type, school_locale, school_locale_NA)) %>% 
+  rename(independent_private = `school_type_Independent (private) school`,
+         public_charter = `school_type_Public charter school`,
+         public_district = `school_type_Public district school`)
+
+## below section is filtering on tags that have been selected by atleast 20% of schools
+m <- mod_prep %>% 
+  group_by(tag, value, school_id) %>% 
+  summarise(selected_n = n()) %>% 
+  arrange(selected_n) %>% 
+  filter(value > 0) %>% 
+  select(-2)
+
+tag_counts <- m %>%
+  group_by(tag) %>%
+  summarise(school_count = n_distinct(school_id))
+
+# threshold <- n_distinct(mod_prep$school_id) * 0.2
+#modify threshold for core tags -- maybe those selected by more than 10 schools?
+
+threshold <- 10
+
+low_select_tags <- tag_counts %>%
+  filter(school_count < threshold) %>%
+  pull(tag)
+
+## remove them for our analysis
+mod_prep <- mod_prep %>% 
+  filter(!(tag %in% low_select_tags)) %>% 
+  select(-tag, -value, tag, value) #arrange so tag and value are at the end
+
+vars <- names(mod_prep)[2:17]
+
+logistic_one_dat = 
+  mod_prep %>%
+  select(value, tag, one_of(vars)) %>%
+  na.omit() %>%
+  group_by(tag) %>%
+  # scaling non-binary predictors
+  mutate_at(vars(
+    c(
+      "school_enrollment",
+      "pct_bipoc",
+      "pct_ell",
+      "pct_swd",
+      "pct_frpl"
+    )
+  ), scale)
+
+```
+
+### Step 2. Run models.
+
+```{r eval=FALSE, echo = TRUE}
+
+# [tag] <- locale_rural ~ self_reported_total_enrollment + black_percent + hispanic_percent + white_percent + native_percent + asian_percent + frpl_percent + swd_percent + ell_percent + school_descriptor + grades_prek + grades_elementary + grades_middle + grades_high
+
+one_form = as.formula(paste("value", "~", paste(vars, collapse = "+")))
+
+bayes_mods = list()
+
+
+for(x in unique(mod_prep$tag)) {
+  bayes_mods[[x]] = stan_glm(
+    one_form,
+    data = filter(logistic_one_dat, tag == x),
+    family = binomial(link = "logit"),
+    prior = student_t( #df and scale updated to have less extreme values
+      df = 10,
+      location = 0,
+      scale = 2.5
+    )
+  )
+  
+}
+
+bayes_tidy = lapply(bayes_mods, tidy) %>%
+  bind_rows(.id = "response") %>%
+  filter(term != "(Intercept)")
+  # mutate(
+  #   nice_tag = label_tags()(response),
+  #   nice_demog = factor(label_dems(term))
+  # )
+
+# save data file
+# save(bayes_tidy, bayes_mods, file = "bayesmods_core.rda")
+```
+
+```{r}
+load(here("data/2024 data", "bayesmods_core.rda"))
+```
+
+### Step 3. Make plots.
+
+```{r}
+branding_labels <- import(here("data", "branding_labels.csv"))
+
+bayes_facet_dat = bayes_tidy %>% 
+  mutate(response = gsub("core_", "practices_", response)) %>% 
+  group_by(term) %>%
+  arrange(desc(abs(estimate))) %>%
+  slice(1:10) %>% 
+  left_join(branding_labels, by = c("response" = "tag")) %>% 
+  mutate(label = case_when(response == "practices_coleadership" ~ "co-leadership",
+                           response == "practices_learner_profiles" ~ "learner profiles",    
+                           .default = label))
+
+list_plot <- bayes_facet_dat %>% 
+  split(.$term) %>% 
+  map(~ggplot(., aes(y = exp(estimate), 
+             x = reorder_within(label, estimate, within = term, fun = mean)
+             )) +
+  geom_col(fill = transcend_cols[1]) + 
+  labs(y = "",
+       x = "") +
+  scale_y_continuous(
+    trans = "log",
+    breaks = c(.0625, .25, .5, 1, 2, 4, 16),
+    labels = c("1/16 as likely", "1/4 as likely", "1/2 as likely", "Even", "2x as likely", "4x as likely", "16x as likely"),
+    expand = expansion(0, 0)
+  ) +
+  tidytext::scale_x_reordered() + 
+  geom_hline(yintercept = 1, color = transcend_grays[1]) +
+  coord_flip() +
+  guides(fill = "none") +
+  theme(axis.text = element_text(size = rel(0.7)), strip.text = element_text(size = rel(0.6)),
+        panel.grid.major.y = element_blank(),
+        axis.text.x = element_text(angle = -45, size = rel(0.6), vjust = 0.5, hjust = 0))
+  )
+```
+
+Add titles to each of them manually.
+```{r}
+list_plot$grades_pk <- list_plot$grades_pk + labs(title = "Pre-K Schools")
+list_plot$grades_elementary <- list_plot$grades_elementary + labs(title = "Elementary Schools")
+list_plot$grades_middle <- list_plot$grades_middle + labs(title = "Middle Schools")
+list_plot$grades_high <- list_plot$grades_high + labs(title = "High Schools")
+
+library(patchwork)
+
+list_plot$grades_pk + list_plot$grades_elementary + list_plot$grades_middle + list_plot$grades_high + plot_annotation(
+  title = 'Top 10 Core Practices Most/Least Likely to be Selected',
+  subtitle = 'Note: Core practices selected by less than 10 schools are omitted.',
+  theme=theme(plot.title=element_text(hjust=0.5),
+              plot.subtitle = element_text(hjust=0.5))  
+)
+```
+```{r}
+list_plot$public_charter <- list_plot$public_charter + labs(title = "Public Charter")  + geom_col(fill = transcend_cols[2])
+list_plot$public_district <- list_plot$public_district + labs(title = "Public District") + geom_col(fill = transcend_cols[2]) 
+list_plot$independent_private <- list_plot$independent_private + labs(title = "Independent/Private") + geom_col(fill = transcend_cols[2])
+
+list_plot$public_charter + list_plot$public_district + list_plot$independent_private + plot_layout(ncol = 1) + plot_annotation(
+  title = 'Top 10 Core Practices Most/Least Likely to be Selected',
+  subtitle = 'Note: Core practices selected by less than 10 schools are omitted.',
+  theme=theme(plot.title=element_text(hjust=0.5),
+              plot.subtitle = element_text(hjust=0.5))  
+)
+
+```
