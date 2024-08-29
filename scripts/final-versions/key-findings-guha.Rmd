@@ -1,0 +1,560 @@
+---
+title: "Key Findings Images"
+author: "Anwesha Guha"
+date: "`r Sys.Date()`"
+output: html_document
+---
+start: 5:30
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+pacman::p_load(rio, here, tidyverse, patchwork)
+## read in ALL data here
+
+## 2024 files
+load(here("data/2024 data", "complete_canopy_2024.RData"))
+
+## longitudina files
+longitudinal_data <- import(here("data/longitudinal", "longitudinal_data.csv"))
+tags_long <- import(here("data/longitudinal", "tags-long.csv"))
+full_tags_long <- import(here("data/longitudinal/full-tags-long.csv"))
+full_tags_wide <- import(here("data/longitudinal", "full-tags-wide.csv"))
+
+var_labels <- import(here("data/datasets_by_year", "var_labels.csv"))
+tag_labels <- import(here("data", "tag_labels.csv"))
+
+## branding
+branding_labels <- import(here("data", "branding_labels.csv"))
+source(here("scripts/branding.R"))
+
+## ns
+n_2019 <- 173
+n_2021 <- 232
+n_2022 <- 161
+n_2023 <- 251
+n_2024 <- 189
+```
+
+## figure_1
+
+```{r fig 1 setup}
+## setup
+catalyst_all_years_long <- longitudinal_data %>% 
+  select(year, school_id, starts_with("catalyst")) %>% 
+  filter(year == 2021 | year == 2024)  %>% 
+  select(-contains("_other"), -contains("_key")) %>% 
+  pivot_longer(cols = contains("catalyst"),
+               names_to = "catalyst",
+               values_to = "selected",
+               names_prefix = "catalyst_")
+
+n_2021 = 232
+n_2024 = 189
+
+catalyst_all_years_long <- catalyst_all_years_long %>% 
+  group_by(catalyst, year) %>% 
+  summarize(total_selected = sum(selected)) %>% 
+  mutate(pct = case_when(year == 2021 ~ total_selected/n_2021,
+                          year == 2024 ~ total_selected/n_2024))
+
+## figure
+figure_1 <- catalyst_all_years_long %>% 
+  mutate(catalyst = paste0("catalyst_", catalyst)) %>% 
+  select(-total_selected) %>% 
+  pivot_wider(names_from = year,
+              values_from = pct) %>% 
+  mutate(difference = round((`2024` - `2021`)*100)) %>% 
+  left_join(., var_labels, by = c("catalyst" = "all")) %>% 
+  ggplot(aes(x = difference, y = label, fill = factor(sign(difference)))) +
+  geom_col() +
+  geom_vline(xintercept = 0, linetype = 2) +
+  scale_fill_manual(values = c(transcend_cols[3], transcend_cols[1])) +
+#  geom_text(aes(label = difference), color = transcend_grays[2])
+  labs(title = "Catalyst Key Adds/Drops Across Schools",
+       subtitle = "Blue represents an add from 2021 to 2024. Red represents a drop.",
+       y = "",
+       x = "Percentage Difference in Selection") +
+  theme(
+    panel.grid.major.y = element_blank(),
+    legend.position = "none",
+    axis.text.y = element_text(size = rel(0.7))
+  ) +
+  scale_x_continuous(labels = percent_format(scale = 1)) +
+  scale_y_discrete(labels = scales::label_wrap(15))
+```
+
+```{r fig.width=8, fig.height=6}
+figure_1
+```
+
+
+## figure_2
+
+```{r fig 2 setup}
+# setup from Gregor's code
+tags_2y = tags_long |>
+  filter(usage == 1) |>
+  filter(n_distinct(year) >= 2, .by = var) |>
+  pull(var)
+
+long_2y = tags_long |> filter(var %in% tags_2y) # 87 tags total here
+
+changes = long_2y |>
+  arrange(school_id, var, year) |>
+  summarize(
+    added = any(diff(usage) == 1),
+    dropped = any(diff(usage) == -1),
+    waffled = added & dropped,
+    .by = c(var, school_id)
+  ) |>
+  filter(added | dropped)
+
+tag_changes = changes |>
+  summarize(
+    across(c(added, dropped, waffled), sum),
+    .by = var
+  ) |>
+  mutate(net_adds = added - dropped) |>
+  arrange(net_adds, added) |>
+  mutate(tag = fct_inorder(var))
+
+adds <- tag_changes %>% 
+  arrange(desc(added)) %>% 
+  head(5) %>% 
+  left_join(tag_labels, by = "tag") %>% 
+  ggplot(aes(x = dropped, xend = added, y = reorder(label, added), yend = label)) +
+  geom_segment(color = "black", linetype = "dotted") +
+  geom_point(aes(x = dropped), color = "red") +
+  geom_point(aes(x = added), color = "blue") +
+  guides(col = guide_legend(nrow = 1, title = NULL)) + 
+  bar_x_scale_count +
+  geom_text(
+    aes(x = pmax(added, dropped) + 1, label = paste("Δ =", net_adds), color = factor(sign(net_adds))),
+    nudge_y = 0,
+    hjust = 0,
+    show.legend = FALSE
+  ) +
+  scale_color_manual(
+    values = c("red", "blue"),
+    labels = c("Drops", "Adds")
+  ) +
+  labs(
+    y = "",
+    x = ""
+  ) +
+  theme(
+    panel.grid.major.y = element_blank(),
+    legend.position = "bottom",
+    axis.text.x = element_blank()
+  ) +
+  scale_y_discrete(labels = scales::label_wrap(30)) +
+  scale_x_continuous(limits = c(10,85)) +
+  labs(subtitle = "Most Added")
+
+
+drops <- tag_changes %>% 
+  arrange(desc(dropped)) %>% 
+  head(5) %>% 
+  left_join(tag_labels, by = "tag") %>% 
+  ggplot(aes(x = dropped, xend = added, y = reorder(label, dropped), yend = label)) +
+  geom_segment(color = "black", linetype = "dotted") +
+  geom_point(aes(x = dropped), color = "red") +
+  geom_point(aes(x = added), color = "blue") +
+  guides(col = guide_legend(nrow = 1, title = NULL)) + 
+  bar_x_scale_count +
+  geom_text(
+    aes(x = pmax(added, dropped) + 1, label = paste("Δ =", net_adds), color = factor(sign(net_adds))),
+    nudge_y = 0,
+    hjust = 0,
+    show.legend = FALSE
+  ) +
+  scale_color_manual(
+    values = c("red", "blue"),
+    labels = c("Drops", "Adds")
+  ) +
+  labs(
+    y = "",
+    x = ""
+  ) +
+  theme(
+    panel.grid.major.y = element_blank(),
+    legend.position = "bottom"
+  ) +
+  scale_y_discrete(labels = scales::label_wrap(30)) +
+  scale_x_continuous(limits = c(10,85)) +
+  labs(subtitle = "Most Removed")
+
+figure_2 <- adds + drops + plot_layout(ncol = 1) + plot_annotation(title = "Top 5 Most Added & Removed Practices Within Schools", subtitle = "Restricted to Canopy schools with at least 2 years of data.")
+```
+
+
+```{r fig.width=8, fig.height=6}
+figure_2
+```
+
+
+
+
+## figure_3
+```{r fig 3 setup}
+core_prac <- full_tags_wide %>% 
+  select(school_id, year, starts_with("core")) %>% 
+  mutate(school_id = as.factor(school_id),
+         year = as.factor(year)) 
+
+core_prac[is.na(core_prac)] <- 0
+
+core_prac <- core_prac %>% 
+  pivot_longer(starts_with("core"),
+               names_to = "core_practice",
+               values_to = "times_selected") 
+
+core_prac_dat <- core_prac %>% 
+  group_by(core_practice) %>% 
+  summarise(selected = sum(times_selected)) %>% 
+              arrange(-selected)
+
+#
+tags_2019 <- full_tags_long %>% 
+  filter(year == 2019) %>% 
+  group_by(var) %>% 
+  summarise(`2019` = sum(usage), .groups = "drop") #173 schools
+
+tags_2021 <- full_tags_long %>% 
+  filter(year == 2021) %>% 
+  group_by(var) %>% 
+  summarise(`2021` = sum(usage), .groups = "drop")  #232 schools
+
+tags_2022 <- full_tags_long %>% 
+  filter(year == 2022) %>% 
+  group_by(var) %>% 
+  summarise(`2022` = sum(usage), .groups = "drop") #161 schools
+
+tags_2023 <- full_tags_long %>% 
+  filter(year == 2023) %>% 
+  group_by(var) %>% 
+  summarise(`2023` = sum(usage), .groups = "drop") #251 schools
+
+tags_2024 <- full_tags_long %>% 
+  filter(year == 2024) %>% 
+  group_by(var) %>% 
+  summarise(`2024` = sum(usage), .groups = "drop") #189 schools
+
+tags_list <- list(
+  `2019` = tags_2019 %>% pull(var) %>% unique(),
+  `2021` = tags_2021 %>% pull(var) %>% unique(),
+  `2022` = tags_2022 %>% pull(var) %>% unique(),
+  `2023` = tags_2023 %>% pull(var) %>% unique(),
+  `2024` = tags_2024 %>% pull(var) %>% unique()
+)
+
+# Combine the list into a long dataframe
+tags_df <- bind_rows(
+  lapply(names(tags_list), function(year) {
+    data.frame(variable = tags_list[[year]], year = as.integer(year))
+  })
+)
+
+variable_usage <- tags_df %>%
+  group_by(variable) %>%
+  summarise(
+    number_of_years_used = n_distinct(year),
+    years_used = paste(sort(unique(year)), collapse = ", ")
+  )
+# 
+core_prac_dat <- core_prac_dat %>% 
+  mutate(core_practice = gsub("core_", "practices_", core_practice)) %>% 
+  rename(times_selected = selected)
+
+figure_3 <- core_prac %>% 
+  group_by(core_practice, year) %>% 
+  summarise(selected = sum(times_selected)) %>% 
+  mutate(core_practice = gsub("core_", "practices_", core_practice)) %>% 
+  left_join(., variable_usage, by = c("core_practice" = "variable")) %>% 
+  filter(year != 2019) %>% 
+  left_join(., core_prac_dat) %>% 
+  select(-years_used) %>% 
+  arrange(-times_selected) %>% 
+  group_by(core_practice) %>% 
+  left_join(., tag_labels, by = c("core_practice" = "tag")) %>% 
+  filter(number_of_years_used > 4) %>% 
+  filter(times_selected > 139) %>% 
+  mutate(label = ifelse(label == "competency/mastery-based education", "competency/ mastery-based education", label)) %>% 
+  mutate(pct = case_when(year == 2021 ~ selected/n_2021,
+                         year == 2022 ~ selected/n_2022,
+                         year == 2023 ~ selected/n_2023,
+                         year == 2024 ~ selected/n_2024)) %>% 
+  ggplot() +
+    geom_col(aes(reorder(label, times_selected), pct, fill = year), position = "dodge") +
+    scale_fill_manual(values = transcend_cols) +
+    scale_y_continuous(expand = c(0,0), limits = c(0, .8), labels = scales::percent) +
+  scale_x_discrete(labels = scales::label_wrap(10), guide = guide_axis(n.dodge = 1)) +
+  labs(title = "Most selected core practices",
+       subtitle = "These core practices have been around for at least 4 years.",
+       x = "",
+       y = "") +
+#  scale_x_discrete(labels = label_tags()) +
+  theme(legend.position = "bottom", 
+        legend.direction = "horizontal",
+        text = element_text(size = 9),
+        axis.text.x = element_text()) + 
+  theme(
+    panel.grid.major.x = element_blank(),
+    legend.position = "bottom"
+  ) 
+```
+
+```{r fig.height=4, fig.width=8}
+figure_3
+```
+
+## figure_4
+
+```{r fig 4 setup}
+variable_usage_by_year <- tags_2019 %>%
+  full_join(tags_2021, by = "var") %>%
+  full_join(tags_2022, by = "var") %>%
+  full_join(tags_2023, by = "var") %>%
+  full_join(tags_2024, by = "var") %>% 
+  left_join(tag_labels, by = c("var" = "tag"))
+
+used_22_24 <- variable_usage_by_year %>% 
+  select(label, `2022`, `2023`, `2024`) %>% 
+  remove_missing() %>% 
+  pull(label)
+
+increase_plot <- core_prac %>% 
+  mutate(core_practice = gsub("core_", "practices_", core_practice)) %>% 
+  group_by(core_practice, year) %>% 
+  summarise(selected = sum(times_selected)) %>% 
+  filter(year %in% c(2022, 2024)) %>% 
+  pivot_wider(names_from = year, values_from = selected, names_prefix = "year_") %>%
+  mutate(prop_2022 = (year_2022/n_2022)*100,
+         prop_2024 = (year_2024/n_2024)*100,
+         change = prop_2024 - prop_2022) %>%
+  filter(change > 0) %>% 
+  arrange(desc(change)) %>% 
+  left_join(., tag_labels, by = c("core_practice" = "tag")) %>% 
+  filter(label %in% used_22_24) %>% 
+  head(5) %>% 
+  ggplot(aes(x = prop_2022, xend = prop_2024, y = reorder(label, change), yend = label)) +
+  geom_segment(color = "black", linetype = "dotted") +
+  geom_point(aes(x = prop_2022), color = "red") +
+  geom_point(aes(x = prop_2024), color = "blue") +
+  guides(col = guide_legend(nrow = 1, title = NULL)) + 
+  geom_text(
+    aes(x = (prop_2022 + prop_2024)/2 -1, label = paste0("Δ = ", round(prop_2024 - prop_2022), "%"), color = factor(sign(prop_2024 - prop_2022))),
+    nudge_y = .3,
+    hjust = 0,
+    show.legend = FALSE
+  )  +
+  labs(
+    y = "",
+    x = ""
+  ) +
+  theme(
+    panel.grid.major.y = element_blank(),
+    legend.position = "bottom",
+    axis.text.y = element_text(size = rel(0.6)),
+    axis.text.x = element_blank()
+  ) +
+  scale_x_continuous(labels = scales::percent_format(scale = 1), limits = c(0, 28)) +
+  scale_y_discrete(labels = scales::label_wrap(30)) +
+  labs(subtitle = "Increase")
+
+decrease_plot <- core_prac %>% 
+  mutate(core_practice = gsub("core_", "practices_", core_practice)) %>% 
+  group_by(core_practice, year) %>% 
+  summarise(selected = sum(times_selected)) %>% 
+  filter(year %in% c(2022, 2024)) %>% 
+  pivot_wider(names_from = year, values_from = selected, names_prefix = "year_") %>%
+  mutate(prop_2022 = (year_2022/n_2022)*100,
+         prop_2024 = (year_2024/n_2024)*100,
+         change = prop_2024 - prop_2022) %>%
+  filter(year_2024 > 0) %>% 
+  filter(change < 0) %>% 
+  arrange(change) %>% 
+  left_join(., tag_labels, by = c("core_practice" = "tag")) %>% 
+  filter(label %in% used_22_24) %>% 
+  head(5) %>% 
+  ggplot(aes(x = prop_2022, xend = prop_2024, y = reorder(label, -change), yend = label)) +
+  geom_segment(color = "black", linetype = "dotted") +
+  geom_point(aes(x = prop_2022), color = "red") +
+  geom_point(aes(x = prop_2024), color = "blue") +
+  guides(col = guide_legend(nrow = 1, title = NULL)) + 
+  geom_text(
+    aes(x = (prop_2022 + prop_2024)/2 -1, label = paste0("Δ = ", round(prop_2024 - prop_2022), "%"), color = factor(sign(prop_2024 - prop_2022))),
+    nudge_y = .3,
+    hjust = 0,
+    show.legend = FALSE
+  )  +
+  labs(
+    y = "",
+    x = "Percentage of Canopy Schools"
+  ) +
+  theme(
+    panel.grid.major.y = element_blank(),
+    legend.position = "bottom",
+    axis.text.y = element_text(size = rel(0.6))
+  ) +
+  scale_x_continuous(labels = scales::percent_format(scale = 1),  limits = c(0, 28)) +
+  scale_y_discrete(labels = scales::label_wrap(30)) +
+  labs(subtitle = "Decrease")
+
+figure_4 <- increase_plot + decrease_plot + plot_layout(ncol = 1) + plot_annotation(title = "Core Practices with Largest Increase/Decrease", subtitle = "These tags increased or decreased between 2022 and 2024 across schools.", theme = theme(plot.title = element_text(hjust = 0.5),
+                                plot.subtitle = element_text(hjust = 0.5)))
+```
+
+```{r fig.height=6, fig.width=8}
+figure_4
+```
+
+## figure_5
+
+```{r}
+enrollment_dat <- longitudinal_data %>% 
+  select(school_id, year, school_enrollment) %>% 
+  na.omit() %>% 
+  group_by(school_id) %>% 
+  filter(n() >1) %>% 
+  ungroup()
+
+figure_5 <- enrollment_dat %>%
+  group_by(school_id) %>% 
+  filter(n()>3) %>% 
+  ungroup() %>% 
+  ggplot(aes(x = year, y = school_enrollment, group = school_id)) + 
+  geom_point(color = transcend_cols[1], alpha = 0.6) +
+  geom_line(color = transcend_cols[1], alpha = 0.4) +  
+  annotate(
+    "text", label = "Note: The Virtual Learning Academy in Exeter, NH \nhas reported jumping up to 10,000 students \nin 2023 from 298 enrolled the year before.",
+    x = 2021, y = 7350, size = 4.3, colour = "red"
+  ) +
+  labs(title = "Number of Students Enrolled in Canopy schools",
+       subtitle = "Each line maps one school's enrollment over time. \nVisual is restricted to schools with 4+ years of data.",
+       x = "",
+       y = "Number of students enrolled") +
+  scale_y_continuous(expand = c(0,0), limits = c(0, 10200))
+```
+
+```{r fig.height=6, fig.width=8}
+figure_5
+```
+
+## figure_6
+
+```{r}
+el_viz <- longitudinal_data %>% 
+  select(school_id, year, starts_with("pct")) %>% 
+  na.omit() %>% 
+  group_by(school_id) %>% 
+  filter(n()>3) %>% 
+  ungroup() %>% 
+  ggplot(aes(x = year, y = pct_ell)) + 
+  geom_smooth(color = transcend_grays[1], se = FALSE) +
+  geom_point(aes(group = school_id), color = transcend_cols2[1], alpha = 0.6) +
+  geom_line(aes(group = school_id), color = transcend_cols2[1], alpha = 0.6) + 
+  scale_y_continuous(labels = scales::percent_format(scale = 100), expand = c(0,0), limits = c(0, 1.1)) + 
+  theme(panel.grid.major.y = element_blank(),
+        axis.text = element_text(size = rel(0.6))) +
+  labs(y = "",
+       x = "",
+       subtitle = "Percent with English \nLanguage Learner \nClassification")
+
+swd_viz <- longitudinal_data %>% 
+  select(school_id, year, starts_with("pct")) %>% 
+  na.omit() %>%
+  group_by(school_id) %>% 
+  filter(n()>3) %>% 
+  ungroup() %>% 
+  ggplot(aes(x = year, y = pct_swd)) + 
+  geom_smooth(color = transcend_grays[1], se = FALSE) +
+  geom_point(aes(group = school_id), color = transcend_cols[2], alpha = 0.6) +
+  geom_line(aes(group = school_id), color = transcend_cols[2], alpha = 0.6) + 
+  scale_y_continuous(labels = scales::percent_format(scale = 100), expand = c(0,0), limits = c(0, 1.1)) + 
+  theme(panel.grid.major.y = element_blank(),
+        axis.text = element_text(size = rel(0.6))) +
+  labs(y = "",
+       x = "",
+       subtitle = "Percent with Disability \nClassification") 
+
+poc_viz <- longitudinal_data %>% 
+  select(school_id, year, starts_with("pct")) %>% 
+  na.omit() %>%
+  group_by(school_id) %>% 
+  filter(n()>3) %>% 
+  ungroup() %>% 
+  filter(school_id != 105) %>% 
+  ggplot(aes(x = year, y = pct_bipoc)) + 
+  geom_smooth(color = transcend_grays[1], se = FALSE) +
+  geom_point(aes(group = school_id), color = transcend_cols[3], alpha = 0.6) +
+  geom_line(aes(group = school_id), color = transcend_cols[3], alpha = 0.6) + 
+  scale_y_continuous(labels = scales::percent_format(scale = 100), expand = c(0,0), limits = c(0, 1.1)) + 
+  theme(panel.grid.major.y = element_blank(),
+        axis.text = element_text(size = rel(0.6))) +
+  labs(x = "",
+       y = "",
+       subtitle = "Percent Classified as \nBlack, Indigenous, or \nPerson of Color") 
+
+figure_6 <- el_viz + swd_viz + poc_viz + plot_annotation(title = "Special Population Classifications over Time", subtitle = "These are restricted to Canopy schools with at least 4 years of data.")
+```
+
+```{r fig.height=4, fig.width=10}
+figure_6 
+```
+
+## figure_11
+
+```{r}
+
+barrier_labs <- variables %>% 
+  select(starts_with("barrier"), -barrier_other_text) %>% 
+  pivot_longer(cols = starts_with("barrier"),
+               names_to = "barrier",
+               values_to = "response") %>% 
+  select(barrier) %>% 
+  unique() %>% 
+  mutate(label = case_when(
+    barrier == "barrier_local_funds" ~ "Availability of local funds",
+    barrier == "barrier_private_funds" ~ "Availability of private funding from foundations or donors",
+    barrier == "barrier_donations" ~ "Changes to in-kind donations",
+    barrier == "barrier_inflation" ~ "Inflation/increasing prices",
+    barrier == "barrier_enrollment" ~ "Changes in school enrollment",
+    barrier == "barrier_shortage" ~ "Staffing shortages",
+    barrier == "barrier_federal_funds" ~ "Expiration of federal relief funds",
+    barrier == "barrier_other" ~ "Some other reason"
+  ))
+
+barriers <- full %>% 
+  select(school_id, starts_with("barrier")) %>% 
+  select(-contains("_other")) %>% 
+  pivot_longer(cols = contains("barrier"),
+               names_to = "barrier",
+               values_to = "selected") %>% 
+  filter(selected == 1) %>% 
+  group_by(barrier) %>% 
+  summarize(n = n())
+
+figure_11 <- barriers %>% 
+  left_join(barrier_labs, by = "barrier") %>% 
+  mutate(pct = n/n_2024) %>% 
+  ggplot(aes(reorder(label, pct), pct)) +
+  geom_col(aes(fill = label)) +
+  scale_fill_manual(values = c(transcend_cols, transcend_cols2)) +
+  labs(title = "Barriers to sustainability Canopy school leaders cited in 2024",
+       x = "",
+       y = "Percentage of Canopy schools reporting") +
+  theme(legend.position = "none",
+        panel.grid.major.y = element_blank(),
+        axis.text.y = element_text(size = 11)) +
+  scale_y_continuous(label = scales::label_percent(), expand = c(0, 0), limits = c(0, .55)) +
+  scale_x_discrete(labels = wrap_format(35)) +
+    geom_text(aes(label = paste0(round(pct, 2)*100, "%")), nudge_y = 0.01, hjust = 0, color = transcend_grays[2], fontface = "bold", size = 5.5, family = "sans") +
+  coord_flip()
+```
+
+```{r fig.height=4, fig.width=10}
+figure_11
+# ggsave(filename = here("output/anwesha-images", "figure_11.png"))
+```
+
