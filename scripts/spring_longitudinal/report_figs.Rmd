@@ -1,0 +1,230 @@
+---
+title: "Report Odds and Ends"
+author: "Janette Avelar"
+date: '2024-09-13'
+output: 
+  html_document:
+    toc: true
+    toc_float: true
+    theme: flatly
+    highlight: tango
+    code_folding: hide
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE, fig.width = 7, fig.height = 6)
+pacman::p_load(tidyverse, here, rio, ggthemes, scales)
+#read in data
+load(here("data", "2024 data/complete_canopy_2024.RData"))
+dat <- variables
+rm(dictionary, full, tags, variables)
+```
+
+```{r}
+#manual branding - file won't load
+transcend_cols = c("#1A4C81","#59C3B4","#EF464B","#ADE0EE")
+transcend_cols2 = c("#BC2582","#FFA630","#FFDE42","#99C24D","#218380","#D3B7D7")
+transcend_grays = c("#4D4D4F","#9D9FA2","#D1D3D4")
+transcend_na = transcend_grays[2]
+theme_transcend = theme_gdocs(base_size = 14, base_family = "Open Sans") +
+  theme(
+    plot.title = element_text(family = "Bebas Neue", color = "black"),
+    plot.background = element_blank(),
+    axis.text = element_text(colour = "black"),
+    axis.title = element_text(colour = "black"),
+    panel.border = element_rect(colour = "#4D4D4F"),
+    strip.text = element_text(size = rel(0.8)),
+    plot.margin = margin(10, 24, 10, 10, "pt")
+  )
+theme_set(theme_transcend)
+```
+
+## Future concern plot
+
+```{r, fig.width = 7, fig.height = 4}
+dat %>% 
+  select(school_id, future_resources, leadership_diversity) %>% 
+  filter(future_resources != "Prefer not to say") %>% 
+  mutate(future_resources = factor(future_resources,
+                                   levels = c("No, not at all", "No, not very", "Neutral", "Yes, somewhat", "Yes, extremely")),
+         rate = 1,
+         leadership_diversity = str_replace_all(leadership_diversity, "people", "leaders")) %>% 
+  group_by(future_resources, leadership_diversity) %>% 
+  summarize(n = sum(rate)) %>% 
+  ungroup() %>% 
+  group_by(leadership_diversity) %>% 
+  mutate(sum = sum(n),
+         pct = n/sum) %>% 
+  ungroup() %>% 
+  ggplot(., aes(pct, leadership_diversity, fill = future_resources)) +
+  geom_col() +
+  scale_fill_manual(values = c(
+      "Yes, extremely" = transcend_cols[3], 
+      "Yes, somewhat" = transcend_cols2[2], 
+      "Neutral" = transcend_na,
+      "No, not very" = transcend_cols[2], 
+      "No, not at all" = transcend_cols[1])) +
+  scale_x_continuous(expand = c(0, 0), limits = c(0, 1), labels = scales::percent_format()) +
+  geom_text(aes(label = scales::label_percent(accuracy = 1)(pct)), 
+            position = position_stack(vjust = .5), #vjust = .95 before
+            #hjust = 1,
+            color = "white", 
+            size = 4, 
+            family = "sans") +
+  theme(legend.position = "bottom", legend.direction = "horizontal", panel.grid.major.y = element_blank(), axis.text.y = element_text(size = 11)) +
+  labs(x = "", y = "", title = str_wrap("School leader concern with future sustainability by level of racial diversity in school leadership", 60), 
+       fill = "Level of concern") +
+  guides(fill = guide_legend(reverse = T))
+```
+
+## Static cluster plots
+
+```{r}
+#read in data
+dat <- import(here("data/longitudinal", "tags-long.csv"))
+#read in tag labels
+labels <- import(here("data", "tag_labels.csv"))
+#read in cluster information
+cluster <- import(here("data/longitudinal", "tag_clusters_longitudinal.csv")) %>% 
+  janitor::clean_names()
+```
+
+```{r}
+# start by creating cluster subsets
+#subset values
+deeper <- cluster %>% 
+  filter(proposed_cluster_for_preliminary_24_analysis == "Deeper learning") %>% 
+  select(label = tag) %>% 
+  left_join(labels, by = "label") %>% 
+  pull(var)
+ed_justice <- cluster %>% 
+  filter(proposed_cluster_for_preliminary_24_analysis == "Ed justice") %>% 
+  select(label = tag) %>% 
+  left_join(labels, by = "label") %>% 
+  pull(var)
+individualized <- cluster %>% 
+  filter(proposed_cluster_for_preliminary_24_analysis == "Individualized") %>% 
+  select(label = tag) %>% 
+  left_join(labels, by = "label") %>% 
+  pull(var)
+postsecondary <- cluster %>% 
+  filter(proposed_cluster_for_preliminary_24_analysis == "Postsecondary") %>% 
+  select(label = tag) %>% 
+  left_join(labels, by = "label") %>% 
+  pull(var)
+blended <- c("practices_blended_learning", "practices_a_la_carte", "practices_flipped_classroom", "practices_flex", "practices_enriched_virtual", "practices_station_rotation")
+```
+
+```{r}
+#set up repeating schools - 3+ years
+repeaters_3 <- dat %>% 
+  select(school_id, year) %>% 
+  unique() %>% 
+  mutate(rate = 1) %>% 
+  pivot_wider(names_from = "year",
+              values_from = "rate") %>% 
+  rowwise() %>% 
+  mutate(participate = sum(`2019`, `2021`, `2022`, `2023`, `2024`, na.rm = TRUE)) %>% 
+  filter(participate > 2) %>% 
+  pull(school_id)
+#set up totals
+tots_3 <- dat %>% 
+  filter(school_id %in% repeaters_3) %>% 
+  group_by(year) %>% 
+  summarize(total = n_distinct(school_id))
+#function to prep data - generates overall percent for sample of selected schools
+prep_overall <- function(data, cluster, group, total){
+  dat <- data %>% 
+    filter(var %in% cluster) %>% 
+    filter(school_id %in% group) %>% 
+    group_by(var, year) %>% 
+    summarize(n = sum(usage, na.rm = TRUE)) %>% 
+    ungroup() %>% 
+    left_join(total, by = "year") %>% 
+    mutate(pct = n/total) %>% 
+    left_join(labels, by = "var") %>% 
+    group_by(var) %>% 
+    mutate(x_coord = max(year),
+           y_coord = pct[which.max(year)])
+  
+  condition <- dat %>% 
+    select(var, year, pct) %>% 
+    pivot_wider(names_from = year,
+                values_from = pct) %>% 
+    group_by(var) %>% 
+    mutate(condition = ifelse(`2024` > `2021`, "growing", "shrinking")) %>% 
+    ungroup() %>% 
+    select(var, condition) %>% 
+    unique()
+  
+  dat <- dat %>% 
+    left_join(condition, by = "var")
+
+    return(dat)
+}
+#function for plotting
+cluster_plot_within <- function(data, title) { 
+  plot <- ggplot(data, aes_string(x = "year", y = "pct"), color = condition) +
+    geom_line(aes(group = label), color = transcend_cols[1], alpha = 0.5) +
+    geom_point(aes(group = label), color = transcend_cols[1], alpha = 0.5, size = 1) + 
+    geom_smooth(se = FALSE, method = "lm", color = transcend_cols[3], aes(group = 1)) + 
+    scale_x_continuous(limits = c(2019, 2024),
+                       expand = c(0.01, 0),
+                       breaks = unique(data$year)) +
+    scale_y_continuous(limits = c(0, 1),
+                       expand = c(0, 0),
+                       labels = scales::percent_format(accuracy = 1)) +
+    theme(panel.grid.major.y = element_blank(), panel.grid.minor.y = element_blank(), legend.position = "none") +
+      labs(x = "",
+           y = "Percentage of schools selecting tag",
+           title = str_wrap(title, 60),
+           subtitle = str_wrap("Each blue line represents the trajectory for an individual practice while the red line represents the overall trend. Analysis includes schools with 3 or more survey year responses (N = 119)", 60))
+
+  return(plot)
+}
+```
+
+### Deeper learning
+
+```{r}
+deep <- prep_overall(dat, deeper, repeaters_3, tots_3)
+cluster_plot_within(deep, "Changes in deeper learning cluster 2019-2024")
+```
+
+### Educational justice
+
+```{r}
+justice <- prep_overall(dat, ed_justice, repeaters_3, tots_3)
+cluster_plot_within(justice, "Changes in educational justice cluster 2019-2024")
+```
+
+## Individualized learning
+
+```{r}
+individualized <- prep_overall(dat, individualized, repeaters_3, tots_3)
+cluster_plot_within(justice, "Changes in individualized learning cluster 2019-2024")
+```
+
+## Postsecondary pathways
+
+```{r}
+postsecondary <- prep_overall(dat, postsecondary, repeaters_3, tots_3)
+cluster_plot_within(justice, "Changes in postsecondary pathways cluster 2019-2024")
+```
+
+## Blended learning
+
+These practices are also represented in the figures above.
+
+```{r}
+blended <- prep_overall(dat, blended, repeaters_3, tots_3)
+cluster_plot_within(blended, "Changes in blended learning 2019-2024")
+```
+
+```{r}
+#clean up
+rm(blended, cluster, deep, individualized, justice, labels, postsecondary, tots_3, deeper, ed_justice, repeaters_3, cluster_plot_within, prep_overall)
+```
+

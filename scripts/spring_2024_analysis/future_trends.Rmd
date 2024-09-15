@@ -543,21 +543,22 @@ fiscal_cliff <- tidy_model(fiscal_cliff) %>%
 ```
 
 
-Combined version:
+Combined heatmap version:
 
 ```{r}
 #merge tidy data
 transformative_factors <- bind_rows(local_funds, private_funds, donations, inflation, enrollment, staffing, fiscal_cliff) %>% 
-  filter(term == "Suburban"| term == "Rural"| term == "Multiple locales"| term == "25-49% leaders of color"| term == "50-74% leaders of color"| term == "75-100% leaders of color") #%>% 
-  # mutate(fill_color = ifelse(p.value >= 0.5, transcend_na, 
-  #                       ifelse(exp_est < 1, scales::gradient_n_pal(c(transcend_cols[2], "white"))(exp_est / min(exp_est)),
-  #                              scales::gradient_n_pal(c("white", transcend_cols[1]))((exp_est - 1) / (max(exp_est) - 1)))))
+  filter(term == "Suburban"| term == "Rural"| term == "Multiple locales"| term == "25-49% leaders of color"| term == "50-74% leaders of color"| term == "75-100% leaders of color") %>% 
+  mutate(log_exp_est = log(exp_est),
+         fill_color = ifelse(p.value >= 0.5, transcend_na,
+                        ifelse(log_exp_est < 0, scales::gradient_n_pal(c(transcend_cols[3], "white"))((log_exp_est - min(log_exp_est)) / abs(min(log_exp_est))),
+                               scales::gradient_n_pal(c("white", transcend_cols[1]))((log_exp_est - 0) / (max(log_exp_est) - 0)))))
 #rm(local_funds, private_funds, donations, inflation, enrollment, staffing, fiscal_cliff)
 #create heatmap
-ggplot(transformative_factors, aes(factor, term, fill = exp_est)) + #fill = fill_color
+ggplot(transformative_factors, aes(factor, term, fill = fill_color)) + #fill = exp_est
   geom_tile() +
-  scale_fill_gradient(low = transcend_cols[3], high = transcend_cols[1]) +
-  #scale_fill_identity() +
+  #scale_fill_gradient(low = transcend_cols[3], high = transcend_cols[1]) +
+  scale_fill_identity() +
   scale_x_discrete(expand = c(0,0), labels = wrap_format(13)) +
   labs(title = str_wrap("School characteristics predicting future factors of concern", 60),
        subtitle = str_wrap("Darker blue indicates that characteristic made a school more likely to select the factor as something that will be transformative in the next 5 years, and a lighter blue made a school less likely to select that factor.", 80),
@@ -754,17 +755,23 @@ Combined:
 
 ```{r}
 #combine tidy data
-transformative_factors <- bind_rows(ai, mental_health, workforce)
+transformative_factors <- bind_rows(ai, mental_health, workforce) %>% 
+  mutate(log_exp_est = log(exp_est),
+         fill_color = ifelse(p.value <= 0.5, transcend_na,
+                        ifelse(log_exp_est < 0, scales::gradient_n_pal(c(transcend_cols[3], "white"))((log_exp_est - min(log_exp_est)) / abs(min(log_exp_est))),
+                               scales::gradient_n_pal(c("white", transcend_cols[1]))((log_exp_est - 0) / (max(log_exp_est) - 0)))))
 rm(ai, mental_health, pandemic, workforce, enrollment, politics, esa)
 #plot
-ggplot(transformative_factors, aes(factor, reorder(term, exp_est), fill = exp_est)) +
-  geom_tile() +
-  scale_fill_gradient(low = transcend_cols[4], high = transcend_cols[1]) +
+ggplot(transformative_factors, aes(factor, reorder(term, exp_est), fill = fill_color)) +
+  geom_tile(width = 0.8) +
+  #scale_fill_gradient(low = transcend_cols[4], high = transcend_cols[1]) +
+  scale_fill_identity() +
   scale_x_discrete(expand = c(0,0)) +
   labs(title = "School characteristics predicting future transformative factors",
-       subtitle = str_wrap("Darker blue indicates that characteristic made a school more likely to select the factor as something that will be transformative in the next 5 years, and a lighter blue made a school less likely to select that factor.", 80),
+       subtitle = str_wrap("Blue indicates a characteristic that made a school more likely to select the factor as something that will be transformative in the next 5 years, and a red indicates a characteristic that made a school less likely to select that factor. Gray are characteristics that were not statistically significant.", 80),
        x = "",
        y = "") +
-  theme(legend.position = "none")
+  theme(legend.position = "none",
+        panel.grid.major = element_blank())
 ```
 
