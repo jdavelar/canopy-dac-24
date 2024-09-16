@@ -15,7 +15,7 @@ editor_options:
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE, fig.width = 7, fig.height = 6)
-pacman::p_load(tidyverse, here, rio, ggthemes, scales)
+pacman::p_load(tidyverse, here, rio, ggthemes, scales, DT)
 #read in data
 load(here("data", "2024 data/complete_canopy_2024.RData"))
 dat <- variables
@@ -67,16 +67,25 @@ dat %>%
       "No, not very" = transcend_cols[2], 
       "No, not at all" = transcend_cols[1])) +
   scale_x_continuous(expand = c(0, 0), limits = c(0, 1), labels = scales::percent_format()) +
+  #scale_y_discrete(labels = function(x) str_wrap(x, width = 15)) +
   geom_text(aes(label = scales::label_percent(accuracy = 1)(pct)), 
             position = position_stack(vjust = .5), #vjust = .95 before
             #hjust = 1,
             color = "white", 
             size = 4, 
             family = "sans") +
-  theme(legend.position = "bottom", legend.direction = "horizontal", panel.grid.major.y = element_blank(), axis.text.y = element_text(size = 11)) +
+  theme(legend.position = "bottom", 
+        legend.direction = "horizontal", 
+        panel.grid.major.y = element_blank(), 
+        axis.text.y = element_text(size = 11),
+        legend.text = element_text(size = 8),
+        legend.title = element_text(size = 10)) +
   labs(x = "", y = "", title = str_wrap("School leader concern with future sustainability by level of racial diversity in school leadership", 60), 
        fill = "Level of concern") +
-  guides(fill = guide_legend(reverse = T))
+  guides(fill = guide_legend(reverse = T, 
+                             #ncol = 3,
+                             title.position = "top",
+                             title.hjust = 0.5))
 ```
 
 ## Static cluster plots
@@ -200,21 +209,21 @@ justice <- prep_overall(dat, ed_justice, repeaters_3, tots_3)
 cluster_plot_within(justice, "Changes in educational justice cluster 2019-2024")
 ```
 
-## Individualized learning
+### Individualized learning
 
 ```{r}
 individualized <- prep_overall(dat, individualized, repeaters_3, tots_3)
 cluster_plot_within(justice, "Changes in individualized learning cluster 2019-2024")
 ```
 
-## Postsecondary pathways
+### Postsecondary pathways
 
 ```{r}
 postsecondary <- prep_overall(dat, postsecondary, repeaters_3, tots_3)
 cluster_plot_within(justice, "Changes in postsecondary pathways cluster 2019-2024")
 ```
 
-## Blended learning
+### Blended learning
 
 These practices are also represented in the figures above.
 
@@ -226,5 +235,123 @@ cluster_plot_within(blended, "Changes in blended learning 2019-2024")
 ```{r}
 #clean up
 rm(blended, cluster, deep, individualized, justice, labels, postsecondary, tots_3, deeper, ed_justice, repeaters_3, cluster_plot_within, prep_overall)
+```
+
+## Waffling
+
+```{r}
+#read in data
+long = import(here("data/longitudinal", "tags-long.csv"))
+#get vector of 4-year tags
+tags_4y = long |>
+  filter(usage == 1) |>
+  filter(n_distinct(year) >= 4, .by = var) |>
+  pull(var) |>
+  unique()
+long_4y = long |> filter(var %in% tags_4y)
+#get schools
+sch = import(here("data/long_school.csv")) |>
+  summarize(n_years = n_distinct(year), .by = c(school_id, school_name))
+## append 2024 schools - G's temp fix
+sch = long |>
+  summarize(
+    n_years = n_distinct(year),
+    .by = school_id
+  ) |>
+  left_join(
+    select(sch, school_id, school_name)
+  )
+```
+
+
+```{r}
+potential_wafflers = long_4y |>
+  distinct(school_id, year) |>
+  filter(n_distinct(year) >= 3, .by = school_id) |>
+  summarize(
+    years = toString(year),
+    could_covid_waffle = 2019 %in% year & 2021 %in% year,
+    could_waffle_2022 = 2021 %in% year & 2022 %in% year,
+    could_waffle_2023 = 2022 %in% year & 2023 %in% year,
+    could_waffle_2024 = 2023 %in% year & 2024 %in% year,
+    .by = school_id
+  )
+
+waffle_denom = potential_wafflers |>
+  summarize(across(starts_with("could"), sum))
+
+waffle_all = long_4y |>
+  filter(
+    1 %in% usage,    ## present at least once
+    n() > 2,         ## at least 3 survey responses
+    .by = c(var, school_id)
+  ) |> 
+  mutate(
+    added = any(diff(usage) == 1),
+    dropped = any(diff(usage) == -1),
+    all_1 = all(usage == 1),
+    waffled = added & dropped,
+    waffle_bump = waffled & last(usage, na_rm = TRUE) == 0,
+    waffle_dip = waffled & last(usage, na_rm = TRUE) == 1,
+    .by = c(var, school_id)
+  ) |>
+  pivot_wider(names_from = year, values_from = usage) |>
+  left_join(sch, by = "school_id") |>
+  select(school_id, school_name, tag = var, `2019`:`2024`, added, dropped, all_1, starts_with("waffle")) |>
+  arrange(school_id, desc(waffled)) |>
+  mutate(
+    binary_summary = paste(`2019`, `2021`, `2022`, `2023`, `2024`, sep = ","),
+    waffle_type = case_when(
+      `2019` == 0 & `2021` == 1 & waffled ~ "COVID bump",
+      `2019` == 1 & `2021` == 0 & waffled ~ "COVID dip",
+      `2021` == 0 & `2022` == 1 & waffled ~ "2022 bump",
+      `2021` == 1 & `2022` == 0 & waffled ~ "2022 dip",
+      `2022` == 0 & `2023` == 1 & waffled ~ "2023 bump",
+      `2022` == 1 & `2023` == 0 & waffled ~ "2023 dip",
+      `2023` == 0 & `2024` == 1 & waffled ~ "2024 bump",
+      `2023` == 1 & `2024` == 0 & waffled ~ "2024 dip"
+    )
+  ) 
+
+plot_dat <- waffle_all |>
+  filter(waffled) |>
+  count(waffle_type) |>
+  filter(!is.na(waffle_type)) |>
+  separate_wider_delim(waffle_type, delim = " ", names = c("pandemic", "type")) |>
+  pivot_wider(names_from = type, values_from = n) |>
+  arrange(pandemic) |> ### COVID on top
+  mutate(
+    all_waffles = bump + dip,
+    n_schools_that_could_waffle = c(waffle_denom$could_waffle_2022, waffle_denom$could_waffle_2023, waffle_denom$could_waffle_2024, waffle_denom$could_covid_waffle),
+    waffles_per_school = all_waffles / n_schools_that_could_waffle
+  )
+datatable(plot_dat,
+    rownames = FALSE,
+    options = list(autoWidth = TRUE, iDisplayLength = 5),
+    caption = "COVID vs wafflers in years following"
+  ) |>
+  formatRound("waffles_per_school", digits = 1)
+```
+
+```{r}
+#plot
+plot_dat %>% 
+  select(pandemic, waffles_per_school) %>% 
+  mutate(pandemic = factor(pandemic, 
+                           levels = c("COVID", "2022", "2023", "2024"),
+                           labels = c("2021", "2022", "2023", "2024"))) %>% 
+  ggplot(., aes(pandemic, waffles_per_school)) +
+  geom_segment(aes(x = pandemic,
+                   xend = pandemic,
+                   y = 0, 
+                   yend = waffles_per_school), 
+                   color = transcend_cols[1]) +
+  geom_point(size = 5, color = transcend_cols[3]) +
+  scale_y_continuous(expand = c(0, 0), limits = c(0, 5)) +
+  labs(x = "", 
+       y = "Average waffles per school", 
+       title = "Average waffles per school from 2021-2024") +
+  theme(panel.grid.major.x = element_blank(),
+        panel.grid.minor.x = element_blank())
 ```
 
