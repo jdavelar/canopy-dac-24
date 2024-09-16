@@ -43,7 +43,7 @@ theme_set(theme_transcend)
 
 ## Future concern plot
 
-```{r, fig.width = 7, fig.height = 4}
+```{r, fig.width = 8, fig.height = 4}
 dat %>% 
   select(school_id, future_resources, leadership_diversity) %>% 
   filter(future_resources != "Prefer not to say") %>% 
@@ -80,7 +80,9 @@ dat %>%
         axis.text.y = element_text(size = 11),
         legend.text = element_text(size = 8),
         legend.title = element_text(size = 10)) +
-  labs(x = "", y = "", title = str_wrap("School leader concern with future sustainability by level of racial diversity in school leadership", 60), 
+  labs(x = "", 
+       y = "", 
+       title = str_wrap("Concern with future sustainability by level of racial diversity in school leadership", 43), 
        fill = "Level of concern") +
   guides(fill = guide_legend(reverse = T, 
                              #ncol = 3,
