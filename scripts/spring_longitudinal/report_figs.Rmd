@@ -180,7 +180,7 @@ cluster_plot_within <- function(data, title) {
   plot <- ggplot(data, aes_string(x = "year", y = "pct"), color = condition) +
     geom_line(aes(group = label), color = transcend_cols[1], alpha = 0.5) +
     geom_point(aes(group = label), color = transcend_cols[1], alpha = 0.5, size = 1) + 
-    geom_smooth(se = FALSE, method = "lm", color = transcend_cols[3], aes(group = 1)) + 
+    geom_smooth(se = FALSE, method = "loess", color = transcend_cols[3], aes(group = 1)) + 
     scale_x_continuous(limits = c(2019, 2024),
                        expand = c(0.01, 0),
                        breaks = unique(data$year)) +
@@ -215,14 +215,14 @@ cluster_plot_within(justice, "Changes in educational justice cluster 2019-2024")
 
 ```{r}
 individualized <- prep_overall(dat, individualized, repeaters_3, tots_3)
-cluster_plot_within(justice, "Changes in individualized learning cluster 2019-2024")
+cluster_plot_within(individualized, "Changes in individualized learning cluster 2019-2024")
 ```
 
 ### Postsecondary pathways
 
 ```{r}
 postsecondary <- prep_overall(dat, postsecondary, repeaters_3, tots_3)
-cluster_plot_within(justice, "Changes in postsecondary pathways cluster 2019-2024")
+cluster_plot_within(postsecondary, "Changes in postsecondary pathways cluster 2019-2024")
 ```
 
 ### Blended learning
