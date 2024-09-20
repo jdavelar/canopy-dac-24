@@ -546,6 +546,12 @@ fiscal_cliff <- tidy_model(fiscal_cliff) %>%
 Combined heatmap version:
 
 ```{r}
+#save plot
+  png(filename = "output/janette-images/figure_12.png",
+    width = 9,
+    height = 7,
+    units = "in",
+    res = 300)
 #merge tidy data
 transformative_factors <- bind_rows(local_funds, private_funds, donations, inflation, enrollment, staffing, fiscal_cliff) %>% 
   filter(term == "Suburban"| term == "Rural"| term == "Multiple locales"| term == "25-49% leaders of color"| term == "50-74% leaders of color"| term == "75-100% leaders of color") %>% 
@@ -560,12 +566,13 @@ ggplot(transformative_factors, aes(factor, term, fill = fill_color)) + #fill = e
   #scale_fill_gradient(low = transcend_cols[3], high = transcend_cols[1]) +
   scale_fill_identity() +
   scale_x_discrete(expand = c(0,0), labels = wrap_format(13)) +
-  labs(title = str_wrap("School characteristics predicting future factors of concern", 60),
-       subtitle = str_wrap("Darker blue indicates that characteristic made a school more likely to select the factor as something that will be transformative in the next 5 years, and a lighter blue made a school less likely to select that factor.", 80),
+  labs(title = str_wrap("School characteristics predicting future factors of concern", 55),
+       subtitle = str_wrap("Darker blue indicates that characteristic made a school more likely to select the factor as something that will be transformative in the next 5 years, and a lighter blue made a school less likely to select that factor.", 65),
        x = "",
        y = "") +
   theme(legend.position = "none",
         axis.text.x = element_text(size = 12))
+dev.off()
 ```
 
 
@@ -598,6 +605,13 @@ transform_labels <- variables %>%
 ```
 
 ```{r}
+#save plot
+  png(filename = "output/janette-images/figure_9.png",
+    width = 9,
+    height = 7,
+    units = "in",
+    res = 300)
+#plot
 variables %>% 
   select(school_id, future_resources, starts_with("transform"), -transform_other_text) %>% 
   pivot_longer(cols = starts_with("transform"),
@@ -617,7 +631,8 @@ variables %>%
   coord_flip() +
   labs(x = "",
        y = "Number of schools",
-       title = str_wrap("Factors Canopy school leaders think will be most transformative in the next 5 years", 60))
+       title = str_wrap("Factors Canopy school leaders think will be most transformative in the next 5 years", 55))
+dev.off()
 ```
 
 15 school leaders chose to provide an open response to the question, citing some other factor that was not on our list.  
@@ -761,17 +776,24 @@ transformative_factors <- bind_rows(ai, mental_health, workforce) %>%
                         ifelse(log_exp_est < 0, scales::gradient_n_pal(c(transcend_cols[3], "white"))((log_exp_est - min(log_exp_est)) / abs(min(log_exp_est))),
                                scales::gradient_n_pal(c("white", transcend_cols[1]))((log_exp_est - 0) / (max(log_exp_est) - 0)))))
 rm(ai, mental_health, pandemic, workforce, enrollment, politics, esa)
+#save plot
+  png(filename = "output/janette-images/figure_10.png",
+    width = 9,
+    height = 7,
+    units = "in",
+    res = 300)
 #plot
 ggplot(transformative_factors, aes(factor, reorder(term, exp_est), fill = fill_color)) +
   geom_tile(width = 0.8) +
   #scale_fill_gradient(low = transcend_cols[4], high = transcend_cols[1]) +
   scale_fill_identity() +
   scale_x_discrete(expand = c(0,0)) +
-  labs(title = "School characteristics predicting future transformative factors",
-       subtitle = str_wrap("Blue indicates a characteristic that made a school more likely to select the factor as something that will be transformative in the next 5 years, and a red indicates a characteristic that made a school less likely to select that factor. Gray are characteristics that were not statistically significant.", 80),
+  labs(title = str_wrap("School characteristics predicting future transformative factors", 50),
+       subtitle = str_wrap("Blue indicates a characteristic that made a school more likely to select the factor as something that will be transformative in the next 5 years, and a red indicates a characteristic that made a school less likely to select that factor. Gray are characteristics that were not statistically significant.", 65),
        x = "",
        y = "") +
   theme(legend.position = "none",
         panel.grid.major = element_blank())
+dev.off()
 ```
 

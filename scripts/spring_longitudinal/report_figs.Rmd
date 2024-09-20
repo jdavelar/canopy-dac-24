@@ -44,6 +44,11 @@ theme_set(theme_transcend)
 ## Future concern plot
 
 ```{r, fig.width = 8, fig.height = 4}
+png(filename = "output/janette-images/figure_14.png",
+    width = 8,
+    height = 4,
+    units = "in",
+    res = 300)
 dat %>% 
   select(school_id, future_resources, leadership_diversity) %>% 
   filter(future_resources != "Prefer not to say") %>% 
@@ -88,6 +93,7 @@ dat %>%
                              #ncol = 3,
                              title.position = "top",
                              title.hjust = 0.5))
+dev.off()
 ```
 
 ## Static cluster plots
@@ -190,8 +196,8 @@ cluster_plot_within <- function(data, title) {
     theme(panel.grid.major.y = element_blank(), panel.grid.minor.y = element_blank(), legend.position = "none") +
       labs(x = "",
            y = "Percentage of schools selecting tag",
-           title = str_wrap(title, 60),
-           subtitle = str_wrap("Each blue line represents the trajectory for an individual practice while the red line represents the overall trend. Analysis includes schools with 3 or more survey year responses (N = 119)", 60))
+           title = str_wrap(title, 90),
+           subtitle = str_wrap("Each blue line represents the trajectory for an individual practice while the red line represents the overall trend. Analysis includes schools with 3 or more survey year responses (N = 119)", 90))
 
   return(plot)
 }
@@ -201,28 +207,52 @@ cluster_plot_within <- function(data, title) {
 
 ```{r}
 deep <- prep_overall(dat, deeper, repeaters_3, tots_3)
+png(filename = "output/janette-images/figure_15.png",
+    width = 9,
+    height = 7,
+    units = "in",
+    res = 300)
 cluster_plot_within(deep, "Changes in deeper learning cluster 2019-2024")
+dev.off()
 ```
 
 ### Educational justice
 
 ```{r}
 justice <- prep_overall(dat, ed_justice, repeaters_3, tots_3)
+png(filename = "output/janette-images/figure_16.png",
+    width = 9,
+    height = 7,
+    units = "in",
+    res = 300)
 cluster_plot_within(justice, "Changes in educational justice cluster 2019-2024")
+dev.off()
 ```
 
 ### Individualized learning
 
 ```{r}
 individualized <- prep_overall(dat, individualized, repeaters_3, tots_3)
+png(filename = "output/janette-images/figure_17.png",
+    width = 9,
+    height = 7,
+    units = "in",
+    res = 300)
 cluster_plot_within(individualized, "Changes in individualized learning cluster 2019-2024")
+dev.off()
 ```
 
 ### Postsecondary pathways
 
 ```{r}
 postsecondary <- prep_overall(dat, postsecondary, repeaters_3, tots_3)
+png(filename = "output/janette-images/figure_18.png",
+    width = 9,
+    height = 7,
+    units = "in",
+    res = 300)
 cluster_plot_within(postsecondary, "Changes in postsecondary pathways cluster 2019-2024")
+dev.off()
 ```
 
 ### Blended learning
@@ -231,7 +261,13 @@ These practices are also represented in the figures above.
 
 ```{r}
 blended <- prep_overall(dat, blended, repeaters_3, tots_3)
+png(filename = "output/janette-images/figure_19.png",
+    width = 9,
+    height = 7,
+    units = "in",
+    res = 300)
 cluster_plot_within(blended, "Changes in blended learning 2019-2024")
+dev.off()
 ```
 
 ```{r}
@@ -241,7 +277,7 @@ rm(blended, cluster, deep, individualized, justice, labels, postsecondary, tots_
 
 ## Waffling
 
-```{r}
+```{r include = FALSE}
 #read in data
 long = import(here("data/longitudinal", "tags-long.csv"))
 #get vector of 4-year tags
@@ -266,7 +302,7 @@ sch = long |>
 ```
 
 
-```{r}
+```{r include = FALSE}
 potential_wafflers = long_4y |>
   distinct(school_id, year) |>
   filter(n_distinct(year) >= 3, .by = school_id) |>
@@ -335,26 +371,27 @@ datatable(plot_dat,
   formatRound("waffles_per_school", digits = 1)
 ```
 
-```{r}
+```{r include = FALSE}
 #plot
-plot_dat %>% 
-  select(pandemic, waffles_per_school) %>% 
-  mutate(pandemic = factor(pandemic, 
+plot_dat %>%
+  select(pandemic, waffles_per_school) %>%
+  mutate(pandemic = factor(pandemic,
                            levels = c("COVID", "2022", "2023", "2024"),
-                           labels = c("2021", "2022", "2023", "2024"))) %>% 
+                           labels = c("2021", "2022", "2023", "2024"))) %>%
   ggplot(., aes(pandemic, waffles_per_school)) +
   geom_segment(aes(x = pandemic,
                    xend = pandemic,
-                   y = 0, 
-                   yend = waffles_per_school), 
+                   y = 0,
+                   yend = waffles_per_school),
                    color = transcend_cols[1]) +
   geom_point(size = 5, color = transcend_cols[3]) +
   scale_y_continuous(expand = c(0, 0), limits = c(0, 5)) +
-  labs(x = "", 
-       y = "Average waffles per school", 
+  labs(x = "",
+       y = "Average waffles per school",
        title = "Average waffles per school from 2021-2024") +
   theme(panel.grid.major.x = element_blank(),
         panel.grid.minor.x = element_blank())
+# Gregor edits below
 ```
 
 ### Waffling Redux
@@ -424,8 +461,13 @@ waffle_summary |>
   ) |>
   formatPercentage("waffle_pct", digits = 2) |>
   formatRound("waffle_per_sch", digits = 1)
-
-
+#save plot
+png(filename = "output/janette-images/figure_20.png",
+    width = 9,
+    height = 7,
+    units = "in",
+    res = 300)
+#plot
 ggplot(waffle_summary, aes(factor(potential_years), waffle_per_sch)) +
   geom_segment(aes(
                    xend = factor(potential_years),
@@ -439,6 +481,48 @@ ggplot(waffle_summary, aes(factor(potential_years), waffle_per_sch)) +
        title = "Average waffles per school from 2021-2023") +
   theme(panel.grid.major.x = element_blank(),
         panel.grid.minor.x = element_blank())
+dev.off()
+# clean up
+rm(long_4y, plot_dat, potential_wafflers, sch, waffle_all, waffle_denom, waffle_summary, wafflers, long, tags_4y)
 ```
 
+
+## Practices over time
+
+```{r}
+#pulling Gregor's data to create dataset
+practices_plot <- data.frame(
+  year = rep(c(2019, 2021, 2022, 2023, 2024), 4),
+  years_participated = c(rep(2, 5), rep(3, 5), rep(4, 5), rep(5, 5)),
+  mean = c(23, 31.2, 31.5, 27.4, 29.2, 25.9, 31.8, 35.2, 35.1, 34.7, 20.7, 32, 37.3, 36.6, 39.8, 25.3, 30.7, 34.9, 34.8, 35.2)
+)
+#save plot
+  png(filename = "output/janette-images/figure_21.png",
+    width = 9,
+    height = 7,
+    units = "in",
+    res = 300)
+practices_plot %>% 
+  group_by(year) %>% 
+  summarize(mean = mean(mean)) %>% 
+#plot
+  ggplot(., aes(year, mean)) +
+  geom_point(color = transcend_cols[2]) +
+  geom_line(color = transcend_cols[2]) +
+  scale_y_continuous(expand = c(0,0), limits = c(0, 60)) +
+  scale_x_continuous(breaks = unique(dat$year)) +
+  theme(panel.grid.major.x = element_blank()) +
+  labs(x = "",
+       y = "Average number of reported practices",
+       title = "Change in average number of reported practices over time") +
+  geom_text(aes(label = round(mean)), 
+            nudge_y = 2, 
+            hjust = .5, 
+            color = transcend_cols[1], 
+            fontface = "bold", 
+            size = 4.5, 
+            family = "sans")
+dev.off()
+rm(practices_plot)
+```
 

@@ -859,7 +859,16 @@ rm(merge_deep, merge_ed_justice, merge_individualized, merge_postsecondary, merg
 
 ### Overall rate change among repeat schools (2+ years) using stable tags (3+ years)
 
+Linear version:
+
 ```{r}
+#save plot
+png(filename = "output/janette-images/figure_23.png",
+    width = 9,
+    height = 7,
+    units = "in",
+    res = 300)
+#plot
 all_clust %>% 
   filter(var %in% rep_tags) %>% 
   filter(cluster != "Blended learning (alternate)", cluster != "No cluster") %>% 
@@ -879,7 +888,38 @@ all_clust %>%
   theme_transcend +
   theme(legend.position = "bottom", legend.direction = "horizontal") + #panel.grid.major.x = element_blank(), panel.grid.minor.x = element_blank(), 
   guides(color = guide_legend(ncol = 2))
+dev.off()
 ```
+
+Allowing for non-linearity:
+
+```{r}
+#save plot
+png(filename = "output/janette-images/figure_24.png",
+    width = 9,
+    height = 7,
+    units = "in",
+    res = 300)
+#plot
+all_clust %>% 
+  filter(var %in% rep_tags) %>% 
+  filter(cluster != "Blended learning (alternate)", cluster != "No cluster") %>% 
+  ggplot(., aes(year, pct, color = cluster)) +
+  geom_smooth(se = FALSE, method = "loess", aes(group = cluster)) + 
+  scale_color_manual(values = transcend_cols) +
+  theme_bw() +
+  scale_x_continuous(breaks = unique(all_clust$year),
+                     expand = c(0,0)) +
+  scale_y_continuous(labels = scales::percent_format(accuracy = 1),
+                     limits = c(0, 1),
+                     expand = c(0,0)) +
+  labs(x = "", y = "Rate of selection", color = "Cluster") +
+  theme_transcend +
+  theme(legend.position = "bottom", legend.direction = "horizontal") + 
+  guides(color = guide_legend(ncol = 2))
+dev.off()
+```
+
 
 ### Overall growth rate among repeat schools (2+ years) using stable tags (3+ years)
 

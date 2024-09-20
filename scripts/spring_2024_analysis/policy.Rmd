@@ -106,6 +106,7 @@ The distribution for a couple of these reported policies and ecosystem factors a
 3) Labor contracts and/or union relationships skewed more negatively, with most schools responding they both helped and hindered innovation work (N = 29) and an equal number reporting they hindered innovation work (N = 28). This factor is also interesting because fewer schools responded to it. While other factors had between ~140-170 responses, labor/union only had 116 responses total, and 49 of these are not represented in the figure because schools reported they have "no effect."  
 
 ```{r}
+#plot
 variables %>% 
   select(school_id, starts_with("policy")) %>% 
   pivot_longer(cols = starts_with("policy"),
@@ -127,12 +128,17 @@ variables %>%
         panel.grid.major.y = element_blank(),
         axis.text.y = element_text(size = 11)) +
   scale_y_continuous(expand = c(0, 0), limits = c(0, 65)) +
-  geom_text(aes(label = n), nudge_y = 0.5, hjust = 0, color = transcend_na, fontface = "bold", size = 5.5, family = "sans") +
+  geom_text(aes(label = n), 
+            position = position_stack(vjust = .5),
+            color = transcend_na, 
+            fontface = "bold", 
+            size = 5.5, 
+            family = "sans") +
   coord_flip() +
   facet_wrap(~n_label, labeller = label_wrap_gen(width = 20)) +
   labs(x = "",
        y = "",
-       title = "How do existing policies and ecosystem factors affect \nyour innovation work?")
+       title = ("How do existing policies and ecosystem factors affect \nyour innovation work?"))
 ```
 
 Alternate percentage graph:
@@ -359,6 +365,13 @@ variables %>%
 Combined helps/hinders plot:
 
 ```{r}
+#save plot
+png(filename = "output/janette-images/figure_13.png",
+    width = 9,
+    height = 7,
+    units = "in",
+    res = 300)
+#plot
 combined_factors <- bind_rows(helps, hinders) %>% 
   mutate(n = ifelse(response == "Really hinders" | response == "Somewhat hinders", n*-1, n*1),
          response = factor(response, levels = c("Really hinders", "Somewhat hinders", "Really helps", "Somewhat helps")))
@@ -381,8 +394,10 @@ ggplot(combined_factors, aes(n, reorder(short_label, n), fill = response)) +
   geom_text(aes(label = abs(n), x = n), position = position_stack(vjust = 1), hjust = 1.2, color = "white", size = 5.5, family = "sans") +
   labs(x = "Number of schools",
        y = "",
-       title = "How do existing policies and ecosystem factors affect Canopy schools' work?",
-       fill = "Response")
+       title = str_wrap("How do existing policies and ecosystem factors affect Canopy schools' work?", 55),
+       fill = "Response") +
+  theme(legend.text = element_text(size = 10))
+dev.off()
 ```
 
 

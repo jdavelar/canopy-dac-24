@@ -43,6 +43,13 @@ theme_set(theme_transcend)
 **What do schools most want to pilot in the next 5 years?**
 
 ```{r}
+#save plot
+  png(filename = "output/janette-images/figure_8.png",
+    width = 9,
+    height = 7,
+    units = "in",
+    res = 300)
+#plot
 tags %>% 
   select(school_id, starts_with("pilot")) %>% 
   pivot_longer(cols = starts_with("pilot"),
@@ -69,7 +76,8 @@ tags %>%
   theme(panel.grid.major.y = element_blank()) +
   labs(x = "",
        y = "",
-       title = str_wrap("Top 5 tags Canopy schools hope to pilot in the next 5 years", 60))
+       title = str_wrap("Top 5 tags Canopy schools hope to pilot in the next 5 years", 90))
+dev.off()
 ```
 
 **Are there broad patterns in the practices schools hope to implement in the next five years?**  
