@@ -357,3 +357,88 @@ plot_dat %>%
         panel.grid.minor.x = element_blank())
 ```
 
+### Waffling Redux
+
+```{r waffle_redux}
+wafflers = long_4y |>
+  ## keep only school/tag combos with at least 3 years
+  filter(n_distinct(year) >= 3, .by = c(school_id, var)) |>
+  arrange(school_id, var, year) |> 
+  mutate(
+    diff = c(NA, diff(usage)),
+    .by = c(school_id, var)
+  ) |>
+  summarize(
+    usage_string = paste(usage, collapse = ""),
+    diff_string = paste(diff[-1], collapse = ""),
+    year_string = paste(year, collapse = ", "),
+    is_waffle = -1 %in% diff & 1 %in% diff,
+    is_dip = is_waffle & which.min(diff) < which.max(diff),
+    is_bump = is_waffle & which.max(diff) < which.min(diff),
+    dip_years = if(is_dip) list(year[usage == 0]) else list(NULL),
+    bump_years = if(is_bump) list(year[usage == 1]) else list(NULL),
+    waffle_years = coalesce(dip_years, bump_years),
+    potential_years = list(tail(head(year, -1), -1)),
+    is_multi_waffle = sum(diff == 1, na.rm = TRUE) > 1 | sum(diff == -1, na.rm = TRUE) > 1,
+    .by = c(school_id, var)
+  )
+
+wafflers |>
+  count(is_waffle, is_multi_waffle) |>
+  knitr::kable()
+```
+
+Here are the details on the multi-waffles. I have omitted them from the waffle
+tables that follow:
+  
+```{r}
+wafflers |>
+  filter(is_multi_waffle) |>
+  datatable()
+```
+
+Now omitting the multi-waffles, here are some stats on the rest:
+  
+```{r}
+waffle_summary = wafflers |>
+  filter(!is_multi_waffle) |>
+  unnest(potential_years) |>
+  mutate(waffle_this_year = potential_years %in% waffle_years, 
+         .by = c(school_id, var, potential_years)) |>
+  summarize(
+    waffle_possible = n(),
+    waffle_count = sum(waffle_this_year),
+    bump_count = sum(waffle_this_year & is_bump),
+    dip_count = sum(waffle_this_year & is_dip),
+    waffle_pct = mean(waffle_this_year),
+    n_sch = n_distinct(school_id),
+    waffle_per_sch = waffle_count / n_sch,
+    .by = potential_years
+  )
+
+waffle_summary |>
+  datatable(
+    rownames = FALSE,
+    options = list(autoWidth = TRUE, iDisplayLength = 5),
+    caption = "COVID vs wafflers in years following"
+  ) |>
+  formatPercentage("waffle_pct", digits = 2) |>
+  formatRound("waffle_per_sch", digits = 1)
+
+
+ggplot(waffle_summary, aes(factor(potential_years), waffle_per_sch)) +
+  geom_segment(aes(
+                   xend = factor(potential_years),
+                   y = 0, 
+                   yend = waffle_per_sch), 
+                   color = transcend_cols[1]) +
+  geom_point(size = 5, color = transcend_cols[3]) +
+  scale_y_continuous(expand = c(0, 0), limits = c(0, 4)) +
+  labs(x = "", 
+       y = "Average waffles per school", 
+       title = "Average waffles per school from 2021-2023") +
+  theme(panel.grid.major.x = element_blank(),
+        panel.grid.minor.x = element_blank())
+```
+
+
