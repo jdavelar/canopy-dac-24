@@ -382,21 +382,29 @@ ggplot(combined_factors, aes(n, reorder(short_label, n), fill = response)) +
       "Really hinders" = transcend_cols[3], 
       "Somewhat hinders" = transcend_cols2[2], 
       "Somewhat helps" = transcend_cols[2], 
-      "Really helps" = transcend_cols[1])) +
+      "Really helps" = transcend_cols[1]),
+      breaks = c("Really hinders", "Somewhat hinders", "Somewhat helps", "Really helps")) +
   theme(legend.position = "top", 
         legend.direction = "horizontal",
-        panel.grid.major.x = element_blank(),
+        panel.grid.major = element_blank(),
         axis.text.y = element_text(size = 13)) +
   # guides(fill = guide_legend(override.aes = 
   #                              list(fill = c(transcend_cols[3], transcend_cols2[2], transcend_cols[2], transcend_cols[1])))) +
   scale_x_continuous(expand = c(0, 0)) +
   scale_y_discrete(labels = wrap_format(25)) +
-  geom_text(aes(label = abs(n), x = n), position = position_stack(vjust = 1), hjust = 1.2, color = "white", size = 5.5, family = "sans") +
+  geom_text(aes(label = abs(n)), 
+            position = position_stack(vjust = .5), 
+            #hjust = 1.2, 
+            color = "white", 
+            size = 5, 
+            family = "sans") +
   labs(x = "Number of schools",
        y = "",
        title = str_wrap("How do existing policies and ecosystem factors affect Canopy schools' work?", 55),
        fill = "Response") +
-  theme(legend.text = element_text(size = 10))
+  theme(legend.text = element_text(size = 10),
+        axis.ticks.x = element_blank(),
+        axis.text.x = element_blank())
 dev.off()
 ```
 

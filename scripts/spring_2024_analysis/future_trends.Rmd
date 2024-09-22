@@ -566,12 +566,13 @@ ggplot(transformative_factors, aes(factor, term, fill = fill_color)) + #fill = e
   #scale_fill_gradient(low = transcend_cols[3], high = transcend_cols[1]) +
   scale_fill_identity() +
   scale_x_discrete(expand = c(0,0), labels = wrap_format(13)) +
-  labs(title = str_wrap("School characteristics predicting future factors of concern", 55),
-       subtitle = str_wrap("Darker blue indicates that characteristic made a school more likely to select the factor as something that will be transformative in the next 5 years, and a lighter blue made a school less likely to select that factor.", 65),
+  labs(title = str_wrap("School characteristics predicting future concern", 55),
+       subtitle = str_wrap("Blue indicates a characteristic that made a school more likely to select the factor as something that will be transformative in the next 5 years and red indicates a characteristic associated with less likelihood to select that factor. Gray indicates a characteristic that was not statistically significant.", 73),
        x = "",
        y = "") +
   theme(legend.position = "none",
-        axis.text.x = element_text(size = 12))
+        axis.text = element_text(size = 10),
+        panel.grid.major = element_blank())
 dev.off()
 ```
 
@@ -772,10 +773,16 @@ Combined:
 #combine tidy data
 transformative_factors <- bind_rows(ai, mental_health, workforce) %>% 
   mutate(log_exp_est = log(exp_est),
-         fill_color = ifelse(p.value <= 0.5, transcend_na,
+         fill_color = ifelse(p.value >= 0.5, transcend_na,
                         ifelse(log_exp_est < 0, scales::gradient_n_pal(c(transcend_cols[3], "white"))((log_exp_est - min(log_exp_est)) / abs(min(log_exp_est))),
-                               scales::gradient_n_pal(c("white", transcend_cols[1]))((log_exp_est - 0) / (max(log_exp_est) - 0)))))
-rm(ai, mental_health, pandemic, workforce, enrollment, politics, esa)
+                               scales::gradient_n_pal(c("white", transcend_cols[1]))((log_exp_est - 0) / (max(log_exp_est) - 0))))) %>% 
+  filter(fill_color != transcend_na) %>% 
+  group_by(factor) %>% 
+  arrange(-log_exp_est, .by_group = TRUE) %>% 
+  mutate(order = row_number(),
+         term = factor(term, levels = unique(term))) %>% 
+  ungroup()
+#rm(ai, mental_health, pandemic, workforce, enrollment, politics, esa)
 #save plot
   png(filename = "output/janette-images/figure_10.png",
     width = 9,
@@ -783,17 +790,23 @@ rm(ai, mental_health, pandemic, workforce, enrollment, politics, esa)
     units = "in",
     res = 300)
 #plot
-ggplot(transformative_factors, aes(factor, reorder(term, exp_est), fill = fill_color)) +
+ggplot(transformative_factors, aes(factor, term, fill = fill_color)) +
   geom_tile(width = 0.8) +
-  #scale_fill_gradient(low = transcend_cols[4], high = transcend_cols[1]) +
   scale_fill_identity() +
   scale_x_discrete(expand = c(0,0)) +
-  labs(title = str_wrap("School characteristics predicting future transformative factors", 50),
-       subtitle = str_wrap("Blue indicates a characteristic that made a school more likely to select the factor as something that will be transformative in the next 5 years, and a red indicates a characteristic that made a school less likely to select that factor. Gray are characteristics that were not statistically significant.", 65),
+  labs(title = str_wrap("School characteristics predicting selection of future transformative factors", 50),
+       subtitle = str_wrap("Blue indicates a characteristic that made a school more likely to select the factor as something that will be transformative in the next 5 years and red indicates a characteristic that made a school less likely to select that factor, with darker colors representing a stronger relationship.", 75),
        x = "",
        y = "") +
   theme(legend.position = "none",
-        panel.grid.major = element_blank())
+        panel.grid.major = element_blank(),
+        axis.ticks.x = element_blank(),
+        axis.text.x = element_blank(),
+        axis.text.y = element_text(size = 9)) +
+  facet_wrap(~factor,
+             scales = "free",
+             labeller = label_wrap_gen(13),
+             strip.position = "bottom")
 dev.off()
 ```
 
