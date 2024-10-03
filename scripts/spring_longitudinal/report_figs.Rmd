@@ -270,9 +270,102 @@ cluster_plot_within(blended, "Changes in blended learning 2019-2024")
 dev.off()
 ```
 
+## Annual Slope Difference Cluster Plots
+
+```{r}
+cluster_plot <- function(data, title) { 
+  plot <- ggplot(data, aes_string(x = "year", y = "pct"), color = condition) +
+  geom_line(aes(group = label), color = transcend_cols[1], alpha = 0.5) +
+  geom_point(aes(group = label), color = transcend_cols[1], alpha = 0.5, size = 1) + 
+  # Smooth line for 2019-2021
+  geom_smooth(data = data %>% filter(year >= 2019 & year <= 2021), se = FALSE, method = "lm", color = transcend_cols[3], aes(group = 1)) +
+  # Smooth line for 2021-2022
+  geom_smooth(data = data %>% filter(year >= 2021 & year <= 2022), se = FALSE, method = "lm", color = transcend_cols[3], aes(group = 1)) +
+  # Smooth line for 2022-2023
+  geom_smooth(data = data %>% filter(year >= 2022 & year <= 2023), se = FALSE, method = "lm", color = transcend_cols[3], aes(group = 1)) +
+  # Smooth line for 2023-2024
+  geom_smooth(data = data %>% filter(year >= 2023 & year <= 2024), se = FALSE, method = "lm", color = transcend_cols[3], aes(group = 1)) +
+  scale_x_continuous(limits = c(2019, 2024),
+                     expand = c(0.01, 0),
+                     breaks = unique(data$year)) +
+  scale_y_continuous(limits = c(0, 1),
+                     expand = c(0, 0),
+                     labels = scales::percent_format(accuracy = 1)) +
+  theme(panel.grid.major.y = element_blank(), panel.grid.minor.y = element_blank(), legend.position = "none") +
+  labs(x = "",
+       y = "Percentage of schools selecting tag",
+       title = str_wrap(title, 90),
+       subtitle = str_wrap("Each blue line represents the trajectory for an individual practice while the red line represents the overall trend. Analysis includes schools with 3 or more survey year responses (N = 119)", 90))
+
+  return(plot)
+}
+```
+
+### Deeper learning
+
+```{r}
+png(filename = "output/janette-images/figure_15.png",
+    width = 9,
+    height = 7,
+    units = "in",
+    res = 300)
+cluster_plot(deep, "Changes in deeper learning cluster 2019-2024")
+dev.off()
+```
+
+### Educational justice
+
+```{r}
+png(filename = "output/janette-images/figure_16.png",
+    width = 9,
+    height = 7,
+    units = "in",
+    res = 300)
+cluster_plot(justice, "Changes in educational justice cluster 2019-2024")
+dev.off()
+```
+
+### Individualized learning
+
+```{r}
+png(filename = "output/janette-images/figure_17.png",
+    width = 9,
+    height = 7,
+    units = "in",
+    res = 300)
+cluster_plot(individualized, "Changes in individualized learning cluster 2019-2024")
+dev.off()
+```
+
+### Postsecondary pathways
+
+```{r}
+png(filename = "output/janette-images/figure_18.png",
+    width = 9,
+    height = 7,
+    units = "in",
+    res = 300)
+cluster_plot(postsecondary, "Changes in postsecondary pathways cluster 2019-2024")
+dev.off()
+```
+
+### Blended learning
+
+These practices are also represented in the figures above.
+
+```{r}
+png(filename = "output/janette-images/figure_19.png",
+    width = 9,
+    height = 7,
+    units = "in",
+    res = 300)
+cluster_plot(blended, "Changes in blended learning 2019-2024")
+dev.off()
+```
+
 ```{r}
 #clean up
-rm(blended, cluster, deep, individualized, justice, labels, postsecondary, tots_3, deeper, ed_justice, repeaters_3, cluster_plot_within, prep_overall)
+rm(blended, cluster, deep, individualized, justice, labels, postsecondary, tots_3, deeper, ed_justice, repeaters_3, cluster_plot, cluster_plot_within, prep_overall)
 ```
 
 ## Waffling
