@@ -10,7 +10,7 @@ output:
     highlight: tango
     code_folding: hide
 editor_options: 
-  chunk_output_type: inline
+  chunk_output_type: console
 ---
 
 ```{r setup, include=FALSE}
@@ -348,7 +348,7 @@ core_prac_plot_dat %>%
     geom_col() +
     scale_fill_manual(values = transcend_cols) +
     scale_y_continuous(expand = c(0,0), labels = scales::percent_format()) +
-  facet_wrap(~year, scales = "free_y", axes = "all") +
+  facet_wrap(~year, scales = "free_y") + #, axes = "all"
   labs(title = "Most selected core practices (4+ years)",
        x = "",
        y = "") +
@@ -470,7 +470,7 @@ core_prac_plot_dat %>%
     geom_col() +
     scale_fill_manual(values = transcend_cols) +
     scale_y_continuous(expand = c(0,0), labels = scales::percent_format()) +
-  facet_wrap(~year, scales = "free_y", axes = "all") +
+  facet_wrap(~year, scales = "free_y") + #, axes = "all"
   labs(title = "Most selected core practices (4+ years)",
        x = "",
        y = "") +

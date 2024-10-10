@@ -547,11 +547,11 @@ Combined heatmap version:
 
 ```{r}
 #save plot
-  png(filename = "output/janette-images/figure_12.png",
-    width = 9,
-    height = 7,
-    units = "in",
-    res = 300)
+  # png(filename = "output/janette-images/figure_12.png",
+  #   width = 9,
+  #   height = 7,
+  #   units = "in",
+  #   res = 300)
 #merge tidy data
 transformative_factors <- bind_rows(local_funds, private_funds, donations, inflation, enrollment, staffing, fiscal_cliff) %>% 
   filter(term == "Suburban"| term == "Rural"| term == "Multiple locales"| term == "25-49% leaders of color"| term == "50-74% leaders of color"| term == "75-100% leaders of color") %>% 
@@ -572,7 +572,7 @@ ggplot(transformative_factors, aes(factor, term, fill = fill_color)) + #fill = e
        y = "") +
   theme(legend.position = "none",
         axis.text.x = element_text(size = 12))
-dev.off()
+# dev.off()
 ```
 
 
@@ -605,12 +605,12 @@ transform_labels <- variables %>%
 ```
 
 ```{r}
-#save plot
-  png(filename = "output/janette-images/figure_9.png",
-    width = 9,
-    height = 7,
-    units = "in",
-    res = 300)
+# #save plot
+#   png(filename = "output/janette-images/figure_9.png",
+#     width = 9,
+#     height = 7,
+#     units = "in",
+#     res = 300)
 #plot
 variables %>% 
   select(school_id, future_resources, starts_with("transform"), -transform_other_text) %>% 
@@ -632,7 +632,7 @@ variables %>%
   labs(x = "",
        y = "Number of schools",
        title = str_wrap("Factors Canopy school leaders think will be most transformative in the next 5 years", 55))
-dev.off()
+# dev.off()
 ```
 
 15 school leaders chose to provide an open response to the question, citing some other factor that was not on our list.  
@@ -777,12 +777,12 @@ transformative_factors <- bind_rows(ai, mental_health, workforce) %>%
                                scales::gradient_n_pal(c("white", transcend_cols[1]))((log_exp_est - 0) / (max(log_exp_est) - 0))))) %>% 
   filter(fill_color != "#9D9FA2")
 #rm(ai, mental_health, pandemic, workforce, enrollment, politics, esa)
-#save plot
-  png(filename = "output/janette-images/figure_10.png",
-    width = 9,
-    height = 7,
-    units = "in",
-    res = 300)
+# #save plot
+#   png(filename = "output/janette-images/figure_10.png",
+#     width = 9,
+#     height = 7,
+#     units = "in",
+#     res = 300)
 #plot
 ggplot(transformative_factors, aes(factor, reorder(term, log_exp_est), fill = fill_color)) +
   geom_tile(width = 0.8) +
@@ -803,6 +803,242 @@ ggplot(transformative_factors, aes(factor, reorder(term, log_exp_est), fill = fi
              scales = "free",
              strip.position = "bottom",
              labeller = label_wrap_gen(13))
-dev.off()
+# dev.off()
 ```
+
+# Future Concern by School Age  
+
+Guiding comment: *What do you think about looking at leaders' concern about sustainability by school age (as far as we can tell)? I wonder if we could replicate this analysis from 2023 to identify a group of more established vs. less established schools (using their 2024 data), and then test the likelihood that each group is "extremely" or "somewhat" concerned with sustainability. It could be powerful to either say that less established schools are more concerned, or that concern is pretty equally distributed...*
+
+```{r}
+# clean up environment
+rm(ai, barrier_labs, climate, corpus, dictionary, donations, dtm, enrollment, esa, fiscal_cliff, inflation, local_funds, matrix, mental_health, mod_dat, mod1, pandemic, politics, private_funds, responses, staffing, transform_labels, transformative_factors, workforce, cov_labels, custom_stopwords, word_freqs, log_model, plot_model, tidy_model, data)
+```
+
+## Defining established schools
+
+Let's begin by exploring how we can define more vs. less established schools.  
+
+Looks like 95 of 189 schools will be easy to categorize - they chose the same length of time for all of their core practices. The rest we will need to categorize differently.  
+
+For easy categories:  
+* new = all core tags reported in use for less than a year  
+* new = all core tags reported in use for 1-2 years  
+* med = all core tags reported in use for 3-4 years  
+* old = all core tags reported in use for 5+ years  
+
+```{r}
+#create dataset of variables and time - might not need
+time_dat <- import(here("data/longitudinal", "full-tags-long.csv")) %>% 
+  filter(year == 2024) %>% 
+  select(school_id, var, time)
+#pull times relative to schools, what time are they reporting?
+school_time <- time_dat %>% 
+  filter(time != 0) %>% 
+  select(school_id, time) %>% 
+  mutate(rate = 1) %>% 
+  group_by(school_id, time) %>% 
+  summarize(n = sum(rate)) %>% 
+#assign a category for the cut-and-dry
+  mutate(group = case_when(
+    n == 5 & time == "5+ years" ~ "old",
+    n == 5 & time == "3-4 years" ~ "med",
+    n == 5 & time == "1-2 years" ~ "new",
+    n == 5 & time == "Less than a year" ~ "new"
+  )) %>% 
+  ungroup() %>% 
+  arrange(-n)
+datatable(school_time)
+```
+
+We can easily extend these categories to any schools with most tags in a specific category. For example, if 4/5 of your core practices you've been practicing for at least 5 years, then we'll consider you an established school. And if any of your core practices have been in place that long, then you're also an established school.  
+
+This accounts for most of the additional schools, for a total N filled of 179 (out of 189).  
+
+```{r}
+school_time <- school_time %>% 
+  group_by(school_id) %>% 
+  mutate(group = case_when(
+    any(time == "5+ years") ~ "old",
+    n == 4 & time == "3-4 years" ~ "med",
+    n == 4 & time == "1-2 years" ~ "new",
+    n == 4 & time == "Less than a year" ~ "new",
+    TRUE ~ as.character(group)
+  )) %>% 
+  ungroup() %>% 
+  arrange(school_id, -n) 
+```
+
+What do the final 10 schools look like?  
+
+I set these manually:  
+* Schools 47, 746, 764 & 846 are "med" using similar logic as above that the timing for the oldest core tag will take precedence  
+* Schools 246 & 834 is "med" because they only chose 1 core tag and have been using it 3-4 years  
+* School 809 is "new" because they only chose 1 core tag and have been using it less than a year  
+* School 823 is "new" because they only chose 1 core tag and have been using it 1-2 years  
+* Schools 600 and 753 is "new" because their core tags have been in place 2 or fewer years (they weren't picked up previously because they only selected 4 core tags, rather than 5)  
+
+```{r}
+#explore
+school_time %>% 
+  filter(is.na(group)) %>% 
+  datatable()
+#assign final manual values
+school_time <- school_time %>% 
+  mutate(group = case_when(
+    school_id == 47 ~ "med",
+    school_id == 746 ~ "med",
+    school_id == 764 ~ "med",
+    school_id == 846 ~ "med",
+    school_id == 246 ~ "med",
+    school_id == 834 ~ "med",
+    school_id == 809 ~ "new",
+    school_id == 823 ~ "new",
+    school_id == 600 ~ "new",
+    school_id == 753 ~ "new",
+    TRUE ~ as.character(group)
+  )) %>% 
+  select(school_id, group) %>% 
+  unique() %>% 
+  mutate(group = factor(group, levels = c("old", "med", "new"), labels = c("Established", "Somewhat established", "New or newly-redesigned")))
+```
+
+## Descriptives
+
+Distribution of schools
+
+```{r}
+school_time %>% 
+  mutate(rate = 1) %>% 
+  group_by(group) %>% 
+  summarize(n = sum(rate),
+            pct = round(n/189, 2)) %>% 
+  ungroup() %>% 
+  ggplot(., aes(group, pct)) +
+  geom_col(fill = transcend_cols[1]) +
+  scale_y_continuous(expand = c(0,0), 
+                     limits = c(0, 1),
+                     labels = scales::percent_format()) +
+  theme(panel.grid.major.x = element_blank()) +
+  labs(x = "", y = "Percent of schools", title = "Distribution of schools by how established they are") +
+  geom_text(aes(label = scales::label_percent(accuracy = 1)(pct)),
+            nudge_y = 0.01,
+            vjust = 0,
+            color = transcend_na,
+            fontface = "bold",
+            size = 5.5,
+            family = "sans") +
+  scale_x_discrete(labels = wrap_format(15))
+```
+
+Concern by school age:
+
+```{r}
+variables %>% 
+  left_join(school_time, by = "school_id") %>% 
+  select(school_id, future_resources, group) %>% 
+  mutate(concern = case_when(
+    future_resources == "Yes, extremely" | future_resources == "Yes, somewhat" ~ "Concerned",
+    future_resources == "No, not at all" | future_resources == "No, not very" ~ "Not concerned",
+    TRUE ~ "Neutral"
+  )) %>% 
+  mutate(rate = 1) %>% 
+  group_by(concern, group) %>% 
+  summarize(n = sum(rate)) %>% 
+  ungroup() %>% 
+  group_by(group) %>% 
+  mutate(sum = sum(n),
+         pct = n/sum) %>% 
+  ungroup() %>% 
+  ggplot(., aes(group, pct, fill = concern)) + 
+  geom_col() +
+  scale_fill_manual(values = c(transcend_cols[3], transcend_na, transcend_cols[1])) +
+  scale_y_continuous(expand = c(0, 0), limits = c(0, 1), labels = scales::percent_format()) +
+  geom_text(aes(label = scales::label_percent(accuracy = 1)(pct)), 
+            position = position_stack(vjust = .5),
+            color = "white", 
+            size = 5, 
+            family = "sans") +
+  theme(legend.position = "bottom", legend.direction = "horizontal", panel.grid.major.y = element_blank(), axis.text.y = element_text(size = 11)) +
+  labs(x = "", y = "Percent of schools", title = "School leader concern with future sustainability", fill = "Level of concern") +
+  scale_x_discrete(labels = wrap_format(20)) +
+  guides(fill = guide_legend(reverse = T)) +
+  coord_flip()
+```
+
+## Modeling
+
+I reran the model above, adding how established schools were as a covariate in the model. We find that how established schools are, based on the definitions above, did not influence the likelihood that a school leader would indicate they were concerned with future sustainability. The estimates were extremely close to even likelihood and were not statistically significant.  
+
+This is not too surprising given the barchart above, which showed concern with future sustainability was very similar across schools of different ages. We also have a much smaller group of "new" schools (which is also not that surprising because we intentionally over-sampled repeat schools that were more likely to have been using practices for longer lengths of time) so this could look different had we had a much larger group of younger schools. 
+
+```{r}
+#prep data
+mod_dat <- variables %>% 
+  left_join(school_time, by = "school_id") %>% 
+  select(school_id, future_resources, school_locale, school_type, grades_pk, grades_elementary, grades_middle, grades_high, school_enrollment, pct_bipoc, pct_ell, pct_frpl, pct_swd, leadership_diversity, group) %>% 
+  mutate(future_resources = case_when(
+    future_resources == "Yes, extremely" ~ 1,
+    future_resources == "Yes, somewhat" ~ 1,
+    TRUE ~ 0
+  ),
+  leadership_diversity = gsub("people", "leaders", leadership_diversity),
+  school_locale = factor(school_locale, levels = c("Urban", "Suburban", "Rural", "Multiple")),
+  school_type = factor(school_type, levels = c("Public district school", "Public charter school", "Independent (private) school")),
+  leadership_diversity = factor(leadership_diversity, levels = c("0 - 24% leaders of color", "25 - 49% leaders of color", "50 - 74% leaders of color", "75 - 100% leaders of color")),
+  school_enrollment = as.numeric(scale(school_enrollment, center = TRUE, scale = TRUE))) %>% 
+  mutate(across(starts_with("pct"), ~as.numeric(scale(., center = TRUE, scale = TRUE))))
+#model
+mod <- glm(future_resources ~ school_locale + school_type + grades_pk + grades_elementary + grades_middle + grades_high + school_enrollment + pct_bipoc + pct_ell + pct_frpl + pct_swd + leadership_diversity + group,
+               family = "binomial",
+               data = mod_dat)
+# set labels
+cov_labels <- c(
+  "school_typeIndependent (private) school" = "Independent (private) school",
+  "school_typePublic charter school" = "Public charter school",
+  "grades_pk" = "PreK",
+  "grades_elementary" = "Elementary",
+  "grades_middle" = "Middle",
+  "grades_high" = "High",
+  "school_enrollment" = "School Enrollment",
+  "pct_bipoc" = "% BIPOC students",
+  "pct_ell" = "% EL-designated students",
+  "pct_frpl" = "% FRPL-eligible",
+  "pct_swd" = "% Students with disabilities",
+  "school_localeMultiple" = "Multiple locales",
+  "school_localeSuburban" = "Suburban",
+  "school_localeRural" = "Rural",
+  "leadership_diversity25 - 49% leaders of color" = "25-49% leaders of color",
+  "leadership_diversity50 - 74% leaders of color" = "50-74% leaders of color",
+  "leadership_diversity75 - 100% leaders of color" = "75-100% leaders of color",
+  "groupSomewhat established" = "Somewhat established",
+  "groupNew or newly-redesigned" = "New or newly redesigned"
+)
+# plot
+tidy(mod, effects = "ran_pars", conf.int = TRUE) %>%
+  filter(term != "(Intercept)") %>%
+  mutate(exp_est = exp(estimate), 
+         exp_min = exp(estimate - std.error), 
+         exp_max = exp(estimate + std.error)) %>% 
+  mutate(term = cov_labels[term]) %>% 
+ggplot(., aes(y = fct_reorder(term, exp_est), x = exp_est)) +
+  geom_linerange(aes(xmin = exp_min,
+                     xmax = exp_max),
+                 color = "blue") +
+  geom_point() +
+  geom_vline(xintercept = 1) +
+  scale_x_continuous(
+    trans = "log",
+    breaks = c(.0625, .2, .5, 1, 2, 5, 16),
+    labels = str_wrap(c("1/16 as likely", "1/5 as likely", "1/2 as likely", "Even", "2x as likely", "5x as likely", "16x as likely"), 10),
+    expand = expansion(0, 0)
+  ) +
+  theme_transcend +
+  theme(panel.grid.major.y = element_blank()) +
+  labs(
+    x = "Likelihood",
+    y = "",
+    title = str_wrap("School characteristics predicting higher concern with future sustainability", 60))
+```
+
 

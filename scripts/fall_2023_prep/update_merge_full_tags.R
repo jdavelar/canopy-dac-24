@@ -68,39 +68,32 @@ core_22 <- clean_data_full %>%
   mutate(year = 2022) # in long format
 rm(clean_data_dictionary, clean_data_full, demographic_data, learning_model_data, practices_data, school_data, survey_data)
 #2021 rename
-#2021 rule - if a school reported a practice at any point in 2021, it's marked as a 1
-core_21c <- import(here("data", "schools_2021c.csv")) %>% 
-  select(-school_name, -promising_practices) %>% 
-  mutate(across(2:17, ~ifelse(is.na(.), 0, .))) %>% 
-  pivot_longer(cols = !school_id,
-               names_to = "var_21",
-               values_to = "usage_c")
+#2021 rule - if a school reported a core practice at any point in 2021, it's marked as a 1
+# core_21c <- import(here("data", "schools_2021c.csv")) %>% 
+#   select(-school_name, -promising_practices) %>% 
+#   mutate(across(2:17, ~ifelse(is.na(.), 0, .))) %>% 
+#   pivot_longer(cols = !school_id,
+#                names_to = "var_21",
+#                values_to = "usage_c")
+# 2021 c did not collect info on core - only merge a & b - updated 10.10.24
 #link follow-up reporting to first wave
 core_21a <- import(here("data", "schools_2021a.csv")) %>% 
   select(school_id, c(16:106)) %>% 
   mutate(across(2:92, ~ case_when(
-    . == 1 ~ 0,
+    . == "1" ~ 0,
     . == "" ~ 0,
+    is.na(.) ~ 0,
     TRUE ~ 1
   ))) %>% 
   pivot_longer(cols = !school_id,
                names_to = "var_21",
-               values_to = "usage_a") %>% 
-  left_join(core_21c, by = c("school_id", "var_21")) %>% 
-  mutate(usage = case_when(
-    is.na(usage_a) & !is.na(usage_c) ~ usage_c,
-    is.na(usage_c) & !is.na(usage_a) ~ usage_a,
-    usage_a == 1 | usage_c == 1 ~ 1,
-    usage_a == 0 & usage_c == 1 ~ 1,
-    usage_a == 1 & usage_c == 0 ~ 1,
-    TRUE ~ 0
-  )) %>% 
-  select(school_id, var_21, usage)
+               values_to = "usage")
 core_21b <- import(here("data", "schools_2021b.csv")) %>% 
   select(school_id, c(17:107)) %>% 
   mutate(across(2:92, ~ case_when(
     . == 1 ~ 0,
     . == "" ~ 0,
+    is.na(.) ~0,
     TRUE ~ 1
   ))) %>% 
   pivot_longer(cols = !school_id,
