@@ -197,7 +197,8 @@ fancy_across <- function(data, title){
         tickfont = list(size = 12, color = "black", family = "Open Sans")
       ),
       margin = list(t = 80) 
-    )
+    ) %>% 
+    config(displayModeBar = FALSE)
   
   plot <- highlight(
     plot,
