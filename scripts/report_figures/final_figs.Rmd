@@ -15,7 +15,7 @@ editor_options:
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE, fig.width = 7, fig.height = 6)
-pacman::p_load(tidyverse, here, rio, ggthemes, scales, DT)
+pacman::p_load(tidyverse, here, rio, ggthemes, scales, DT, stringi)
 #read in data
 load(here("data", "2024 data/complete_canopy_2024.RData"))
 dat <- variables
@@ -27,13 +27,17 @@ labels <- import(here("data", "longitudinal/tag-labels.csv")) %>% rename(var = v
 
 ```{r}
 # Pull in Branding
-transcend_cols = c("#1A4C81","#59C3B4","#EF464B","#ADE0EE")
-transcend_cols2 = c("#BC2582","#FFA630","#FFDE42","#99C24D","#218380","#D3B7D7")
-transcend_grays = c("#4D4D4F","#9D9FA2","#D1D3D4")
-transcend_na = transcend_grays[2]
+# transcend_cols = c("#1A4C81","#59C3B4","#EF464B","#ADE0EE")
+# transcend_cols2 = c("#BC2582","#FFA630","#FFDE42","#99C24D","#218380","#D3B7D7")
+# transcend_grays = c("#4D4D4F","#9D9FA2","#D1D3D4")
+# transcend_na = transcend_grays[2]
+crpe_blues = c("#0178BA", "#62A3D0", "#A1C9E6")
+crpe_oranges = c("#E38C34", "#F5C37D", "#F5C37D")
+crpe_grays = c("#D9D9D9", "#E6E6E6", "#F2F2F2")
+crpe_purples = c("#9467BD", "#B08CD3", "#C8B3E2")
 theme_transcend = theme_gdocs(base_size = 14, base_family = "Open Sans") +
   theme(
-    plot.title = element_text(family = "Bebas Neue", color = "black"),
+    plot.title = element_text(family = "Helvetica Bold", color = "black"),
     plot.background = element_blank(),
     axis.text = element_text(colour = "black"),
     axis.title = element_text(colour = "black"),
@@ -100,15 +104,16 @@ special_pops <- function(data, var, title, type = "plot"){
   plot_dat <- data %>% 
     select(school_id, year, !!var) %>%  
     pivot_wider(names_from = year,
-                values_from = !!var) %>% 
-    mutate(n_years = rowSums(!is.na(select(., -school_id)))) %>% 
-    filter(n_years > 2) %>% #OG 3
+                values_from = !!var) %>%
+    mutate(n_years = rowSums(!is.na(select(., -school_id)))) %>%
+    filter(n_years > 1) %>% #OG 3
     pivot_longer(cols = c(`2019`:`2024`),
                  names_to = "year",
-                 values_to = "value") %>% 
+                 values_to = "value") %>%
     mutate(year = as.numeric(year),
            n_school = n_distinct(school_id)) %>% 
-    filter(!is.na(value))  
+    filter(!is.na(value))  %>% 
+    filter(value != 0)
   
   # Pull N for subtitle
   n_school <- plot_dat %>% 
@@ -121,9 +126,9 @@ special_pops <- function(data, var, title, type = "plot"){
   
   # Build plot if necessary
   plot <- ggplot(plot_dat, aes(x = year, y = value, group = school_id)) +  
-      geom_line(color = transcend_cols[1], alpha = 0.4) +
-      geom_point(color = transcend_cols[1], alpha = 0.5, size = 1) +
-      geom_smooth(se = FALSE, method = "loess", color = transcend_cols[3], aes(group = 1)) +
+      #geom_line(color = transcend_cols[1], alpha = 0.4) +
+      geom_point(color = crpe_blues[1], alpha = 0.7, size = 1) +
+      geom_smooth(se = FALSE, method = "loess", color = crpe_oranges[1], aes(group = 1)) +
       scale_x_continuous(limits = c(2019, 2024),
                          expand = c(0.01, 0),
                          breaks = unique(long_dat$year)) +
@@ -133,8 +138,8 @@ special_pops <- function(data, var, title, type = "plot"){
       theme(panel.grid.major.x = element_blank()) +
       labs(x = "",
            y = "",
-           title = str_wrap(title, 90),
-           subtitle = str_wrap(paste0("Sample limited to schools that participated 3 or more times in a Canopy survey (N = ", n_school, ")."), 80))
+           title = str_wrap(title, 50),
+           subtitle = str_wrap(paste0("Sample includes all schools that completed two or more Canopy surveys between 2019-2024 (N = ", n_school, ")."), 80))
   
   return(plot)
 }
@@ -144,29 +149,49 @@ special_pops <- function(data, var, title, type = "plot"){
 ## 1a - EL
 
 ```{r}
-fig_1a <- special_pops(long_dat, pct_ell, "Percentage of students considered English learners")
+fig_1a <- special_pops(long_dat, pct_ell, "Percentage of Students Designated as English Learners")
 save_plots(fig_1a, "figure_1a")
+ggsave(filename = "output/report-figures/eps/figure_1a.eps",
+       plot = fig_1a,
+       device = "eps",
+       width = 9,
+       height = 7)
 ```
 
 ## 1b - SPED
 
 ```{r}
-fig_1b <- special_pops(long_dat, pct_swd, "Percentage of students with disabilities")
+fig_1b <- special_pops(long_dat, pct_swd, "Percentage of Students with Disabilities")
 save_plots(fig_1b, "figure_1b")
+ggsave(filename = "output/report-figures/eps/figure_1b.eps",
+       plot = fig_1b,
+       device = "eps",
+       width = 9,
+       height = 7)
 ```
 
 ## 1c - BIPOC
 
 ```{r}
-fig_1c <- special_pops(long_dat, pct_bipoc, "Percentage of students of color")
+fig_1c <- special_pops(long_dat, pct_bipoc, "Percentage of Students of Color")
 save_plots(fig_1c, "figure_1c")
+ggsave(filename = "output/report-figures/eps/figure_1c.eps",
+       plot = fig_1c,
+       device = "eps",
+       width = 9,
+       height = 7)
 ```
 
 ## 1d - SES
 
 ```{r}
-fig_1d <- special_pops(long_dat, pct_frpl, "Percentage of socioeconomically disadvantaged students")
+fig_1d <- special_pops(long_dat, pct_frpl, "Percentage of Socioeconomically Disadvantaged Students")
 save_plots(fig_1d, "figure_1d")
+ggsave(filename = "output/report-figures/eps/figure_1d.eps",
+       plot = fig_1d,
+       device = "eps",
+       width = 9,
+       height = 7)
 ```
 
 ## 1e - combined
@@ -188,10 +213,10 @@ extract <- map_dfr(variables, function(var) {
 # Add titles for facet wrap
 extract <- extract %>% 
   mutate(variable = case_when(
-    variable == "pct_ell" ~ "Percentage of students considered English learners",
+    variable == "pct_ell" ~ "Percentage of students designated as English learners",
     variable == "pct_swd" ~ "Percentage of students with disabilities",
     variable == "pct_bipoc" ~ "Percentage of students of color",
-    variable == "pct_frpl" ~ "Percentage of socioeconomically disadvantaged students"))
+    variable == "pct_frpl" ~ "Percentage of economically disadvantaged students"))
 
 # Pull new N
 n_school <- extract %>% 
@@ -201,9 +226,8 @@ n_school <- extract %>%
 
 ```{r}
 fig_1e <- ggplot(extract, aes(year, value, group = school_id)) +  
-  geom_line(color = transcend_cols[1], alpha = 0.4) +
-  geom_point(color = transcend_cols[1], alpha = 0.5, size = 1) +
-  geom_smooth(se = FALSE, method = "loess", color = transcend_cols[3], aes(group = 1)) +
+  geom_point(color = crpe_blues[1], alpha = 0.5, size = 1) +
+  geom_smooth(se = FALSE, method = "loess", color = crpe_oranges[1], aes(group = 1)) +
   scale_x_continuous(limits = c(2019, 2024),
                      expand = c(0.01, 0),
                      breaks = unique(long_dat$year)) +
@@ -218,9 +242,14 @@ fig_1e <- ggplot(extract, aes(year, value, group = school_id)) +
              scales = "free_x") +
       labs(x = "",
            y = "",
-           title = str_wrap("Special population classifications over time", 90),
-           subtitle = str_wrap(paste0("Sample limited to schools that participated 3 or more times in a Canopy survey (N = ", n_school, ")."), 80))
+           title = str_wrap("Special Population Classifications Over Time", 90),
+           subtitle = str_wrap(paste0("Blue dots represent individual schools, while orange lines represent the average trend. Sample limited to schools that participated 2 or more times in a Canopy survey and reported demographic data (N = ", n_school, ")."), 80))
 save_plots(fig_1e, "figure_1e")
+ggsave(filename = "output/report-figures/eps/figure_1e.eps",
+       plot = fig_1e,
+       device = "eps",
+       width = 9,
+       height = 7)
 ```
 
 ```{r}
@@ -231,6 +260,9 @@ rm(fig_1a, fig_1b, fig_1c, fig_1d, fig_1e, n_school, variables, special_pops, ex
 # Figure 2
 
 ```{r}
+# Capitalize tag names in labels
+labels$label <- paste0(toupper(substr(labels$label, 1, 1)), substr(labels$label, 2, nchar(labels$label)))
+# Build plot
 fig_2 <- tags %>% 
   select(school_id, starts_with("pilot")) %>% 
   pivot_longer(cols = starts_with("pilot"),
@@ -239,29 +271,34 @@ fig_2 <- tags %>%
   group_by(var) %>% 
   summarize(n = sum(usage),
             pct = round(n/189, 2)) %>% 
-  mutate(var = str_replace_all(var, "pilot", "practices")) %>% 
+  mutate(var = str_replace_all(var, "pilot", "practices"),
+         n_lab = paste0(n, " schools")) %>% 
   left_join(labels, by = "var") %>% 
   arrange(-n) %>% 
   slice_head(n = 5) %>% 
-  ggplot(., aes(pct, reorder(label, pct))) +
-  geom_col(fill = transcend_cols[1]) +
-  scale_x_continuous(expand = c(0, 0), 
-                     limits = c(0, .5), 
-                     labels = scales::percent_format()) +
+  ggplot(., aes(n, reorder(label, n))) +
+  geom_col(fill = crpe_blues[1]) +
+  scale_x_continuous(expand = c(0, 0),
+                     limits = c(0, 30)) + 
   scale_y_discrete(labels = wrap_format(25)) +
-  geom_text(aes(label = scales::label_percent(accuracy = 1)(pct)), 
+  geom_text(aes(label = n_lab), #aes(label = scales::label_percent(accuracy = 1)(pct) 
             hjust = 1.1,
             vjust = 0, 
             color = "white", 
-            fontface = "bold", 
             size = 5.5, 
             family = "sans") +
   theme(panel.grid.major.y = element_blank(),
         axis.text.y = element_text(size = 12)) +
-  labs(x = "Percentage of Canopy schools responding to the 2024 survey (N = 189)",
-       y = "",
-       title = str_wrap("Top 5 practices Canopy schools plan to pilot in the next 5 years", 55))
+  labs(title = str_wrap("Top 5 Practices Canopy Schools Plan to Pilot in the Next 5 Years", 40),
+       subtitle = str_wrap("Sample limited to schools that participated in 2024 Canopy survey (N = 189).", 65),
+       x = "Number of Canopy schools",
+       y = "")
 save_plots(fig_2, "figure_2")
+ggsave(filename = "output/report-figures/eps/figure_2.eps",
+       plot = fig_2,
+       device = "eps",
+       width = 9,
+       height = 7)
 ```
 
 ```{r}
@@ -302,10 +339,12 @@ fig_3 <- dat %>%
   summarize(n = sum(response),
             pct = n/115) %>% 
   left_join(barrier_labs, by = "barrier") %>% 
+  mutate(pct = ifelse(label == "Some other reason", pct - .001, pct)) %>% 
   #plot
   ggplot(aes(pct, reorder(label, pct))) +
-  geom_col(fill = transcend_cols[1]) +
-  labs(title = str_wrap("Barriers to sustainability Canopy school leaders cited in 2024", 50),
+  geom_col(fill = crpe_blues[1]) +
+  labs(title = str_wrap("Barriers to Financial Sustainability Canopy School Leaders Cited in 2024", 40),
+       subtitle = str_wrap("Sample limited to schools that participated in 2024 Canopy survey (N = 189).", 67),
        x = "Percentage of Canopy schools",
        y = "") +
   theme(legend.position = "none",
@@ -319,10 +358,14 @@ fig_3 <- dat %>%
             hjust = 1.1,
             vjust = 0, 
             color = "white", 
-            fontface = "bold", 
             size = 5.5, 
             family = "sans")
 save_plots(fig_3, "figure_3")
+ggsave(filename = "output/report-figures/eps/figure_3.eps",
+       plot = fig_3,
+       device = "eps",
+       width = 9,
+       height = 7)
 ```
 
 ```{r}
@@ -393,10 +436,10 @@ fig_4 <- bind_rows(helps, hinders) %>%
   ggplot(., aes(n, reorder(short_label, n), fill = response)) +
   geom_col() +
   scale_fill_manual(values = c(
-      "Really hinders" = transcend_cols[3], 
-      "Somewhat hinders" = transcend_cols2[2], 
-      "Somewhat helps" = transcend_cols[2], 
-      "Really helps" = transcend_cols[1])) +
+      "Really hinders" = crpe_oranges[1], 
+      "Somewhat hinders" = crpe_oranges[2], 
+      "Somewhat helps" = crpe_blues[2], 
+      "Really helps" = crpe_blues[1])) +
   theme(legend.position = "top", 
         legend.direction = "horizontal",
         panel.grid.major.y = element_blank(),
@@ -413,9 +456,15 @@ fig_4 <- bind_rows(helps, hinders) %>%
             family = "sans") +
   labs(x = "Number of Canopy schools",
        y = "",
-       title = str_wrap("How existing policies and ecosystem factors affect Canopy schools' work", 55),
+       title = str_wrap("How Existing Policies and Ecosystem Factors Affect Canopy Schools' Work", 40),
+       subtitle = str_wrap("Sample limited to schoools that participated in 2024 Canopy survey (N = 189).", 62),
        fill = "")
 save_plots(fig_4, "figure_4")
+ggsave(filename = "output/report-figures/eps/figure_4.eps",
+       plot = fig_4,
+       device = "eps",
+       width = 9,
+       height = 7)
 ```
 
 ```{r}
@@ -432,7 +481,8 @@ fig_5 <- dat %>%
   mutate(future_resources = factor(future_resources,
                                    levels = c("No, not at all", "No, not very", "Neutral", "Yes, somewhat", "Yes, extremely")),
          rate = 1,
-         leadership_diversity = str_replace_all(leadership_diversity, "people", "leaders")) %>% 
+         leadership_diversity = str_replace_all(leadership_diversity, "people", "leaders"),
+         leadership_diversity = gsub(" - ", "\u2013", leadership_diversity)) %>% 
   group_by(future_resources, leadership_diversity) %>% 
   summarize(n = sum(rate)) %>% 
   ungroup() %>% 
@@ -443,11 +493,11 @@ fig_5 <- dat %>%
   ggplot(., aes(pct, leadership_diversity, fill = future_resources)) +
   geom_col() +
   scale_fill_manual(values = c(
-      "Yes, extremely" = transcend_cols[3], 
-      "Yes, somewhat" = transcend_cols2[2], 
-      "Neutral" = transcend_na,
-      "No, not very" = transcend_cols[2], 
-      "No, not at all" = transcend_cols[1])) +
+      "Yes, extremely" = crpe_oranges[1], 
+      "Yes, somewhat" = crpe_oranges[2], 
+      "Neutral" = crpe_grays[1],
+      "No, not very" = crpe_blues[2], 
+      "No, not at all" = crpe_blues[1])) +
   scale_x_continuous(expand = c(0, 0), limits = c(0, 1), labels = scales::percent_format()) +
   geom_text(aes(label = scales::label_percent(accuracy = 1)(pct)), 
             position = position_stack(vjust = .5), 
@@ -462,13 +512,18 @@ fig_5 <- dat %>%
         legend.title = element_text(size = 10)) +
   labs(x = "", 
        y = "", 
-       title = str_wrap("Concern with future sustainability by level of racial diversity in school leadership", 55), #different for smaller plot
-       subtitle = str_wrap("Leaders' responses to 'Are you concerned about your ability to sustain resources for your learning environment over the next five years?'", 70), 
+       title = str_wrap("Concern About Future Sustainability by Level of Racial Diversity in School Leadership", 40), #different for smaller plot
+       subtitle = str_wrap("Leaders' responses to \"Are you concerned about your ability to sustain resources for your learning environment over the next five years?\" Sample limited to schools that participated in 2024 Canopy survey (N = 189).", 67), 
        fill = "Level of concern") +
   guides(fill = guide_legend(reverse = T, 
                              title.position = "top",
                              title.hjust = 0.5))
-save_plots(fig_5, "figure_5", fig_width = 9, fig_height = 5)
+save_plots(fig_5, "figure_5", fig_width = 9, fig_height = 6)
+ggsave(filename = "output/report-figures/eps/figure_5.eps",
+       plot = fig_5,
+       device = "eps",
+       width = 9,
+       height = 5)
 ```
 
 ```{r}
@@ -512,7 +567,7 @@ fig_6 <- long_tags %>%
   ggplot(., aes(year, pct, color = label)) +
   geom_line() +
   geom_point() +
-  scale_color_manual(values = c(transcend_cols, transcend_cols2)) +
+  scale_color_manual(values = c(crpe_blues[1], crpe_blues[3], crpe_oranges[1], crpe_oranges[3], crpe_purples[1], crpe_purples[3])) +
   scale_x_continuous(limits = c(2019, 2024),
                      expand = c(0.01, 0),
                      breaks = unique(long_dat$year)) +
@@ -524,14 +579,19 @@ fig_6 <- long_tags %>%
         legend.text = element_text(size = 10),
         legend.title = element_text(size = 10)) +
   labs(x = "",
-       y = "",
-       title = str_wrap("Changes in blended learning 2019-2024", 90),
-       subtitle = str_wrap("Sample limited to schools that participated 3 or more times in a Canopy survey (N = 119)", 80),
+       y = "Percentage of Canopy schools",
+       title = str_wrap("Changes in Select Practices Related to Blended Learning 2019\u20132024", 48),
+       subtitle = str_wrap("Sample limited to schools that participated 3 or more times in a Canopy survey (N = 119).", 80),
        color = "Blended learning practice") +
   guides(color = guide_legend(title.position = "top",
                               title.hjust = 0.5,
                               nrow = 2))
 save_plots(fig_6, "figure_6")
+ggsave(filename = "output/report-figures/eps/figure_6.eps",
+       plot = fig_6,
+       device = "eps",
+       width = 9,
+       height = 7)
 ```
 
 ```{r}
@@ -561,23 +621,27 @@ fig_7 <- long_dat %>%
   filter(!is.na(school_locale)) %>% 
   ggplot(., aes(school_locale, pct, fill = school_locale)) +
     geom_col() +
-    scale_fill_manual(values = transcend_cols) +
+    scale_fill_manual(values = c(crpe_oranges[1], crpe_blues)) +
     scale_y_continuous(expand = c(0, 0),
                        labels = scales::percent_format(accuracy = 1),
                        limits = c(0, 1)) +
     theme(legend.position = "none", panel.grid.major.x = element_blank()) +
-    labs(title = "Canopy schools by geographic region",
+    labs(title = "Canopy Schools by Geographic Region",
          subtitle = str_wrap("Sample limited to schools that participated 2 or more times in a Canopy survey (N = 263).", 80),
          x = "", 
          y = "Percentage of Canopy schools") +
   geom_text(aes(label = scales::label_percent(accuracy = 1)(pct)),
             nudge_y = 0.01,
             vjust = 0,
-            color = transcend_na,
-            fontface = "bold",
+            color = "black",
             size = 5.5,
             family = "sans")
 save_plots(fig_7, "figure_7")
+ggsave(filename = "output/report-figures/eps/figure_7.eps",
+       plot = fig_7,
+       device = "eps",
+       width = 9,
+       height = 7)
 ```
 
 # Figure 8
@@ -609,23 +673,27 @@ fig_8 <- long_dat %>%
                                labels = c("PreK", "Elementary", "Middle", "High"))) %>% 
   ggplot(., aes(school_level, pct, fill = school_level)) +
     geom_col() +
-    scale_fill_manual(values = transcend_cols) +
+    scale_fill_manual(values = c(crpe_oranges[1], crpe_blues)) +
     scale_y_continuous(expand = c(0, 0),
                        labels = scales::percent_format(accuracy = 1),
                        limits = c(0, 1)) +
     theme(legend.position = "none", panel.grid.major.x = element_blank()) +
-    labs(title = "Canopy schools by level",
+    labs(title = "Canopy Schools by Level",
          subtitle = str_wrap("Sample limited to schools that participated 2 or more times in a Canopy survey (N = 263).", 80),
          x = "", 
          y = "Percentage of Canopy schools") +
   geom_text(aes(label = scales::label_percent(accuracy = 1)(pct)),
             nudge_y = 0.01,
             vjust = 0,
-            color = transcend_na,
-            fontface = "bold",
+            color = "black",
             size = 5.5,
             family = "sans")
 save_plots(fig_8, "figure_8")
+ggsave(filename = "output/report-figures/eps/figure_18.eps",
+       plot = fig_18,
+       device = "eps",
+       width = 9,
+       height = 7)
 ```
 
 # Figure 9
@@ -642,24 +710,28 @@ fig_9 <- long_dat %>%
   filter(!is.na(school_type)) %>% 
   ggplot(., aes(school_type, pct, fill = school_type)) +
     geom_col() +
-    scale_fill_manual(values = transcend_cols) +
+    scale_fill_manual(values = crpe_blues) +
     scale_y_continuous(expand = c(0, 0),
                        labels = scales::percent_format(accuracy = 1),
                        limits = c(0, 1)) +
     scale_x_discrete(labels = wrap_format(20)) +
     theme(legend.position = "none", panel.grid.major.x = element_blank()) +
-    labs(title = "Canopy schools by type",
+    labs(title = "Canopy Schools by Type",
          subtitle = str_wrap("Sample limited to schools that participated 2 or more times in a Canopy survey (N = 263).", 80),
          x = "", 
          y = "Percentage of Canopy schools") +
   geom_text(aes(label = scales::label_percent(accuracy = 1)(pct)),
             nudge_y = 0.01,
             vjust = 0,
-            color = transcend_na,
-            fontface = "bold",
+            color = "black",
             size = 5.5,
             family = "sans")
 save_plots(fig_9, "figure_9")
+ggsave(filename = "output/report-figures/eps/figure_9.eps",
+       plot = fig_9,
+       device = "eps",
+       width = 9,
+       height = 7)
 ```
 
 ```{r}
@@ -686,11 +758,11 @@ fig_10 <- dat %>%
   ggplot(., aes(pct, school_type, fill = future_resources)) +
   geom_col() +
   scale_fill_manual(values = c(
-      "Yes, extremely" = transcend_cols[3], 
-      "Yes, somewhat" = transcend_cols2[2], 
-      "Neutral" = transcend_na,
-      "No, not very" = transcend_cols[2], 
-      "No, not at all" = transcend_cols[1])) +
+      "Yes, extremely" = crpe_oranges[1], 
+      "Yes, somewhat" = crpe_oranges[2], 
+      "Neutral" = crpe_grays[1],
+      "No, not very" = crpe_blues[2], 
+      "No, not at all" = crpe_blues[1])) +
   scale_x_continuous(expand = c(0, 0), 
                      limits = c(0, 1), 
                      labels = scales::percent_format()) +
@@ -708,13 +780,18 @@ fig_10 <- dat %>%
         legend.title = element_text(size = 10)) +
   labs(x = "", 
        y = "", 
-       title = str_wrap("Concern with future sustainability by sector", 55), #different for smaller plot
-       subtitle = str_wrap("Leaders' responses to 'Are you concerned about your ability to sustain resources for your learning environment over the next five years?'", 70), 
+       title = str_wrap("Concern About Future Sustainability by Sector", 40), #different for smaller plot
+       subtitle = str_wrap("Leaders' responses to \"Are you concerned about your ability to sustain resources for your learning environment over the next five years?\" Sample limited to schools that participated in 2024 Canopy survey (N = 189).", 67), 
        fill = "Level of concern") +
   guides(fill = guide_legend(reverse = T, 
                              title.position = "top",
                              title.hjust = 0.5))
 save_plots(fig_10, "figure_10", fig_width = 9, fig_height = 5)
+ggsave(filename = "output/report-figures/eps/figure_10.eps",
+       plot = fig_10,
+       device = "eps",
+       width = 9,
+       height = 5)
 ```
 
 ```{r}
@@ -764,8 +841,9 @@ fig_11 <- dat %>%
     TRUE ~ NA
   )) %>% 
   ggplot(., aes(pct, reorder(catalyst, pct))) +
-  geom_col(fill = transcend_cols[1]) +
-  labs(title = str_wrap("Factors leading to innovation Canopy school leaders cited in 2024", 50),
+  geom_col(fill = crpe_blues[1]) +
+  labs(title = str_wrap("Factors Leading to Innovation in Canopy Schools", 35),
+       subtitle = str_wrap("School leaders could select as many responses as applicable to their schools. Sample limited to schools that participated in 2024 Canopy survey (N = 189).", 60),
        x = "Percentage of Canopy schools",
        y = "") +
   theme(legend.position = "none",
@@ -779,10 +857,14 @@ fig_11 <- dat %>%
             hjust = 1.1,
             vjust = 0, 
             color = "white", 
-            fontface = "bold", 
             size = 5.5, 
             family = "sans")
 save_plots(fig_11, "figure_11")
+ggsave(filename = "output/report-figures/eps/figure_11.eps",
+       plot = fig_11,
+       device = "eps",
+       width = 9,
+       height = 7)
 ```
 
 ```{r}
@@ -828,10 +910,11 @@ fig_12 <- long_tags %>%
     year == 2024 ~ n/n_2024
   )) %>% 
   left_join(labels, by = "var") %>% 
+  mutate(label = ifelse(label == "Trauma-informed practices", "Trauma-informed practices (first surveyed in 2021)", label)) %>% 
   ggplot(., aes(year, pct, color = label)) +
   geom_line() +
   geom_point() +
-  scale_color_manual(values = c(transcend_cols[1:3], transcend_cols2)) +
+  scale_color_manual(values = c(crpe_blues[1], crpe_blues[3], crpe_oranges[1], crpe_purples[1], crpe_purples[3])) +
   scale_x_continuous(limits = c(2019, 2024),
                      expand = c(0.01, 0),
                      breaks = unique(long_dat$year)) +
@@ -843,14 +926,19 @@ fig_12 <- long_tags %>%
         legend.text = element_text(size = 10),
         legend.title = element_text(size = 10)) +
   labs(x = "",
-       y = "",
-       title = str_wrap("Changes in select practices related to student wellbeing and equity 2019-2024", 70),
-       subtitle = str_wrap("Sample limited to schools that participated 3 or more times in a Canopy survey (N = 119)", 80),
+       y = "Percentage of Canopy schools",
+       title = str_wrap("Changes in Select Practices Related to Student Well-being and Equity 2019\u20132024", 48),
+       subtitle = str_wrap("Sample limited to schools that participated 3 or more times in a Canopy survey (N = 119).", 80),
        color = "Select practices") +
   guides(color = guide_legend(title.position = "top",
                               title.hjust = 0.5,
                               nrow = 2))
 save_plots(fig_12, "figure_12")
+ggsave(filename = "output/report-figures/eps/figure_12.eps",
+       plot = fig_12,
+       device = "eps",
+       width = 9,
+       height = 7)
 ```
 
 ```{r}
@@ -880,7 +968,7 @@ fig_13 <- long_tags %>%
   ggplot(., aes(year, pct, color = label)) +
   geom_line() +
   geom_point() +
-  scale_color_manual(values = c(transcend_cols[1:3], transcend_cols2)) +
+  scale_color_manual(values = c(crpe_blues[1], crpe_blues[3], crpe_oranges[1], crpe_purples[1])) +
   scale_x_continuous(limits = c(2019, 2024),
                      expand = c(0.01, 0),
                      breaks = unique(long_dat$year)) +
@@ -892,14 +980,19 @@ fig_13 <- long_tags %>%
         legend.text = element_text(size = 10),
         legend.title = element_text(size = 10)) +
   labs(x = "",
-       y = "",
-       title = str_wrap("Changes in select practices related to postsecondary pathways 2019-2024", 70),
-       subtitle = str_wrap("Sample limited to schools that participated 3 or more times in a Canopy survey (N = 119)", 80),
+       y = "Percentage of Canopy schools",
+       title = str_wrap("Changes in Select Practices Related to Postsecondary Pathways 2019\u20132024", 40),
+       subtitle = str_wrap("Sample limited to schools that participated 3 or more times in a Canopy survey (N = 119).", 80),
        color = "Select practices") +
   guides(color = guide_legend(title.position = "top",
                               title.hjust = 0.5,
                               nrow = 2))
 save_plots(fig_13, "figure_13")
+ggsave(filename = "output/report-figures/eps/figure_13.eps",
+       plot = fig_13,
+       device = "eps",
+       width = 9,
+       height = 7)
 ```
 
 ```{r}
@@ -912,17 +1005,18 @@ rm(fig_13, id, n_2019, n_2021, n_2022, n_2023, n_2024, subset)
 ```{r}
 # Pulling numbers from Chelsea's spreadsheet `Early analysis for launch article - Canopy school survey 2024`
 # AI tab
-response <- c("No", "No, but we are in the process of developing one", "Yes")
+response <- c("No, we do not have an AI policy", "No, but we are in the process of developing one", "Yes, we have an AI policy")
 values <- c(.54, .38, .07)
 ai <- data.frame(response = response, 
                  pct = values)
 fig_14 <- ggplot(ai, aes(reorder(response, pct), pct)) +
-  geom_col(fill = transcend_cols[1]) +
+  geom_col(fill = crpe_blues[1]) +
   scale_y_continuous(label = scales::label_percent(), 
                      expand = c(0, 0), 
                      limits = c(0, 1)) +
   scale_x_discrete(labels = wrap_format(28)) +
-  labs(title = str_wrap("Schools' adoption of policies for student use of generative AI", 90),
+  labs(title = str_wrap("Schools' Adoption of Policies for Student Use of Generative AI", 48),
+       subtitle = str_wrap("Sample limited to schools that participated in 2024 Canopy survey (N = 189).", 80),
        x = "",
        y = "Percentage of Canopy schools") +
   theme(legend.position = "none",
@@ -931,11 +1025,15 @@ fig_14 <- ggplot(ai, aes(reorder(response, pct), pct)) +
   geom_text(aes(label = scales::label_percent(accuracy = 1)(pct)),
             nudge_y = 0.01,
             vjust = 0,
-            color = transcend_na,
-            fontface = "bold",
+            color = "black",
             size = 5.5,
             family = "sans")
 save_plots(fig_14, "figure_14")
+ggsave(filename = "output/report-figures/eps/figure_14.eps",
+       plot = fig_14,
+       device = "eps",
+       width = 9,
+       height = 7)
 ```
 
 ```{r}
@@ -987,7 +1085,7 @@ unchanged_summary = changes_by_year |>
 fig_15 <- ggplot(unchanged_summary, aes(x = mean_unchanged, y = year)) +
   geom_pointrange(
     aes(xmin = q1_unchanged, xmax = q3_unchanged),
-    color = transcend_cols[1]
+    color = crpe_blues[1]
   ) +
   scale_x_continuous(
     labels = scales::label_percent(),
@@ -995,15 +1093,20 @@ fig_15 <- ggplot(unchanged_summary, aes(x = mean_unchanged, y = year)) +
     expand = expansion(0, 0)
   ) +
   labs(
-    title = "Consistency of practice",
-    subtitle = str_wrap("Percent of practices unchanged compared to each school's previous response. Points show the average, ranges extend from 1st to 3rd quartile.", 80),
+    title = str_wrap("Consistency of Canopy Schools' Practices Over Time", 45),
+    subtitle = str_wrap("Percentage of practices unchanged from Canopy schools' previous response. Dots indicate the average, while bars highlight where the middle 50% of responses typically fall. Sample limited to schools that participated 2 or more times in a Canopy survey (N = 263).", 80),
     y = "",
-    x = "Percent of practices"
+    x = "Percentage of unchanged practices"
   ) +
   theme(
     panel.grid.major.y = element_blank()
   )
 save_plots(fig_15, "figure_15")
+ggsave(filename = "output/report-figures/eps/figure_15.eps",
+       plot = fig_15,
+       device = "eps",
+       width = 9,
+       height = 7)
 ```
 
 ```{r}
@@ -1058,13 +1161,14 @@ fig_16 <- dat %>%
   ggplot(., aes(pct, reorder(support, pct), fill = is_key)) +
   geom_col() +
   scale_fill_manual(values = c(
-      "Ranked in top 3" = transcend_cols[2], 
-      "Selected" = transcend_cols[1])) +
+      "Ranked in top 3" = crpe_blues[2], 
+      "Selected" = crpe_blues[1])) +
   scale_x_continuous(label = scales::label_percent(), 
                      expand = c(0, 0), 
                      limits = c(0, 1)) +
   scale_y_discrete(labels = wrap_format(35)) +
-  labs(title = str_wrap("Type of support Canopy school leaders need to measure 'non-traditional' outcomes", 52),
+  labs(title = str_wrap("Type of Support Canopy School Leaders Need to Measure \"Nontraditional\" Outcomes", 34),
+       subtitle = str_wrap("Sample limited to Canopy schools participating in 2024 Canopy survey (N = 189).", 67),
        x = "Percentage of Canopy schools",
        y = "",
        fill = NULL) +
@@ -1075,13 +1179,17 @@ fig_16 <- dat %>%
   geom_text(aes(label = scales::label_percent(accuracy = 1)(pct)), 
             position = position_stack(vjust = .5), 
             color = "white", 
-            fontface = "bold",
             size = 5, 
             family = "sans") +
   guides(fill = guide_legend(title.hjust = 0.5,
                              nrow = 1,
                              reverse = T))
 save_plots(fig_16, "figure_16")
+ggsave(filename = "output/report-figures/eps/figure_16.eps",
+       plot = fig_16,
+       device = "eps",
+       width = 9,
+       height = 7)
 ```
 
 ```{r}
@@ -1204,10 +1312,10 @@ vol_coef = broom::tidy(vol_mod) |>
   arrange(desc(estimate)) |>
   mutate(term = fct_inorder(term),
          term = case_when(
-           term == "transitionskip_covid" ~ "Excluding COVID",
-           term == "transitionto_covid" ~ "Transition to COVID",
+           term == "transitionskip_covid" ~ "Excluding Covid (2021)",
+           term == "transitionto_covid" ~ "Transition to Covid (2019-2021)",
            term == "(Intercept)" ~ "Baseline",
-           term == "transitionfrom_covid" ~ "Transition from COVID",
+           term == "transitionfrom_covid" ~ "Transition from Covid (2021-2024)",
            term == "localeRural" ~ "Rural",
            term == "grades_elementary" ~ "Elementary schools",
            term == "localeMultiple" ~ "Multiple geographic locales",
@@ -1235,21 +1343,26 @@ plot_dat <- vol_coef %>%
 fig_17 <- ggplot(plot_dat, aes(y = reorder(term, -estimate), x = deviation, fill = sig)) +
   geom_bar(stat = "identity") +
   scale_fill_manual(values = c(
-    "no" = transcend_na,
-    "yes" = transcend_cols[1]
+    "no" = crpe_grays[1],
+    "yes" = crpe_blues[1]
   )) +
   scale_x_continuous(limits = c(-8, 10), expand = expansion()) +
   labs(
     x = "Estimated number of practices added or dropped",
     y = "",
-    title = str_wrap("Estimated effect on number of practices modified by schools between survey responses", 55),
-    subtitle = str_wrap("Bars in blue indicate a statistically significant relationship. The baseline is set at 0.", 75)
+    title = str_wrap("Estimated Effect on Number of Practices Modified by Schools Between Survey Responses", 35),
+    subtitle = str_wrap("Bars in blue indicate a statistically significant relationship. The baseline is set at 0.", 65)
   ) +
   theme(
     panel.grid.major.y = element_blank(),
     legend.position= "none"
   ) 
 save_plots(fig_17, "figure_17")
+ggsave(filename = "output/report-figures/eps/figure_17.eps",
+       plot = fig_17,
+       device = "eps",
+       width = 9,
+       height = 7)
 ```
 
 ```{r}
@@ -1295,10 +1408,11 @@ fig_18 <- long_tags %>%
     year == 2024 ~ n/n_2024
   )) %>% 
   left_join(labels, by = "var") %>% 
+  mutate(label = ifelse(label == "Performance based assessment", "Performance-based assessment", label)) %>% 
   ggplot(., aes(year, pct, color = label)) +
   geom_line() +
   geom_point() +
-  scale_color_manual(values = c(transcend_cols[1:3], transcend_cols2)) +
+  scale_color_manual(values = c(crpe_blues[1], crpe_blues[3], crpe_oranges[1], crpe_purples[1], crpe_purples[3])) +
   scale_x_continuous(limits = c(2019, 2024),
                      expand = c(0.01, 0),
                      breaks = unique(long_dat$year)) +
@@ -1310,14 +1424,19 @@ fig_18 <- long_tags %>%
         legend.text = element_text(size = 10),
         legend.title = element_text(size = 10)) +
   labs(x = "",
-       y = "",
-       title = str_wrap("Changes in select practices related to relevant and engaging instruction 2019-2024", 70),
-       subtitle = str_wrap("Sample limited to schools that participated 3 or more times in a Canopy survey (N = 119)", 80),
+       y = "Percentage of Canopy schools",
+       title = str_wrap("Changes in Select Practices Related to Relevant and Engaging Instruction 2019\u20132024", 48),
+       subtitle = str_wrap("Sample limited to schools that participated 3 or more times in a Canopy survey (N = 119).", 80),
        color = "Select practices") +
   guides(color = guide_legend(title.position = "top",
                               title.hjust = 0.5,
                               nrow = 2))
 save_plots(fig_18, "figure_18")
+ggsave(filename = "output/report-figures/eps/figure_18.eps",
+       plot = fig_18,
+       device = "eps",
+       width = 9,
+       height = 7)
 ```
 
 ```{r}
@@ -1325,3 +1444,156 @@ save_plots(fig_18, "figure_18")
 rm(subset, fig_18)
 ```
 
+# Figure 19
+
+## Waffling
+
+```{r include = FALSE}
+#read in data
+long = import(here("data/longitudinal", "tags-long.csv"))
+#get vector of 4-year tags
+tags_4y = long |>
+  filter(usage == 1) |>
+  filter(n_distinct(year) >= 4, .by = var) |>
+  pull(var) |>
+  unique()
+long_4y = long |> filter(var %in% tags_4y)
+#get schools
+sch = import(here("data/long_school.csv")) |>
+  summarize(n_years = n_distinct(year), .by = c(school_id, school_name))
+## append 2024 schools - G's temp fix
+sch = long |>
+  summarize(
+    n_years = n_distinct(year),
+    .by = school_id
+  ) |>
+  left_join(
+    select(sch, school_id, school_name)
+  )
+# J's original analysis - includes pieces that can't be removed
+potential_wafflers = long_4y |>
+  distinct(school_id, year) |>
+  filter(n_distinct(year) >= 3, .by = school_id) |>
+  summarize(
+    years = toString(year),
+    could_covid_waffle = 2019 %in% year & 2021 %in% year,
+    could_waffle_2022 = 2021 %in% year & 2022 %in% year,
+    could_waffle_2023 = 2022 %in% year & 2023 %in% year,
+    could_waffle_2024 = 2023 %in% year & 2024 %in% year,
+    .by = school_id
+  )
+
+waffle_denom = potential_wafflers |>
+  summarize(across(starts_with("could"), sum))
+
+waffle_all = long_4y |>
+  filter(
+    1 %in% usage,    ## present at least once
+    n() > 2,         ## at least 3 survey responses
+    .by = c(var, school_id)
+  ) |> 
+  mutate(
+    added = any(diff(usage) == 1),
+    dropped = any(diff(usage) == -1),
+    all_1 = all(usage == 1),
+    waffled = added & dropped,
+    waffle_bump = waffled & last(usage, na_rm = TRUE) == 0,
+    waffle_dip = waffled & last(usage, na_rm = TRUE) == 1,
+    .by = c(var, school_id)
+  ) |>
+  pivot_wider(names_from = year, values_from = usage) |>
+  left_join(sch, by = "school_id") |>
+  select(school_id, school_name, tag = var, `2019`:`2024`, added, dropped, all_1, starts_with("waffle")) |>
+  arrange(school_id, desc(waffled)) |>
+  mutate(
+    binary_summary = paste(`2019`, `2021`, `2022`, `2023`, `2024`, sep = ","),
+    waffle_type = case_when(
+      `2019` == 0 & `2021` == 1 & waffled ~ "COVID bump",
+      `2019` == 1 & `2021` == 0 & waffled ~ "COVID dip",
+      `2021` == 0 & `2022` == 1 & waffled ~ "2022 bump",
+      `2021` == 1 & `2022` == 0 & waffled ~ "2022 dip",
+      `2022` == 0 & `2023` == 1 & waffled ~ "2023 bump",
+      `2022` == 1 & `2023` == 0 & waffled ~ "2023 dip",
+      `2023` == 0 & `2024` == 1 & waffled ~ "2024 bump",
+      `2023` == 1 & `2024` == 0 & waffled ~ "2024 dip"
+    )
+  ) 
+
+plot_dat <- waffle_all |>
+  filter(waffled) |>
+  count(waffle_type) |>
+  filter(!is.na(waffle_type)) |>
+  separate_wider_delim(waffle_type, delim = " ", names = c("pandemic", "type")) |>
+  pivot_wider(names_from = type, values_from = n) |>
+  arrange(pandemic) |> ### COVID on top
+  mutate(
+    all_waffles = bump + dip,
+    n_schools_that_could_waffle = c(waffle_denom$could_waffle_2022, waffle_denom$could_waffle_2023, waffle_denom$could_waffle_2024, waffle_denom$could_covid_waffle),
+    waffles_per_school = all_waffles / n_schools_that_could_waffle
+  )
+
+# Gregor's fix
+wafflers = long_4y |>
+  ## keep only school/tag combos with at least 3 years
+  filter(n_distinct(year) >= 3, .by = c(school_id, var)) |>
+  arrange(school_id, var, year) |> 
+  mutate(
+    diff = c(NA, diff(usage)),
+    .by = c(school_id, var)
+  ) |>
+  summarize(
+    usage_string = paste(usage, collapse = ""),
+    diff_string = paste(diff[-1], collapse = ""),
+    year_string = paste(year, collapse = ", "),
+    is_waffle = -1 %in% diff & 1 %in% diff,
+    is_dip = is_waffle & which.min(diff) < which.max(diff),
+    is_bump = is_waffle & which.max(diff) < which.min(diff),
+    dip_years = if(is_dip) list(year[usage == 0]) else list(NULL),
+    bump_years = if(is_bump) list(year[usage == 1]) else list(NULL),
+    waffle_years = coalesce(dip_years, bump_years),
+    potential_years = list(tail(head(year, -1), -1)),
+    is_multi_waffle = sum(diff == 1, na.rm = TRUE) > 1 | sum(diff == -1, na.rm = TRUE) > 1,
+    .by = c(school_id, var)
+  )
+
+waffle_summary = wafflers |>
+  filter(!is_multi_waffle) |>
+  unnest(potential_years) |>
+  mutate(waffle_this_year = potential_years %in% waffle_years, 
+         .by = c(school_id, var, potential_years)) |>
+  summarize(
+    waffle_possible = n(),
+    waffle_count = sum(waffle_this_year),
+    bump_count = sum(waffle_this_year & is_bump),
+    dip_count = sum(waffle_this_year & is_dip),
+    waffle_pct = mean(waffle_this_year),
+    n_sch = n_distinct(school_id),
+    waffle_per_sch = waffle_count / n_sch,
+    .by = potential_years
+  )
+#plot
+fig_19 <- ggplot(waffle_summary, aes(factor(potential_years), waffle_per_sch)) +
+  geom_segment(aes(
+                   xend = factor(potential_years),
+                   y = 0, 
+                   yend = waffle_per_sch), 
+                   color = crpe_blues[1]) +
+  geom_point(size = 5, color = crpe_oranges[1]) +
+  scale_y_continuous(expand = c(0, 0), limits = c(0, 4)) +
+  labs(x = "", 
+       y = "Average switchbacks per school", 
+       title = "Average switchbacks per school from 2021-2023") +
+  theme(panel.grid.major.x = element_blank(),
+        panel.grid.minor.x = element_blank())
+
+# Save
+save_plots(fig_19, "figure_19")
+ggsave(filename = "output/report-figures/eps/figure_19.eps",
+       plot = fig_19,
+       device = "eps",
+       width = 9,
+       height = 7)
+
+# clean up
+rm(long_4y, plot_dat, potential_wafflers, sch, waffle_all, waffle_denom, waffle_summary, wafflers, long, tags_4y)
+```

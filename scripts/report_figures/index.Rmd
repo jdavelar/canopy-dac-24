@@ -424,140 +424,24 @@ ggplot(plot_dat, aes(y = reorder(term, -estimate), x = deviation, fill = sig)) +
   labs(
     x = "Estimated number of practices added or dropped",
     y = "",
-    title = str_wrap("Estimated effect on number of practices modified by schools between survey responses", 55),
-    subtitle = str_wrap("Bars in blue indicate a statistically significant relationship. The baseline is set at 0.", 75)
+    title = str_wrap("Estimated effect on number of practices modified by schools between survey responses", 45),
+    subtitle = str_wrap("Bars in blue indicate a statistically significant relationship. The baseline is set at 0.", 65)
   ) +
   theme(
     panel.grid.major.y = element_blank(),
-    legend.position= "none"
+    legend.position= "none",
+    axis.text.x = element_text(size = 10),
+    axis.text.y = element_text(size = 8),
+    plot.title = element_text(size = 20),
+    plot.subtitle = element_text(size = 12),
+    axis.title.x = element_text(size = 12)
   ) 
 ```
 
 Praesent iaculis vel consectetur montes auctor luctus himenaeos. Mauris maximus malesuada bibendum odio finibus venenatis. Viverra tempor sem tincidunt eros sollicitudin. Nunc integer metus tempor consequat; fusce integer. Laoreet id cubilia fames mattis metus malesuada penatibus interdum. Nulla mi magnis vitae sapien facilisis molestie curae. Duis urna venenatis inceptos; dictumst ipsum montes placerat.  
 
-```{r }
-#read in data
-long = import(here("data/longitudinal", "tags-long.csv"))
-#get vector of 4-year tags
-tags_4y = long |>
-  filter(usage == 1) |>
-  filter(n_distinct(year) >= 4, .by = var) |>
-  pull(var) |>
-  unique()
-long_4y = long |> filter(var %in% tags_4y)
-#get schools
-sch = import(here("data/long_school.csv")) |>
-  summarize(n_years = n_distinct(year), .by = c(school_id, school_name))
-## append 2024 schools - G's temp fix
-sch = long |>
-  summarize(
-    n_years = n_distinct(year),
-    .by = school_id
-  ) |>
-  left_join(
-    select(sch, school_id, school_name)
-  )
-
-potential_wafflers = long_4y |>
-  distinct(school_id, year) |>
-  filter(n_distinct(year) >= 3, .by = school_id) |>
-  summarize(
-    years = toString(year),
-    could_covid_waffle = 2019 %in% year & 2021 %in% year,
-    could_waffle_2022 = 2021 %in% year & 2022 %in% year,
-    could_waffle_2023 = 2022 %in% year & 2023 %in% year,
-    could_waffle_2024 = 2023 %in% year & 2024 %in% year,
-    .by = school_id
-  )
-
-waffle_denom = potential_wafflers |>
-  summarize(across(starts_with("could"), sum))
-
-waffle_all = long_4y |>
-  filter(
-    1 %in% usage,    ## present at least once
-    n() > 2,         ## at least 3 survey responses
-    .by = c(var, school_id)
-  ) |> 
-  mutate(
-    added = any(diff(usage) == 1),
-    dropped = any(diff(usage) == -1),
-    all_1 = all(usage == 1),
-    waffled = added & dropped,
-    waffle_bump = waffled & last(usage, na_rm = TRUE) == 0,
-    waffle_dip = waffled & last(usage, na_rm = TRUE) == 1,
-    .by = c(var, school_id)
-  ) |>
-  pivot_wider(names_from = year, values_from = usage) |>
-  left_join(sch, by = "school_id") |>
-  select(school_id, school_name, tag = var, `2019`:`2024`, added, dropped, all_1, starts_with("waffle")) |>
-  arrange(school_id, desc(waffled)) |>
-  mutate(
-    binary_summary = paste(`2019`, `2021`, `2022`, `2023`, `2024`, sep = ","),
-    waffle_type = case_when(
-      `2019` == 0 & `2021` == 1 & waffled ~ "COVID bump",
-      `2019` == 1 & `2021` == 0 & waffled ~ "COVID dip",
-      `2021` == 0 & `2022` == 1 & waffled ~ "2022 bump",
-      `2021` == 1 & `2022` == 0 & waffled ~ "2022 dip",
-      `2022` == 0 & `2023` == 1 & waffled ~ "2023 bump",
-      `2022` == 1 & `2023` == 0 & waffled ~ "2023 dip",
-      `2023` == 0 & `2024` == 1 & waffled ~ "2024 bump",
-      `2023` == 1 & `2024` == 0 & waffled ~ "2024 dip"
-    )
-  )
-wafflers = long_4y |>
-  ## keep only school/tag combos with at least 3 years
-  filter(n_distinct(year) >= 3, .by = c(school_id, var)) |>
-  arrange(school_id, var, year) |> 
-  mutate(
-    diff = c(NA, diff(usage)),
-    .by = c(school_id, var)
-  ) |>
-  summarize(
-    usage_string = paste(usage, collapse = ""),
-    diff_string = paste(diff[-1], collapse = ""),
-    year_string = paste(year, collapse = ", "),
-    is_waffle = -1 %in% diff & 1 %in% diff,
-    is_dip = is_waffle & which.min(diff) < which.max(diff),
-    is_bump = is_waffle & which.max(diff) < which.min(diff),
-    dip_years = if(is_dip) list(year[usage == 0]) else list(NULL),
-    bump_years = if(is_bump) list(year[usage == 1]) else list(NULL),
-    waffle_years = coalesce(dip_years, bump_years),
-    potential_years = list(tail(head(year, -1), -1)),
-    is_multi_waffle = sum(diff == 1, na.rm = TRUE) > 1 | sum(diff == -1, na.rm = TRUE) > 1,
-    .by = c(school_id, var)
-  )
-
-waffle_summary = wafflers |>
-  filter(!is_multi_waffle) |>
-  unnest(potential_years) |>
-  mutate(waffle_this_year = potential_years %in% waffle_years, 
-         .by = c(school_id, var, potential_years)) |>
-  summarize(
-    waffle_possible = n(),
-    waffle_count = sum(waffle_this_year),
-    bump_count = sum(waffle_this_year & is_bump),
-    dip_count = sum(waffle_this_year & is_dip),
-    waffle_pct = mean(waffle_this_year),
-    n_sch = n_distinct(school_id),
-    waffle_per_sch = waffle_count / n_sch,
-    .by = potential_years
-  )
-
-# Build plot
-ggplot(waffle_summary, aes(factor(potential_years), waffle_per_sch)) +
-  geom_segment(aes(
-                   xend = factor(potential_years),
-                   y = 0, 
-                   yend = waffle_per_sch), 
-                   color = transcend_cols[1]) +
-  geom_point(size = 5, color = transcend_cols[3]) +
-  scale_y_continuous(expand = c(0, 0), limits = c(0, 4)) +
-  labs(x = "", 
-       y = "Average waffles per school", 
-       title = "Average waffles per school from 2021-2023") +
-  theme(panel.grid.major.x = element_blank(),
-        panel.grid.minor.x = element_blank())
+```{r, echo=FALSE}
+knitr::include_graphics(here("output/janette-images", "figure_20.png"))
 ```
 
 Lorem ipsum odor amet, consectetuer adipiscing elit. Dis ipsum dapibus varius enim efficitur sapien bibendum dui porta. Metus fames nisl penatibus feugiat id litora fames. Consectetur facilisis porta nunc mi potenti, nascetur proin. Lorem vitae natoque, facilisis nisi nulla facilisis vel curabitur? Tellus dis senectus erat praesent penatibus vel mauris quis aptent. Etiam egestas magna sagittis nibh habitant sed.
