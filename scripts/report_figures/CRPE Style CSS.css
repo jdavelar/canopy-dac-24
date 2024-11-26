@@ -1,0 +1,115 @@
+
+/* Brand Variables */
+:root {
+    --brand-primary: #0075B2;
+    --brand-secondary: #004B72;
+    --brand-accent: #91BF43;
+    --color-light: #ffffff;
+    --color-dark: #004B72;
+    --color-mid: #6A7B9A;
+    --color-muted: #C1C6D3;
+    --font-primary: 'Helvetica', sans-serif;
+}
+
+/* General Styles */
+body {
+    margin: 0;
+    padding: 0;
+    font-family: var(--font-primary);
+    background-color: var(--color-light);
+    color: var(--color-dark);
+}
+
+header {
+    background-color: var(--brand-primary);
+    color: white;
+    padding: 20px 0;
+    text-align: center;
+}
+
+h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-primary);
+    color: var(--brand-primary);
+}
+
+p {
+    font-family: var(--font-primary);
+    line-height: 1.6;
+    color: var(--color-mid);
+}
+
+/* Buttons */
+button {
+    background-color: var(--brand-secondary);
+    color: #ffffff;
+    font-family: var(--font-primary);
+    border: none;
+    padding: 10px 20px;
+    border-radius: 5px;
+    cursor: pointer;
+}
+
+button:hover {
+    background-color: var(--brand-accent);
+}
+
+/* Links */
+a {
+    color: var(--brand-primary);
+    text-decoration: none;
+}
+
+a:hover {
+    text-decoration: underline;
+}
+
+/* Utility Classes */
+.text-center {
+    text-align: center;
+}
+
+/* Card Style */
+.card {
+    border: 1px solid var(--color-muted);
+    border-radius: 8px;
+    padding: 20px;
+    background-color: #ffffff;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    margin: 20px auto;
+    max-width: 600px;
+}
+
+.card-title {
+    font-family: var(--font-primary);
+    color: var(--brand-light);
+    font-size: 1.5rem;
+    margin-bottom: 10px;
+}
+
+.card-text {
+    font-family: var(--font-primary);
+    color: var(--color-dark);
+    font-size: 1rem;
+}
+
+/* Footer */
+footer {
+    background-color: var(--color-dark);
+    color: #ffffff;
+    text-align: center;
+    padding: 15px 0;
+    font-family: var(--font-primary);
+}
+
+<style>
+/* Change the default hyperlink color */
+a {
+  color: #0178BA; /* Replace with your desired hex color */
+  text-decoration: none; /* Optional: Removes the underline */
+}
+/* Change color when hovered */
+a:hover {
+  color: #E38C34; /* Replace with hover color */
+  text-decoration: underline; /* Optional: Adds underline on hover */
+}
+

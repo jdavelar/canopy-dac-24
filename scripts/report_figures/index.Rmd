@@ -9,6 +9,7 @@ output:
     theme: flatly
     highlight: tango
     code_folding: none
+    css: "CRPE style CSS.css"
 editor_options: 
   chunk_output_type: console
 knitr:
@@ -31,28 +32,14 @@ cluster <- import(here("data/longitudinal", "tag_clusters_longitudinal.csv")) %>
 <style>
 /* Styling for in-text boxes */
 .method-note {
-  border: 2px solid #174A72; /* Replace #3498db with your hex color */
+  border: none; /* Border color */
   padding: 10px;
   margin: 15px 0;
   border-radius: 5px;
-  background-color: #174A72; /* Background color */
+  background-color: #E2E3E9; /* Background color */
   color: #FFFFFF; /* Text color */
-  font-family: "Lucida Sans", "Lucida Grande", "Lucida Sans Unicode", sans-serif; /* Text font */
+  font-family: "Helvetica", sans-serif; /* Text font */
   font-size: 14px; /* Font size */
-}
-</style>
-
-<style>
-/* Change the default hyperlink color */
-a {
-  color: #0178BA; /* Replace with your desired hex color */
-  text-decoration: none; /* Optional: Removes the underline */
-}
-
-/* Change color when hovered */
-a:hover {
-  color: #E38C34; /* Replace with hover color */
-  text-decoration: underline; /* Optional: Adds underline on hover */
 }
 </style>
 ---
