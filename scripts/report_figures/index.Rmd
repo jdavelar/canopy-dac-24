@@ -1,5 +1,5 @@
 ---
-title: "Supplemental resource: Changes in school practices over time"
+title: "Changes in school practices over time"
 #author: "Janette Avelar"
 #date: '2024-11-13'
 output: 
@@ -42,7 +42,10 @@ cluster <- import(here("data/longitudinal", "tag_clusters_longitudinal.csv")) %>
   font-size: 14px; /* Font size */
 }
 </style>
----
+
+***
+
+# Introduction
 
 **Themes in school design:** To distill a long list of school practices into meaningful themes, we used a method called Exploratory Factor Analysis (EFA). This approach helped us to group together practices that tend to be reported together. These groups, or ***clusters***, highlight patterns in school practices, showing which are related—but they don’t create a strict typology of schools. This is because schools may be using practices from several clusters at the same time, but it’s the frequency of co-occurrence across schools in the data that defines the cluster. The patterns we observed offer insights into how schools are designing student experiences, and how this has shifted over time.  
 
