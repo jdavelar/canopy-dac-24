@@ -205,7 +205,7 @@ fancy_across <- function(data, title){
       yaxis = list(
         fixedrange = TRUE,
         title = list(
-          text = "Percentage of schools selecting tag",
+          text = "Percentage of schools selecting practice",
           font = list(size = 16, color = "black", family = "Open Sans")
         ),
         tickfont = list(size = 12, color = "black", family = "Open Sans"),
