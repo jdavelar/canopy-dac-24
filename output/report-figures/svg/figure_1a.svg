@@ -1,9 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="648pt" height="504pt" viewBox="0 0 648 504" version="1.1">
-<g id="surface11">
-</g>
-</svg>
-sible" id="glyph0-0">
+<defs>
+<g>
+<symbol overflow="visible" id="glyph0-0">
 <path style="stroke:none;" d=""/>
 </symbol>
 <symbol overflow="visible" id="glyph0-1">
@@ -227,7 +226,7 @@ sible" id="glyph0-0">
   <path d="M 68.679688 99.457031 L 624.089844 99.457031 L 624.089844 457.542969 L 68.679688 457.542969 Z M 68.679688 99.457031 "/>
 </clipPath>
 </defs>
-<g id="surface77">
+<g id="surface264">
 <rect x="0" y="0" width="648" height="504" style="fill:rgb(100%,100%,100%);fill-opacity:1;stroke:none;"/>
 <g clip-path="url(#clip1)" clip-rule="nonzero">
 <path style="fill:none;stroke-width:1.357972;stroke-linecap:butt;stroke-linejoin:round;stroke:rgb(80%,80%,80%);stroke-opacity:1;stroke-miterlimit:10;" d="M 68.679688 457.546875 L 624.089844 457.546875 "/>

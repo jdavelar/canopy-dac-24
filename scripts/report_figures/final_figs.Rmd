@@ -1350,12 +1350,13 @@ fig_17 <- ggplot(plot_dat, aes(y = reorder(term, -estimate), x = deviation, fill
   labs(
     x = "Estimated number of practices added or dropped",
     y = "",
-    title = str_wrap("Estimated Effect on Number of Practices Modified by Schools Between Survey Responses", 35),
+    title = str_wrap("Figure 6. Estimated Effect on Number of Practices Modified by Schools Between Survey Responses", 42),
     subtitle = str_wrap("Bars in blue indicate a statistically significant relationship. The baseline is set at 0.", 65)
   ) +
   theme(
     panel.grid.major.y = element_blank(),
-    legend.position= "none"
+    legend.position= "none",
+    plot.title = element_text(size = 18)
   ) 
 save_plots(fig_17, "figure_17")
 ggsave(filename = "output/report-figures/eps/figure_17.eps",
@@ -1582,9 +1583,10 @@ fig_19 <- ggplot(waffle_summary, aes(factor(potential_years), waffle_per_sch)) +
   scale_y_continuous(expand = c(0, 0), limits = c(0, 4)) +
   labs(x = "", 
        y = "Average switchbacks per school", 
-       title = "Average switchbacks per school from 2021-2023") +
+       title = "Figure 7. Average switchbacks per school from 2021-2023") +
   theme(panel.grid.major.x = element_blank(),
-        panel.grid.minor.x = element_blank())
+        panel.grid.minor.x = element_blank(),
+        plot.title = element_text(size = 18))
 
 # Save
 save_plots(fig_19, "figure_19")

@@ -1,5 +1,5 @@
 ---
-title: "Supplemental Data"
+title: "Supplemental resource: Changes in school practices over time"
 #author: "Janette Avelar"
 #date: '2024-11-13'
 output: 
@@ -28,38 +28,65 @@ cluster <- import(here("data/longitudinal", "tag_clusters_longitudinal.csv")) %>
   janitor::clean_names()
 ```
 
-```{r}
-# Pull in Branding
-transcend_cols = c("#1A4C81","#59C3B4","#EF464B","#ADE0EE")
-transcend_cols2 = c("#BC2582","#FFA630","#FFDE42","#99C24D","#218380","#D3B7D7")
-transcend_grays = c("#4D4D4F","#9D9FA2","#D1D3D4")
-transcend_na = transcend_grays[2]
-theme_transcend = theme_gdocs(base_size = 14, base_family = "Open Sans") +
-  theme(
-    plot.title = element_text(family = "Bebas Neue", color = "black"),
-    plot.background = element_blank(),
-    axis.text = element_text(colour = "black"),
-    axis.title = element_text(colour = "black"),
-    panel.border = element_rect(colour = "#4D4D4F"),
-    strip.text = element_text(size = rel(0.8)),
-    plot.margin = margin(10, 24, 10, 10, "pt")
-  )
-theme_set(theme_transcend)
-```
+<style>
+/* Styling for in-text boxes */
+.method-note {
+  border: 2px solid #174A72; /* Replace #3498db with your hex color */
+  padding: 10px;
+  margin: 15px 0;
+  border-radius: 5px;
+  background-color: #174A72; /* Background color */
+  color: #FFFFFF; /* Text color */
+  font-family: "Lucida Sans", "Lucida Grande", "Lucida Sans Unicode", sans-serif; /* Text font */
+  font-size: 14px; /* Font size */
+}
+</style>
 
-## A. Changes in school practices over time
+<style>
+/* Change the default hyperlink color */
+a {
+  color: #0178BA; /* Replace with your desired hex color */
+  text-decoration: none; /* Optional: Removes the underline */
+}
 
-Lorem ipsum odor amet, consectetuer adipiscing elit. Molestie dui condimentum magnis metus eu. Tortor montes augue ac tortor nunc pretium. Hac quam nostra dapibus orci; quam maximus. Purus eleifend malesuada urna hac massa maecenas ultrices vestibulum vivamus. Condimentum taciti consectetur sem sodales; maximus duis rhoncus. Enim nisi ac lacinia taciti eu posuere finibus. Pharetra tempor sem aenean facilisis praesent. Posuere montes congue; eleifend himenaeos viverra euismod.  
+/* Change color when hovered */
+a:hover {
+  color: #E38C34; /* Replace with hover color */
+  text-decoration: underline; /* Optional: Adds underline on hover */
+}
+</style>
+---
 
-Lobortis donec efficitur eu iaculis convallis. Imperdiet efficitur commodo nibh leo; sem fermentum ligula tempor. Purus praesent aliquet suspendisse per etiam. Dis ad nec adipiscing augue viverra ac? Erat vestibulum augue odio nulla interdum efficitur venenatis quisque. Elit eros curae quisque bibendum porta sit. Condimentum aliquam bibendum luctus, placerat urna nascetur.  
+**Themes in school design:** To distill a long list of school practices into meaningful themes, we used a method called Exploratory Factor Analysis (EFA). This approach helped us to group together practices that tend to be reported together. These groups, or ***clusters***, highlight patterns in school practices, showing which are related—but they don’t create a strict typology of schools. This is because schools may be using practices from several clusters at the same time, but it’s the frequency of co-occurrence across schools in the data that defines the cluster. The patterns we observed offer insights into how schools are designing student experiences, and how this has shifted over time.  
 
-### Educational Justice and Holistic Student Support
+Our analysis followed a mixed-method design, combining both quantitative and qualitative approaches. We started with a quantitative method—using EFA to organize the practices schools report into 4–8 clusters each year. We then evaluated the fit of these clusters by examining the correlations between practices and whether they fit together meaningfully. In particular, we considered how strongly the practices in each cluster relate to one another, whether they show negative correlations, and whether the clusters make thematic sense. Over several years of analysis, we’ve identified four recurring clusters that capture what Canopy schools are implementing. These clusters are:  
 
-Lorem ipsum odor amet, consectetuer adipiscing elit. Finibus blandit class dui sapien rutrum velit quisque. Etiam proin est ullamcorper sit elit purus nullam. Velit vel class rhoncus leo nulla neque. Vel venenatis quisque senectus maecenas proin. Libero egestas et neque lacus vivamus aptent varius maximus.  
+1. [Educational justice and holistic student supports](https://static1.squarespace.com/static/5f4d2fb82f14bf3a2a0372fd/t/64e4c66e9e301273a60274de/1692714608611/Canopy+2023+Explainer_Educational+Justice+and+Holistic+Student+Support.pdf?utm_source=hootsuite-1&utm_medium=&utm_term=&utm_content=&utm_campaign=)  
+2. [Deeper learning for mastery](https://static1.squarespace.com/static/5f4d2fb82f14bf3a2a0372fd/t/64f20be9844f3a4b54e62425/1693584362288/Canopy+2023+Explainer_Deeper+Learning+for+Mastery.pdf)  
+3. [Postsecondary pathways and the world outside school](https://static1.squarespace.com/static/5f4d2fb82f14bf3a2a0372fd/t/64f20b719d3fe353416456cc/1693584243183/Canopy+2023+Explainer_Postsecondary+Pathways+and+the+World+Outside+School.pdf)  
+4. [Individualized and blended learning](https://static1.squarespace.com/static/5f4d2fb82f14bf3a2a0372fd/t/64e416b31911dd5838be9d8f/1692669621413/Canopy+2023+Explainer_Individualized+and+Blended+Learning.pdf?utm_source=hootsuite-4&utm_medium=&utm_term=&utm_content=&utm_campaign=)  
 
-Sodales nostra hac sagittis a quisque accumsan. Eleifend parturient phasellus cubilia mi egestas facilisis. Cras sodales erat aliquet nullam ac; mauris vulputate ad non. Hac eleifend a nullam finibus amet commodo morbi facilisis! Luctus donec curae eros elementum auctor eleifend massa. Tortor hendrerit quam cras lobortis facilisi eget consectetur. Libero felis aptent auctor sociosqu vel cubilia porta volutpat.  
+We used the four clusters to understand how school practices have changed between 2019 and 2024. Our findings come from a combination of simple counts, statistical models (for example, logistic regression), and additional checks to ensure the robustness of our results. We analyzed survey data from the 119 Canopy schools that responded in at least three different years between 2019 and 2024 (note: no survey was conducted in 2020). By using repeated survey responses we were able to track changes within individual schools as well as broader trends across all schools in the Canopy project.  
 
-Ipsum inceptos velit libero aliquet fusce nibh. Arcu diam aliquet ex ex porttitor himenaeos lacus. Dapibus et libero ultricies feugiat; torquent pellentesque et nam. Himenaeos magnis feugiat suscipit ornare class. Ad maecenas congue metus vitae risus. Ad lacinia inceptos varius quis sodales vulputate magnis metus. Ultricies aenean facilisis sit fames felis posuere eget. Facilisis sollicitudin id magna imperdiet est fermentum iaculis vivamus. Mauris facilisi vel eleifend tincidunt augue interdum.  
+To ensure our findings were reliable, we also ran the analysis on two additional samples: a larger group of schools with at least two years of survey data, and a smaller group of schools with data from all five years. Across these samples, the overall trends remained consistent, adding confidence to our results.  
+
+In the sections below, when we say schools are implementing “new” practices, we mean that the school leader initially didn’t report using the practice in one survey, and then began reporting it in a later survey. Follow-up interviews confirmed that many schools actually started or stopped implementing these practices over the study period. Our analysis showed that schools’ responses remained stable over time, except in 2021 when many reported rapid changes due to the shift to hybrid or online instruction during the Covid-19 pandemic. Despite the limitations of self-reporting, there is reason to believe that the Canopy surveys reliably reflect how school practices have changed over time.  
+
+---
+<br>
+
+# Educational justice and holistic student support  
+
+In schools that implement practices in the Educational Justice and Holistic Student Supports theme, staff ensure that students grow socially and emotionally, not just academically. Students see their identities and backgrounds reflected in what they learn, and they’re given resources and support according to their needs. Their teachers design curriculum and instruction to make sure that students who have been marginalized develop independence as learners.  
+
+Over time, Canopy schools increasingly reported most of the practices in this theme. The greatest rate of adoption for many of these practices was at the height of the pandemic, coinciding with a period of intensified national focus on racial and social justice following widespread protests against systemic racism and police brutality. Since then, adoption has slowed in most cases. And two related practices that we first introduced to the dataset in 2021, “social justice focus” and “antiracist practices,” have been reported at consistent rates without any notable growth.  
+
+It’s likely we’ll continue to see schools adopting new practices in the Educational Justice and Holistic Student Supports theme: when we asked school leaders about up to five new practices they want to pilot in the next five years, some of the most common responses showed that leaders are interested in assessing students’ social and emotional learning and adopting more culturally responsive, trauma-informed instructional approaches. And leaders are interested in piloting these practices even if they don’t have much prior experience: using a predictive model, we found that the schools most likely to pilot Educational Justice practices in the future were those that had reported few or even zero existing practices from this theme.  
+
+<div class="method-note">
+The interactive charts in this section show the percentage of schools with at least three years of data (on the y-axis) on the implementation of practices in each theme over time (with survey years shown on the x-axis). Each blue line represents a different practice. You can hover over a specific line to highlight that practice’s trajectory, and hover over a dot to see how frequently it was reported by school leaders in a specific year.
+</div>
+
 
 ```{r data prep}
 # start by creating cluster subsets
@@ -84,6 +111,7 @@ postsecondary <- cluster %>%
   select(label = tag) %>% 
   left_join(labels, by = "label") %>% 
   pull(var)
+blended <- c("practices_blended_learning", "practices_a_la_carte", "practices_flipped_classroom", "practices_flex", "practices_enriched_virtual", "practices_station_rotation")
 #set up repeating schools - 3+ years
 repeaters_3 <- dat %>% 
   select(school_id, year) %>% 
@@ -131,10 +159,13 @@ prep_overall <- function(data, cluster, group, total){
 ```{r branding & plot prep}
 ### PLOT FUNCTIONS ###
 #theme function - could not load branding file
-transcend_cols = c("#1A4C81","#59C3B4","#EF464B","#ADE0EE")
-theme_transcend = theme_gdocs(base_size = 14, base_family = "Open Sans") +
+crpe_blues = c("#0178BA", "#62A3D0", "#A1C9E6")
+crpe_oranges = c("#E38C34", "#F5C37D", "#F5C37D")
+crpe_grays = c("#D9D9D9", "#E6E6E6", "#F2F2F2")
+crpe_purples = c("#9467BD", "#B08CD3", "#C8B3E2")
+theme_crpe = theme_gdocs(base_size = 14, base_family = "Open Sans") +
   theme(
-    plot.title = element_text(family = "Bebas Neue", color = "black"),
+    plot.title = element_text(family = "Helvetica Bold", color = "black"),
     plot.background = element_blank(),
     axis.text = element_text(colour = "black"),
     axis.title = element_text(colour = "black"),
@@ -144,14 +175,14 @@ theme_transcend = theme_gdocs(base_size = 14, base_family = "Open Sans") +
   )
 cluster_plot_within <- function(data, facet) { 
   plot <- ggplot(data, aes_string(x = "year", y = "n")) + 
-    geom_line(aes(group = label), color = "gray", alpha = 0.5) + 
-    geom_point(aes(group = label), color = "gray", alpha = 0.5, size = 1) + 
-    geom_smooth(se = FALSE, method = "lm", color = "cornflowerblue", aes(group = 1)) + 
+    geom_line(aes(group = label), color = crpe_blues[1], alpha = 0.5) + 
+    geom_point(aes(group = label), color = crpe_blues[1], alpha = 0.5, size = 1) + 
+    geom_smooth(se = FALSE, method = "lm", color = crpe_blues[1], aes(group = 1)) + 
     theme_bw() +
     scale_x_continuous(name = "Year", expand = expansion(mult = c(.025, .3))) +
     theme(panel.grid.major.x = element_blank(), panel.grid.minor.x = element_blank(), legend.position = "none") +
     facet_wrap(as.formula(paste0("~", facet))) +
-    theme_transcend
+    theme_crpe
 
   return(plot)
 }
@@ -165,7 +196,7 @@ fancy_across <- function(data, title){
         y = ~pct, 
         type = 'scatter', 
         mode = 'lines+markers', 
-        color = I(transcend_cols[1]),
+        color = I(crpe_blues[1]),
         marker = list(size = 5),
         text = ~label,
         hoverinfo = 'text+y',
@@ -177,7 +208,7 @@ fancy_across <- function(data, title){
     layout(
       title = list(
         text = title,
-        font = list(size = 25, color = "black", family = "Bebas Neue"),
+        font = list(size = 22, color = "black", family = "Helvetica", weight = "bold"),
         x = 0,
         xanchor = "left"
       ),
@@ -207,7 +238,7 @@ fancy_across <- function(data, title){
     plot,
       on = "plotly_hover",
       off = "plotly_doubleclick",
-      color = toRGB(transcend_cols[3]),  # Highlight color for the hovered line
+      color = toRGB(crpe_oranges[1]),  # Highlight color for the hovered line
       opacityDim = .7,              # Dim other lines when a line is highlighted
       persistent = FALSE,
     )
@@ -219,229 +250,86 @@ fancy_across <- function(data, title){
 
 ```{r plot}
 justice_dat <- prep_overall(dat, ed_justice, repeaters_3, tots_3)
-fancy_across(justice_dat, "Figure 1. How Educational Justice practices in schools are growing over time")
+fancy_across(justice_dat, str_wrap("Figure 1. Changes in Practices Related to Educational Justice 2019\u20132024", 65))
 ```
+***
+<br>
 
-### Deeper learning for mastery
+# Deeper learning for mastery
 
-Lorem ipsum odor amet, consectetuer adipiscing elit. Conubia class mauris cursus eros euismod primis purus congue. Hac iaculis adipiscing fames vel mattis nam mattis. Ac duis ad semper facilisis dictumst. Ridiculus lobortis mollis; aliquam viverra varius cras. Fermentum faucibus nostra quam cursus facilisi. Duis eros senectus posuere ridiculus rhoncus at aliquet aptent.  
+In schools that implement practices in this theme, students learn through inquiry and problem-solving, and show their skills and knowledge through performance assessments rather than traditional tests. Instead of earning credit for learning by finishing a time-based course and getting a passing grade, they earn credit by demonstrating that they’ve mastered specific skills or content.  
 
-Nisi lacinia semper volutpat laoreet penatibus libero venenatis. Feugiat vulputate inceptos fusce vitae ullamcorper ullamcorper? Interdum hendrerit vivamus gravida efficitur inceptos fermentum. Ultricies feugiat sapien proin dictum, faucibus semper potenti. Ac condimentum facilisi taciti semper sem; eu maximus torquent. Leo proin torquent dolor fermentum augue ex fermentum fusce? Justo blandit facilisis; posuere fringilla lacinia morbi. Justo a dapibus sodales ipsum quam natoque pretium dignissim.  
+Schools rarely added these practices during the pandemic, but added them more often after most schools returned to in-person learning. For instance, “performance-based assessment,” in which students demonstrate their learning through methods other than traditional tests, was relatively constant from 2019 through 2021, going from 67% of schools implementing it to 65%, before jumping to 78% of schools implementing it by 2024.  
 
-Eget quisque praesent risus a sed nam parturient enim. Lectus aptent porttitor dapibus lacinia magnis potenti, ultricies dictum. Netus litora mi aptent ligula, morbi nascetur consectetur in tempor. Dignissim felis hac penatibus nullam inceptos per suspendisse rhoncus. Enim libero sit lobortis lacinia feugiat urna. Sem dapibus auctor dapibus ultrices quam. Tincidunt sapien dis tortor pellentesque hac netus sollicitudin hac vehicula. Sed potenti pretium pulvinar interdum, volutpat lacus libero. Phasellus ultricies at inceptos convallis luctus lacus faucibus fames.  
+It’s likely we’ll continue to see schools adopting new practices like these: when we asked school leaders about up to five new practices they want to pilot in the next five years, some of the most common responses showed that leaders are interested in assessing students’ deeper learning, agency, and self-directed learning skills, and encouraging students to plan and lead conversations with teachers about their own learning (rather than traditional parent-teacher conferences). Using a predictive model, we found that schools most likely to want to pilot practices in the Deeper Learning for Mastery theme were schools that already implemented some practices in this theme. Future interest in these practices was most likely among schools that were neither starting from zero, nor already implementing most of these practices.  
 
-Tristique curae semper auctor facilisi lectus in fermentum. Natoque venenatis donec sodales sapien primis quisque finibus. Tellus pulvinar duis viverra dui lobortis. Potenti luctus risus varius ultricies et vitae imperdiet. Praesent vitae porttitor porttitor pretium bibendum lorem ad. Orci facilisis nisl sollicitudin aliquam proin libero porta. Vel cursus sollicitudin amet ante id. Dolor conubia velit vivamus posuere; morbi cursus aptent eros. Penatibus mus mollis libero cras sociosqu interdum augue.  
 
 ```{r}
 deep <- prep_overall(dat, deeper, repeaters_3, tots_3)
-fancy_across(deep, "Figure 2. Changes in deeper learning cluster 2019-2024")
+fancy_across(deep, str_wrap("Figure 2. Changes in Practices Related to Deeper Learning 2019\u20132024", 65))
 ```
+***
+<br>
 
-### Postsecondary pathways and the world outside school
+# Postsecondary pathways and the world outside school
 
-Lorem ipsum odor amet, consectetuer adipiscing elit. Quis at eu platea praesent dictum varius convallis vehicula. Montes dolor mattis pellentesque blandit magnis pretium ad. Eros praesent habitant tempor aenean posuere at primis leo. Urna gravida volutpat etiam tristique quis? Mattis imperdiet facilisi curabitur velit ut mattis aliquam. Dictum semper convallis volutpat convallis sollicitudin blandit per laoreet dui. Sem fringilla curabitur posuere sodales fusce finibus. Iaculis egestas senectus molestie vehicula gravida in pulvinar.  
+In schools that implement practices in this theme, students participate in learning beyond the traditional classroom. These practices can include work-based learning, such as internships or apprenticeships; the school encourages and guides them through career exploration. Students can often begin earning college credit in high school through early college models, and students of all ages can receive credit for learning experiences outside traditional classrooms.  
 
-Ut nostra taciti senectus eu fringilla. Viverra malesuada sagittis sit tellus inceptos neque. Pellentesque euismod viverra quis luctus; dapibus nascetur sodales! Per parturient sit taciti tortor bibendum facilisis. Suspendisse vulputate magnis rutrum imperdiet dolor. Accumsan feugiat donec auctor egestas enim. Taciti malesuada dis quam tempus taciti potenti ligula posuere massa. Lectus vel ex sapien nec tortor tortor netus eleifend id. Vestibulum risus auctor vivamus consectetur vivamus aenean dignissim pellentesque volutpat. Efficitur conubia laoreet aliquet ullamcorper morbi ullamcorper.  
+Schools have been adopting most of these practices steadily, including during the pandemic. Interviews with leaders underscored the idea that they’ve prioritized strengthening postsecondary pathways and connecting learning to the real world steadily throughout recent years, not necessarily either spurred on or held back by pandemic disruptions.  
 
-Praesent iaculis vel consectetur montes auctor luctus himenaeos. Mauris maximus malesuada bibendum odio finibus venenatis. Viverra tempor sem tincidunt eros sollicitudin. Nunc integer metus tempor consequat; fusce integer. Laoreet id cubilia fames mattis metus malesuada penatibus interdum. Nulla mi magnis vitae sapien facilisis molestie curae. Duis urna venenatis inceptos; dictumst ipsum montes placerat.  
+It’s likely we’ll continue to see schools adopting new practices in the Postsecondary Pathways and the World Outside School theme: when we asked school leaders about up to five new practices they want to pilot in the next five years, some of the most common responses showed that leaders are interested in helping students earn industry-recognized credentials and get college credit in high school through early college programs. And leaders are interested in piloting these practices even if they don’t have much prior experience: using a predictive model, we found that the schools most likely to pilot Postsecondary Pathways practices in the future were those that had reported few or even zero existing practices from this theme.  
 
 ```{r}
 post_dat <- prep_overall(dat, postsecondary, repeaters_3, tots_3)
-fancy_across(post_dat, "Changes in postsecondary pathways cluster 2019-2024")
+fancy_across(post_dat, str_wrap("Figure 3. Changes in Practices Related to Postsecondary Pathways 2019\u20132024", 65))
 ```
+***
+<br>
 
-### Individualized and blended learning
+# Individualized and blended learning
 
-Ut nostra taciti senectus eu fringilla. Viverra malesuada sagittis sit tellus inceptos neque. Pellentesque euismod viverra quis luctus; dapibus nascetur sodales! Per parturient sit taciti tortor bibendum facilisis. Suspendisse vulputate magnis rutrum imperdiet dolor. Accumsan feugiat donec auctor egestas enim. Taciti malesuada dis quam tempus taciti potenti ligula posuere massa. Lectus vel ex sapien nec tortor tortor netus eleifend id. Vestibulum risus auctor vivamus consectetur vivamus aenean dignissim pellentesque volutpat. Efficitur conubia laoreet aliquet ullamcorper morbi ullamcorper.  
+In schools that implement practices related to this theme, students pursue their studies partly through online learning and partly in-person. They move through learning activities at their own pace, advance when they’re ready, and access data about their own progress from across multiple learning platforms.  
 
-Praesent iaculis vel consectetur montes auctor luctus himenaeos. Mauris maximus malesuada bibendum odio finibus venenatis. Viverra tempor sem tincidunt eros sollicitudin. Nunc integer metus tempor consequat; fusce integer. Laoreet id cubilia fames mattis metus malesuada penatibus interdum. Nulla mi magnis vitae sapien facilisis molestie curae. Duis urna venenatis inceptos; dictumst ipsum montes placerat.  
+When we analyzed trends over time for practices in the Individualized and Blended Learning theme, we noticed an interesting pattern. The overall trend line for this theme is fairly flat, suggesting at a glance that schools are neither adopting nor ceasing to implement these practices in big numbers. But a closer look at the practices themselves shows that the trend line doesn’t do a good job representing how schools are reporting these practices over time. Schools are steadily and slowly adopting some practices over time, such as providing accommodations to all students regardless of IEP status (from 64% to 83% of schools). But they are reporting others—specifically, those related to blended learning—less often over time (see figure below).  
 
 ```{r}
 ind_dat <- prep_overall(dat, individualized, repeaters_3, tots_3)
-fancy_across(ind_dat, "Changes in individualized learning cluster 2019-2024")
-```
-
-Lorem ipsum odor amet, consectetuer adipiscing elit. Quis at eu platea praesent dictum varius convallis vehicula. Montes dolor mattis pellentesque blandit magnis pretium ad. Eros praesent habitant tempor aenean posuere at primis leo. Urna gravida volutpat etiam tristique quis? Mattis imperdiet facilisi curabitur velit ut mattis aliquam. Dictum semper convallis volutpat convallis sollicitudin blandit per laoreet dui. Sem fringilla curabitur posuere sodales fusce finibus. Iaculis egestas senectus molestie vehicula gravida in pulvinar.    
-
->**An important methodological note:** In 2023, we restructured how blended learning practices are displayed in the survey. Instead of displaying “blended learning” and the five models side by side, which we had done in the 2019-2022 surveys, we showed respondents the “blended learning” practice first, then asked a follow-up question about the five models only to respondents who reported implementing blended learning. (Since the models are all ways of implementing blended learning, we decided to “nest” them underneath blended learning in this way.) We carefully considered whether this structural change in the survey could explain the decreased reporting of blended learning models in 2023. To check for this, we analyzed individual responses from schools that responded to the survey in 2023 (when we made the change), as well as in prior years, to see if their 2023 responses were notably different from past surveys. We did not find notable reporting differences among repeat-responder schools, which convinced us that the change to the survey structure did not contribute significantly to the changes we observed in schools’ survey responses. Furthermore, we made the same structural change in the survey with two other groups of practices (co-leadership and alternative and non-traditional assessments), and did not see uniform declines in schools reporting those practices the way we did with blended learning models. We concluded that the declines in blended learning models do likely have a basis in reality — in other words, the declines we saw in schools reporting blended learning models likely represent what schools are actually implementing.
-
-## B. Pandemic interruptions to schools' reported practices
-
-Lorem ipsum odor amet, consectetuer adipiscing elit. Cras dictum diam montes consequat tellus ad. Varius sem nibh commodo, ultricies consectetur nisi maecenas taciti non. Lobortis tempus lectus nunc porttitor, nostra praesent natoque sollicitudin. Finibus tristique interdum sapien litora sociosqu mus nisi. Fermentum fames montes pretium sed duis per. Urna felis eleifend efficitur eget bibendum curabitur. Ultrices magnis rhoncus torquent a donec inceptos gravida commodo.  
-
-Quam consequat pharetra penatibus molestie dapibus elit fusce dolor arcu! Nec natoque vel primis maximus feugiat elit. Curae efficitur adipiscing vel, faucibus vehicula libero ultricies. Libero ullamcorper semper non vehicula lectus sit duis porta. Vestibulum purus ante phasellus etiam himenaeos conubia donec primis. Elit venenatis tristique himenaeos dignissim condimentum duis in scelerisque. Nullam vulputate pellentesque lorem lectus lorem elit velit nascetur.  
-
-Sem est enim ex urna suspendisse rutrum. Est nulla congue eleifend donec integer phasellus posuere euismod. Luctus euismod ac magna ullamcorper phasellus penatibus lectus varius. Natoque fusce quam placerat interdum habitant orci id. Massa suspendisse etiam vitae habitant lacinia congue tempor? Quis proin litora fermentum in viverra nunc dapibus accumsan. Per curae tempus elementum pretium suscipit curae lacus. Fringilla ornare maecenas sit volutpat magnis lorem nec.  
-
-```{r}
-# Pulled from Gregor's code and modified - schools-practices-over-time
-# Run model
-wide <- import(here("data", "longitudinal/tags-wide.csv"))
-volatility_data = 
-  wide |>
-  filter(n() > 1, .by = school_id) |>
-  arrange(school_id, year) |>
-  mutate(
-    i_seq = row_number(),
-    transition = case_when(
-      i_seq == 1 ~ NA_character_,
-      lag(year) >= 2022 ~ 'post_covid',
-      year == 2021 ~ 'to_covid',
-      lag(year) == 2021 ~ 'from_covid',
-      year > 2021 & lag(year) == 2019 ~ 'skip_covid',
-      .default = "PROBLEM"
-    ),
-    across(
-      .cols = starts_with("practices"),
-      \(x) c(0, abs(diff(x))) 
-      # ^^^
-      # take absolute difference from prev row
-      # stick 0 on the front for first row
-      # NAs (when tags weren't in use) will stay as NAs
-    ),
-    n_changes = rowSums(across(.cols = starts_with("practices")), na.rm = TRUE),
-    .by = school_id
-  ) |>
-  filter(i_seq > 1) |> 
-  select(!starts_with("practices"))
-
-add_only_volatility = 
-  wide |>
-  filter(n() > 1, .by = school_id) |>
-  arrange(school_id, year) |>
-  mutate(
-    i_seq = row_number(),
-    transition = case_when(
-      i_seq == 1 ~ NA_character_,
-      lag(year) >= 2022 ~ 'post_covid',
-      year == 2021 ~ 'to_covid',
-      lag(year) == 2021 ~ 'from_covid',
-      year > 2021 & lag(year) == 2019 ~ 'skip_covid',
-      .default = "PROBLEM"
-    ),
-    across(
-      .cols = starts_with("practices"),
-      \(x) c(0, pmax(diff(x), 0)) 
-      # ^^^
-      # pmax instead of abs value to count only adds
-      # NAs (when tags weren't in use) will stay as NAs
-    ),
-    n_changes = rowSums(across(.cols = starts_with("practices")), na.rm = TRUE),
-    .by = school_id
-  ) |>
-  filter(i_seq > 1) |> 
-  select(!starts_with("practices"))
-## get demographics
-xx = read_csv(here("data/longitudinal/combined-dat-ip.csv"))
-xx = xx |>
-  mutate(
-    stu_poc_pct = 1 - self_reported_race_white,
-  ) |>
-  select(
-    school_id,
-    year = panel_year, 
-    total_enroll = self_reported_total_enrollment,
-    stu_poc_pct,
-    locale, 
-    school_descriptor,
-    starts_with("grades")
-  ) |>
-  mutate(
-    enroll_scaled = (total_enroll - mean(total_enroll, na.rm = TRUE)) / 
-      sd(total_enroll, na.rm = TRUE),
-    stu_poc_pct_scaled = (stu_poc_pct - mean(stu_poc_pct, na.rm = TRUE)) /
-      sd(stu_poc_pct, na.rm = TRUE),
-    locale = relevel(factor(locale), ref = "Urban"),
-    school_descriptor = factor(
-      school_descriptor,
-      levels = c(1, 2, 3),
-      labels = c("District", "Charter", "Private")
-    ) 
-  )
-
-mm_vol = left_join(volatility_data, xx, by = c("school_id", "year"))
-mm_add = left_join(add_only_volatility, xx, by = c("school_id", "year"))
-
-mm_vol = mm_vol |>
-  mutate(transition = relevel(factor(transition), ref = "post_covid"))
-mm_add = mm_add |>
-  mutate(transition = relevel(factor(transition), ref = "post_covid"))
-
-
-missing_count =  mm_vol |> 
-  is.na() |> 
-  colSums() |> 
-  sort(decreasing = TRUE) |> 
-  data.frame(n_missing = _)
-vol_mod = lm(
-  n_changes ~ transition + stu_poc_pct_scaled + enroll_scaled + locale + school_descriptor +
-     grades_elementary + grades_middle + grades_high,
-  data = mm_vol
-)
+fancy_across(ind_dat, str_wrap("Figure 4. Changes in Practices Related to Individualized Learning 2019\u20132024", 65))
+#need to add blended learning
 ```
 
 ```{r}
-# Extract coeffs
-vol_coef = broom::tidy(vol_mod) |>
-  arrange(desc(estimate)) |>
-  mutate(term = fct_inorder(term),
-         term = case_when(
-           term == "transitionskip_covid" ~ "Excluding COVID",
-           term == "transitionto_covid" ~ "Transition to COVID",
-           term == "(Intercept)" ~ "Baseline",
-           term == "transitionfrom_covid" ~ "Transition from COVID",
-           term == "localeRural" ~ "Rural",
-           term == "grades_elementary" ~ "Elementary schools",
-           term == "localeMultiple" ~ "Multiple geographic locales",
-           term == "enroll_scaled" ~ "Enrollment size",
-           term == "school_descriptorPrivate" ~ "Private (independent) school",
-           term == "school_descriptorCharter" ~ "Public charter school",
-           term == "stu_poc_pct_scaled" ~ "% BIPOC students",
-           term == "localeSuburban" ~ "Suburban",
-           term == "grades_high" ~ "High schools",
-           term == "grades_middle" ~ "Middle schools"
-         )) 
+blend_dat <- prep_overall(dat, blended, repeaters_3, tots_3)
+fancy_across(blend_dat, str_wrap("Figure 5. Changes in Select Practices Related to Blended Learning 2019\u20132024", 65))
 ```
 
-```{r}
-# Pull baseline to center in plot
-intercept <- vol_coef %>% filter(term == "Baseline") %>% pull(estimate)
-# Adjust coefficients around baseline
-plot_dat <- vol_coef %>% 
-  mutate(
-    deviation = estimate - intercept,
-    sig = ifelse(p.value < .05, "yes", "no")
-  ) %>% 
-  filter(term != "Baseline")
-# Build plot
-ggplot(plot_dat, aes(y = reorder(term, -estimate), x = deviation, fill = sig)) +
-  geom_bar(stat = "identity") +
-  scale_fill_manual(values = c(
-    "no" = transcend_na,
-    "yes" = transcend_cols[1]
-  )) +
-  scale_x_continuous(limits = c(-8, 10), expand = expansion()) +
-  labs(
-    x = "Estimated number of practices added or dropped",
-    y = "",
-    title = str_wrap("Estimated effect on number of practices modified by schools between survey responses", 45),
-    subtitle = str_wrap("Bars in blue indicate a statistically significant relationship. The baseline is set at 0.", 65)
-  ) +
-  theme(
-    panel.grid.major.y = element_blank(),
-    legend.position= "none",
-    axis.text.x = element_text(size = 10),
-    axis.text.y = element_text(size = 8),
-    plot.title = element_text(size = 20),
-    plot.subtitle = element_text(size = 12),
-    axis.title.x = element_text(size = 12)
-  ) 
+
+A closer look at the trends over time for blended learning models is what led us to present the analysis about blended learning in Part 2 of our report, where we argue that the pandemic may have been a watershed moment for blended learning and that since then blended learning may be receding, or at least evolving.  
+
+Peeking into what Canopy schools anticipate in the future, our survey data doesn’t suggest increased future interest in blended learning. When we asked school leaders about practices they plan to pilot in the future, very few schools planned to pilot blended learning practices. The one exception was the “à la carte model” for blended learning: eight schools hoped to pilot online courses that students take with an online teacher in addition to other face-to-face courses at school. And using a predictive model, we found that schools were actually less likely to want to pilot practices in the Individualized and Blended Learning theme if they didn’t already have some practices from this theme in place. Even those that already implemented some practices were only moderately more likely to want to pilot more.  
+
+<div class = "method-note">
+**An important methodological note:** In 2023, we restructured how blended learning practices are displayed in the survey. Instead of displaying “blended learning” and the five models side by side, which we had done in the 2019-2022 surveys, we showed respondents the “blended learning” practice first, then asked a follow-up question about the five models only to respondents who reported implementing blended learning. (Since the models are all ways of implementing blended learning, we decided to “nest” them underneath blended learning in this way.) We carefully considered whether this structural change in the survey could explain the decreased reporting of blended learning models in 2023. To check for this, we analyzed individual responses from schools that responded to the survey in 2023 (when we made the change), as well as in prior years, to see if their 2023 responses were notably different from past surveys. We did not find notable reporting differences among repeat-responder schools, which convinced us that the change to the survey structure did not contribute significantly to the changes we observed in schools’ survey responses. Furthermore, we made the same structural change in the survey with two other groups of practices (co-leadership and alternative and non-traditional assessments), and did not see uniform declines in schools reporting those practices the way we did with blended learning models. We concluded that the declines in blended learning models do likely have a basis in reality — in other words, the declines we saw in schools reporting blended learning models likely represent what schools are actually implementing.
+</div>
+***
+<br>
+
+# Pandemic interruptions to schools' reported practices
+
+Across the years of Canopy surveys, on average, schools added about three new practices annually, which suggested a relatively steady pace of evolution in the school-wide practices they adopted. But there were variations, so we set out to understand whether certain school characteristics were associated with faster or slower adoption of new practices over time. For example, we wondered if smaller schools might be adopting new practices at a faster rate thano larger schools, or if charter schools were adopting practices faster than traditional district schools.  
+
+To understand this, we analyzed data using models that tracked repeated responses from schools over time. This approach allowed us to explore whether certain school characteristics—such as type (elementary, middle, high), location (rural, urban, suburban), governance (district, charter, independent), school size, or student racial diversity—made a difference in how many practices schools added or dropped. What we found was that these school-level characteristics didn’t significantly affect the rate of change. Rural schools were slightly more likely to drop practices each year compared to urban schools, but the difference was small. In general, all schools evolved at similar rates.  
+
+However, when we factored the Covid years into our model, we saw that the impact of Covid was much stronger than any other factor in predicting whether schools would add or drop practices. The pandemic acted as a unique force, pushing schools to make more substantial adjustments to their practices than they typically would. This finding highlights Covid as the strongest driver of change in school practices, over and above any other characteristics we included in our model.  
+
+```{r, echo=FALSE, out.width="80%", out.height="auto"}
+knitr::include_graphics(here("output/report-figures/png", "figure_17.png"))
 ```
 
-Praesent iaculis vel consectetur montes auctor luctus himenaeos. Mauris maximus malesuada bibendum odio finibus venenatis. Viverra tempor sem tincidunt eros sollicitudin. Nunc integer metus tempor consequat; fusce integer. Laoreet id cubilia fames mattis metus malesuada penatibus interdum. Nulla mi magnis vitae sapien facilisis molestie curae. Duis urna venenatis inceptos; dictumst ipsum montes placerat.  
+As we looked deeper into Covid’s effects, we noticed a pattern we call “switchbacks.” Switchbacks happened when schools reported using a practice one year, then stopped it, only to bring it back later (i.e., a ***dip***). It could also happen the other way: a school might start a new practice, then drop it in a following year (i.e., a ***bump***). This back-and-forth was especially high during the 2020–21 school year, with switchbacks happening over three times more often than in later years. Normally, schools are slightly more likely to temporarily try new practices (“bumps”) than to stop existing ones, but in 2020–21, they were more likely to pause current practices (“dips”).  
 
-```{r, echo=FALSE}
-knitr::include_graphics(here("output/janette-images", "figure_20.png"))
+```{r, echo=FALSE, out.width="80%", out.height="auto"}
+knitr::include_graphics(here("output/report-figures/png", "figure_19.png"))
 ```
 
-Lorem ipsum odor amet, consectetuer adipiscing elit. Dis ipsum dapibus varius enim efficitur sapien bibendum dui porta. Metus fames nisl penatibus feugiat id litora fames. Consectetur facilisis porta nunc mi potenti, nascetur proin. Lorem vitae natoque, facilisis nisi nulla facilisis vel curabitur? Tellus dis senectus erat praesent penatibus vel mauris quis aptent. Etiam egestas magna sagittis nibh habitant sed.
+The type of practices that experienced bumps and dips during Covid shed light on how schools tried to support students through school disruptions. Many schools temporarily added blended learning methods, such as virtual classrooms and flipped or flexible models, to reach students online. These same practices, however, were also among the ones most often paused. The largest temporary drop was in student-led goal setting, which may have been challenging to maintain in remote or hybrid setups for schools unfamiliar with navigating multiple modalities.  
